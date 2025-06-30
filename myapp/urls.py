@@ -1,23 +1,22 @@
 from django.urls import path, include
 from rest_framework import routers
 from . import views
-from .api import ProjectViewSet
+from .api import ServicioViewSet, TurnoViewSet
 
-# Creamos el router de DRF
 router = routers.DefaultRouter()
-router.register(r'projects', ProjectViewSet, basename='projects')
+router.register(r'servicios', ServicioViewSet, basename='servicios')
+router.register(r'turnos', TurnoViewSet, basename='turnos')
 
 urlpatterns = [
-    # Tus vistas tradicionales
-    path('', views.index, name="index"),
-    path('about/', views.about, name="about"),
-    path('hello/<str:username>/', views.hello),
-    path('projects/', views.projects, name="projects"),
-    path('projects/<int:id>/', views.project_detail, name="project_detail"),
-    path('tasks/', views.tasks, name="tasks"),
-    path('create_task/', views.create_task, name="create_task"),
-    path('create_project/', views.create_project, name="create_project"),
+    # Vistas del frontend
+    path('', views.index, name='index'),
+    path('about/', views.about, name='about'),
+    path('register/', views.register, name='register'),
+    path('servicio/<int:servicio_id>/', views.servicio_detail, name='servicio_detail'),
 
-    # Vistas REST
+    # Auth (usando las vistas genéricas de Django)
+    path('accounts/', include('django.contrib.auth.urls')),  # login, logout, etc.
+
+    # API REST
     path('api/', include(router.urls)),
 ]

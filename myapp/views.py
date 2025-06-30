@@ -1,48 +1,41 @@
-from django.http import HttpResponse
-from .models import Project, Task
-from django.shortcuts import get_object_or_404, render, redirect
-from .forms import CreateNewTask, CreateNewProject
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib.auth import login
+from .models import Servicio, Turno
+from .forms import CustomUserCreationForm, TurnoForm
+from django.contrib.auth.decorators import login_required
 
-# Create your views here.
 def index(request):
-    title = "Welcome to Django"
-    return render(request, 'index.html',{'title': title})
-
-def hello(request, username):
-    return HttpResponse("<h1>Hello %s</h1>" % username)
+    servicios = Servicio.objects.all()
+    return render(request, 'index.html', {'servicios': servicios})
 
 def about(request):
-    username = "gustavo"
-    return render(request, "about.html", {"username":username})
+    return render(request, 'about.html')
 
-def projects(request):
-    #projects = list(Project.objects.values())
-    projects = Project.objects.all()
-    return render(request, "projects/projects.html", {'projects': projects})
-
-def tasks(request):
-    #task = get_list_or_404(Task, id=id)
-    tasks = Task.objects.all()
-    return render(request,"tasks/tasks.html",{'tasks': tasks})
-
-def create_task(request):
-    if request.method == 'GET' :
-        return render(request , 'tasks/create_task.html',{'form':CreateNewTask()})
+def register(request):
+    if request.method == 'POST':
+        form = CustomUserCreationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            login(request, user)
+            return redirect('index')
     else:
-        Task.objects.create(title=request.POST['title'],description=request.POST['description'],project_id = 2)
-        return redirect('tasks')
-    
-def create_project(request):
-    if request.method == 'GET':
-        return render(request , 'projects/create_project.html',{'form': CreateNewProject()})
+        form = CustomUserCreationForm()
+    return render(request, 'register.html', {'form': form})
+
+@login_required
+def servicio_detail(request, servicio_id):
+    servicio = get_object_or_404(Servicio, id=servicio_id)
+    if request.method == 'POST':
+        form = TurnoForm(request.POST)
+        if form.is_valid():
+            turno = form.save(commit=False)
+            turno.servicio = servicio
+            turno.usuario = request.user
+            turno.save()
+            return redirect('index')
     else:
-        Project.objects.create(name=request.POST["name"])
-        return redirect('projects')
-        
-def project_detail(request, id):
-    project = get_object_or_404(Project, id=id)
-    tasks = Task.objects.filter(project_id = id)
-    return render(request , 'projects/detail.html',{
-        'project': project,
-        'tasks' : tasks
+        form = TurnoForm()
+    return render(request, 'servicio_detail.html', {
+        'servicio': servicio,
+        'form': form
     })

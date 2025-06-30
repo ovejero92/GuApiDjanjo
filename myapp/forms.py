@@ -1,8 +1,20 @@
 from django import forms
+from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.models import User
+from .models import Turno
 
-class CreateNewTask(forms.Form):
-    title = forms.CharField(label="Titulo de tarea", max_length=200 , widget=forms.TextInput(attrs={'class':'input'}))
-    description = forms.CharField(label="Descripcion de la tera" ,widget=forms.Textarea(attrs={'class':'input'}))
+class TurnoForm(forms.ModelForm):
+    class Meta:
+        model = Turno
+        fields = ['fecha', 'hora']
+        widgets = {
+            'fecha': forms.DateInput(attrs={'type': 'date'}),
+            'hora': forms.TimeInput(attrs={'type': 'time'}),
+        }
 
-class CreateNewProject(forms.Form):
-    name = forms.CharField(label="Nombre del proyecto", max_length=200,widget=forms.TextInput(attrs={'class':'input'}))
+class CustomUserCreationForm(UserCreationForm):
+    email = forms.EmailField(required=True)
+
+    class Meta:
+        model = User
+        fields = ('username', 'email', 'password1', 'password2')

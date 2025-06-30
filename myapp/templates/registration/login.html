@@ -1,0 +1,16 @@
+{% extends 'layouts/navbar.html' %}
+
+{% block content %}
+<h1>Iniciar sesión</h1>
+
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+
+    {% if form.errors %}
+        <p style="color: red;">Usuario o contraseña incorrectos.</p>
+    {% endif %}
+
+    <button type="submit">Ingresar</button>
+</form>
+{% endblock %}

@@ -1,0 +1,15 @@
+{% extends 'layouts/navbar.html' %}
+{% block content %}
+<h1>{{ servicio.nombre }}</h1>
+<p>{{ servicio.descripcion }}</p>
+<p>Dirección: {{ servicio.direccion }}</p>
+<p>Precio: ${{ servicio.precio_estandar }}</p>
+<p>Horarios: {{ servicio.horario_apertura }} - {{ servicio.horario_cierre }}</p>
+
+<h3>Reservar turno</h3>
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Reservar</button>
+</form>
+{% endblock %}

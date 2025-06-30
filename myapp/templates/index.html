@@ -1,5 +1,14 @@
 {% extends 'layouts/navbar.html' %}
-
-{% block content%}
-    <h1>{{ title }}</h1>
+{% block content %}
+<h1>Servicios disponibles</h1>
+<ul>
+    {% for servicio in servicios %}
+    <li>
+        <a href="{% url 'servicio_detail' servicio.id %}">{{ servicio.nombre }}</a>
+        - {{ servicio.descripcion }}
+        - Dirección: {{ servicio.direccion }}
+        - Precio: ${{ servicio.precio_estandar }}
+    </li>
+    {% endfor %}
+</ul>
 {% endblock %}

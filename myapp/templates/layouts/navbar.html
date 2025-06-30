@@ -4,27 +4,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Turnos Médicos</title>
     <link rel="stylesheet" href="{% static 'styles/main.css'%}">
 </head>
 <body>
     <nav class="navbar container">
-    <ul>
-        <li><a href="/">Home</a></li>
-        <li><a href="/about">About</a></li>
-        <li><a href="/projects">Projects</a></li>
-        <li><a href="/tasks">Tasks</a></li>
-        <li><a href="/create_task">Create Tasks</a></li>
-        <li><a href="{% url 'create_project' %}">Crear projects</a></li>
+        <ul>
+            <li><a href="{% url 'index' %}">Home</a></li>
+            <li><a href="{% url 'about' %}">About</a></li>
 
-    </ul>
-</nav>
+            {% if user.is_authenticated %}
+                <li>Hola, {{ user.username }}</li>
+                <li><a href="{% url 'logout' %}">Cerrar sesión</a></li>
+            {% else %}
+                <li><a href="{% url 'register' %}">Registrarse</a></li>
+                <li><a href="{% url 'login' %}">Iniciar sesión</a></li>
+            {% endif %}
+        </ul>
+    </nav>
 
-<main class="container">
-    {% block content %}
-    {% endblock %}
-</main>
-
-
+    <main class="container">
+        {% block content %}
+        {% endblock %}
+    </main>
 </body>
 </html>

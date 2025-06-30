@@ -1,8 +1,15 @@
 from rest_framework import serializers
-from .models import Project
+from .models import Servicio, Turno
+from django.contrib.auth.models import User
 
-class ProjectSerializer(serializers.ModelSerializer):
+class ServicioSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Project
-        fields = ('id','title','description','technology','created_at')
-        read_only_fields = ('created_at',)
+        model = Servicio
+        fields = '__all__'
+
+class TurnoSerializer(serializers.ModelSerializer):
+    cliente_username = serializers.CharField(source='cliente.username', read_only=True)
+
+    class Meta:
+        model = Turno
+        fields = ['id', 'cliente', 'cliente_username', 'servicio', 'fecha', 'hora', 'estado']
