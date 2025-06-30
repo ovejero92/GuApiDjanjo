@@ -10,3 +10,6 @@ python manage.py collectstatic --noinput
 
 # Apply any outstanding database migrations
 python manage.py migrate
+
+# 👇 CREA EL SUPERUSUARIO
+python create_superuser.py
