@@ -26,7 +26,8 @@ SECRET_KEY = os.environ.get('SECRET_KEY',default='your secret key')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 # DEBUG = 'RENDER' not in os.environ
-DEBUG = os.environ.get('DEBUG', 'False').lower() in ('true', '1', 't')
+#DEBUG = os.environ.get('DEBUG', 'False').lower() in ('true', '1', 't')
+DEBUG = True
 
 ALLOWED_HOSTS = ['guapidjanjo.onrender.com', 'localhost', '127.0.0.1']
 

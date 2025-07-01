@@ -8,8 +8,8 @@ class ServicioSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class TurnoSerializer(serializers.ModelSerializer):
-    cliente_username = serializers.CharField(source='cliente.username', read_only=True)
+    usuario_username = serializers.CharField(source='usuario.username', read_only=True)
 
     class Meta:
         model = Turno
-        fields = ['id', 'cliente', 'cliente_username', 'servicio', 'fecha', 'hora', 'estado']
+        fields = ['id', 'usuario', 'usuario_username', 'servicio', 'fecha', 'hora', 'estado']

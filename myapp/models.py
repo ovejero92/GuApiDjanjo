@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
 from datetime import time
 
 class Servicio(models.Model):
@@ -18,9 +19,14 @@ class Turno(models.Model):
     usuario = models.ForeignKey(User, on_delete=models.CASCADE)
     fecha = models.DateField()
     hora = models.TimeField()
+    estado = models.CharField(max_length=20, default='pendiente')
 
     def __str__(self):
         return f"{self.usuario.username} - {self.servicio.nombre} - {self.fecha} {self.hora}"
 
     class Meta:
-        unique_together = ('servicio', 'fecha', 'hora')  # No se pueden superponer turnos
+        unique_together = ('servicio', 'fecha', 'hora')
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
