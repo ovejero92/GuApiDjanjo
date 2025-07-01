@@ -1,14 +1,21 @@
 {% extends 'layouts/navbar.html' %}
 {% block content %}
 <h1>Servicios disponibles</h1>
-<ul>
+<div class="contenedor-servicios">
     {% for servicio in servicios %}
-    <li>
+    <!-- <li>
         <a href="{% url 'servicio_detail' servicio.id %}">{{ servicio.nombre }}</a>
         - {{ servicio.descripcion }}
         - Dirección: {{ servicio.direccion }}
         - Precio: ${{ servicio.precio_estandar }}
-    </li>
+    </li> -->
+    <div class="card-servicio">
+        <h2>{{ servicio.nombre }}</h2>
+        <p>{{ servicio.descripcion }}</p>
+        <p>Dirección: {{ servicio.direccion }}</p>
+        <p>Precio estadar:${{ servicio.precio_estandar }} </p>
+        <button><a href="{% url 'servicio_detail' servicio.id %}">Solicitar turno</a></button>
+    </div>
     {% endfor %}
-</ul>
+</div>
 {% endblock %}

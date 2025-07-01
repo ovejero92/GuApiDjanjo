@@ -43,3 +43,5 @@ def servicio_detail(request, servicio_id):
         'servicio': servicio,
         'form': form
     })
+    
+    
