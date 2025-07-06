@@ -23,6 +23,7 @@ body {
 
 .logo {
     height: 40px;
+    transform: scale(2.5);
 }
 
 .nav-links {
@@ -92,9 +93,14 @@ form {
     padding: 20px;
     border-radius: 10px;
 }
-
+form p {
+    margin: 0;
+    padding: 0;
+}
 form input, form select, form textarea {
     width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
     padding: 10px;
     margin-bottom: 15px;
     border-radius: 5px;
@@ -160,8 +166,21 @@ form button {
 /* MEDIA QUERIES: RESPONSIVE */
 @media (max-width: 768px) {
     .nav-content {
-        flex-direction: column;
+        display: flex;
         align-items: flex-start;
+        position: relative;
+    }
+    .nav-content img{
+        position: absolute;
+        transform: scale(3.5);
+        top: 12px;
+        left: 30px;
+    }
+
+    .nav-content .user-menu{
+        position: absolute;
+        right: 10px;
+        top: 15px;
     }
 
     .nav-links {
@@ -173,6 +192,16 @@ form button {
     .card-servicio {
         width: 90%;
     }
+form p {
+    margin: 0;
+    padding: 0;
+}
+
+form input, form select, form textarea {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+}
 
     .logo {
         height: 35px;
@@ -187,6 +216,16 @@ form button {
     form {
         padding: 15px;
     }
+form p {
+    margin: 0;
+    padding: 0;
+}
+
+form input, form select, form textarea {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+}
 
     .card-servicio h2 {
         font-size: 20px;
