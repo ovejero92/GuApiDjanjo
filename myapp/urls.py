@@ -1,5 +1,6 @@
 from django.urls import path, include
 from rest_framework import routers
+from django.contrib.auth import views as auth_views 
 from . import views
 from .api import ServicioViewSet, TurnoViewSet
 
@@ -8,15 +9,33 @@ router.register(r'servicios', ServicioViewSet, basename='servicios')
 router.register(r'turnos', TurnoViewSet, basename='turnos')
 
 urlpatterns = [
-    # Vistas del frontend
+    # Vistas principales
     path('', views.index, name='index'),
     path('about/', views.about, name='about'),
     path('register/', views.register, name='register'),
     path('servicio/<int:servicio_id>/', views.servicio_detail, name='servicio_detail'),
 
-    # Auth (usando las vistas genéricas de Django)
-    path('accounts/', include('django.contrib.auth.urls')),  # login, logout, etc.
+    # Dashboards
+    path('dashboard/', views.dashboard_propietario, name='dashboard_propietario'),
+    path('mis-turnos/', views.mis_turnos, name='mis_turnos'),
 
+    # ========== INICIO DE LA MODIFICACIÓN ==========
+    # AUTENTICACIÓN: Usamos nuestra CustomLoginView para el login
+    path('accounts/login/', views.CustomLoginView.as_view(), name='login'),
+    
+    # Para el logout, usamos la vista de Django pero le decimos explícitamente a dónde ir.
+    path('accounts/logout/', auth_views.LogoutView.as_view(next_page='index'), name='logout'),
+    # ========== FIN DE LA MODIFICACIÓN ==========
+    
+     # ========== INICIO DE LA MODIFICACIÓN: URLs para gestionar turnos ==========
+    path('turno/confirmar/<int:turno_id>/', views.confirmar_turno, name='confirmar_turno'),
+    path('turno/cancelar/<int:turno_id>/', views.cancelar_turno, name='cancelar_turno'),
+    # ========== FIN DE LA MODIFICACIÓN ==========
+    
     # API REST
     path('api/', include(router.urls)),
+    
+    # ========== INICIO DE LA MODIFICACIÓN ==========
+    path('api/notificaciones/', views.obtener_notificaciones, name='obtener_notificaciones'),
+    # ========== FIN DE LA MODIFICACIÓN ==========
 ]

@@ -1,0 +1,72 @@
+{% extends 'layouts/navbar.html' %}
+
+{% block content %}
+<div class="container">
+    <h1>Mis Turnos</h1>
+    <p>Hola, {{ user.username|title }}. Aquí puedes ver el estado de tus turnos solicitados.</p>
+
+    <div class="dashboard-section">
+        <h2>Próximos Turnos</h2>
+        {% if turnos_futuros %}
+            <table class="turnos-table">
+                <thead>
+                    <tr>
+                        <th>Negocio</th>
+                        <th>Fecha y Hora</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for turno in turnos_futuros %}
+                    <tr>
+                        <td>{{ turno.servicio.nombre }}</td>
+                        <td>{{ turno.fecha|date:"d/m/Y" }} - {{ turno.hora|time:"H:i" }}</td>
+                        <td><span class="estado-{{ turno.estado }}">{{ turno.get_estado_display }}</span></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>No tienes turnos próximos. ¡Busca un servicio y reserva uno!</p>
+        {% endif %}
+    </div>
+
+    <div class="dashboard-section">
+        <h2>Historial de Turnos</h2>
+        {% if turnos_pasados %}
+            <table class="turnos-table">
+                 <thead>
+                    <tr>
+                        <th>Negocio</th>
+                        <th>Fecha y Hora</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for turno in turnos_pasados %}
+                    <tr>
+                        <td>{{ turno.servicio.nombre }}</td>
+                        <td>{{ turno.fecha|date:"d/m/Y" }} - {{ turno.hora|time:"H:i" }}</td>
+                        <td><span class="estado-{{ turno.estado }}">{{ turno.get_estado_display }}</span></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>No tienes turnos en tu historial.</p>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+    /* Puedes mover estos estilos a tu archivo main.css si quieres */
+    .dashboard-section { background-color: #333; padding: 20px; border-radius: 8px; margin-bottom: 25px; }
+    .turnos-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+    .turnos-table th, .turnos-table td { border: 1px solid #555; padding: 10px; text-align: left; }
+    .turnos-table th { background-color: #444; }
+    .estado-pendiente { color: #ffc107; font-weight: bold; }
+    .estado-confirmado { color: #28a745; font-weight: bold; }
+    .estado-cancelado { color: #dc3545; text-decoration: line-through; }
+    .estado-completado { color: #6c757d; }
+</style>
+{% endblock %}

@@ -42,7 +42,23 @@ body {
 .nav-links a:hover {
     color: aqua;
 }
+/* Estilos para el botón de logout para que parezca un enlace del dropdown */
+.logout-button {
+    background: none;
+    border: none;
+    padding: 10px; /* Igual que los 'a' del dropdown */
+    margin: 0;
+    color: black; /* Igual que los 'a' del dropdown */
+    text-align: left;
+    width: 100%;
+    font-family: inherit; /* Hereda la fuente */
+    font-size: inherit; /* Hereda el tamaño de fuente */
+    cursor: pointer;
+}
 
+.logout-button:hover {
+    background: #f0f0f0; /* Igual que el hover de los 'a' */
+}
 .container {
     max-width: 1200px;
     margin: auto;

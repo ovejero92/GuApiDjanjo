@@ -1,15 +1,61 @@
 {% extends 'layouts/navbar.html' %}
-{% block content %}
-<h1>{{ servicio.nombre }}</h1>
-<p>{{ servicio.descripcion }}</p>
-<p>Dirección: {{ servicio.direccion }}</p>
-<p>Precio: ${{ servicio.precio_estandar }}</p>
-<p>Horarios: {{ servicio.horario_apertura }} - {{ servicio.horario_cierre }}</p>
 
-<h3>Reservar turno</h3>
-<form method="post">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Reservar</button>
-</form>
+{% block content %}
+<div class="container">
+    <h1>Solicitar turno para: {{ servicio.nombre }}</h1>
+    <p>{{ servicio.descripcion }}</p>
+    <p>Horario de atención: {{ servicio.horario_apertura|time:"H:i" }} a {{ servicio.horario_cierre|time:"H:i" }}</p>
+
+    <div class="turno-form-container">
+        <form method="post">
+            {% csrf_token %}
+            
+            {% if form.non_field_errors %}
+                <div class="form-error">
+                    {{ form.non_field_errors }}
+                </div>
+            {% endif %}
+
+            {{ form.as_p }}
+            <button type="submit">Solicitar Turno</button>
+        </form>
+    </div>
+
+    <div class="horarios-ocupados">
+        <h3>Horarios ya reservados para hoy ({{ fecha_mostrada|date:"d/m/Y" }}):</h3>
+        {% if horas_ocupadas %}
+            <ul>
+            {% for hora in horas_ocupadas %}
+                <li>{{ hora }}</li>
+            {% endfor %}
+            </ul>
+        {% else %}
+            <p>¡Todos los horarios de hoy están disponibles!</p>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+/* Puedes mover esto a main.css */
+.turno-form-container {
+    background-color: #333;
+    padding: 20px;
+    border-radius: 8px;
+    max-width: 500px;
+    margin: 20px auto;
+}
+.horarios-ocupados {
+    margin-top: 30px;
+    background-color: #404040;
+    padding: 15px;
+    border-radius: 8px;
+}
+.form-error {
+    color: #ff6b6b;
+    background-color: #5d1a1a;
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 15px;
+}
+</style>
 {% endblock %}

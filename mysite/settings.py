@@ -89,7 +89,14 @@ DATABASES = {
     )
 }
 
-LOGOUT_REDIRECT_URL = '/'
+# ========== INICIO DE LA MODIFICACIÓN ==========
+# Le decimos a Django a dónde ir después de un login exitoso.
+# Nuestra nueva vista tiene prioridad, pero esto es una buena práctica.
+LOGIN_REDIRECT_URL = '/'
+# La redirección de logout la controlaremos directamente en la URL,
+# por lo que LOGOUT_REDIRECT_URL ya no es necesaria.
+# ========== FIN DE LA MODIFICACIÓN ==========
+
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators

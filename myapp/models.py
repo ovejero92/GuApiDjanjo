@@ -4,6 +4,8 @@ from django.core.exceptions import ValidationError
 from datetime import time
 
 class Servicio(models.Model):
+    propietario = models.ForeignKey(User, on_delete=models.CASCADE, related_name='servicios_propios')
+    
     nombre = models.CharField(max_length=100)
     descripcion = models.TextField(default="Sin descripción")
     direccion = models.CharField(max_length=200, default="Sin dirección")
@@ -15,14 +17,23 @@ class Servicio(models.Model):
         return self.nombre
 
 class Turno(models.Model):
+    
     servicio = models.ForeignKey(Servicio, on_delete=models.CASCADE)
-    usuario = models.ForeignKey(User, on_delete=models.CASCADE)
+    cliente = models.ForeignKey(User, on_delete=models.CASCADE, related_name='turnos_solicitados') # 'related_name' evita conflictos
     fecha = models.DateField()
     hora = models.TimeField()
-    estado = models.CharField(max_length=20, default='pendiente')
+    visto_por_cliente = models.BooleanField(default=False)
+    
+    ESTADO_CHOICES = [
+        ('pendiente', 'Pendiente'),
+        ('confirmado', 'Confirmado'),
+        ('cancelado', 'Cancelado'),
+        ('completado', 'Completado'),
+    ]
+    estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='pendiente')
 
     def __str__(self):
-        return f"{self.usuario.username} - {self.servicio.nombre} - {self.fecha} {self.hora}"
+        return f"{self.cliente.username} - {self.servicio.nombre} - {self.fecha} {self.hora}"
 
     class Meta:
         unique_together = ('servicio', 'fecha', 'hora')

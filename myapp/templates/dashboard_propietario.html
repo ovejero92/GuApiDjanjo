@@ -1,0 +1,136 @@
+{% extends 'layouts/navbar.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container">
+    <h1>Dashboard de Mi Negocio</h1>
+    <p>Hola, {{ user.username|title }}. Aquí puedes gestionar los turnos de tus servicios.</p>
+
+    <div class="dashboard-section">
+        <h2>Turnos Pendientes de Confirmación</h2>
+        {% if turnos_pendientes %}
+            <table class="turnos-table">
+                <thead>
+                    <tr>
+                        <th>Cliente</th>
+                        <th>Servicio</th>
+                        <th>Fecha y Hora</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for turno in turnos_pendientes %}
+                    <tr>
+                        <td>{{ turno.cliente.username }}</td>
+                        <td>{{ turno.servicio.nombre }}</td>
+                        <td>{{ turno.fecha|date:"d/m/Y" }} - {{ turno.hora|time:"H:i" }}</td>
+                        <td>
+                            <div class="action-buttons">
+                                <form action="{% url 'confirmar_turno' turno.id %}" method="post" style="display:inline;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn-confirmar">Confirmar</button>
+                                </form>
+                                <form action="{% url 'cancelar_turno' turno.id %}" method="post" style="display:inline;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn-cancelar">Cancelar</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>No tienes turnos pendientes de confirmación.</p>
+        {% endif %}
+    </div>
+
+    <div class="dashboard-section">
+        <h2>Próximos Turnos Confirmados</h2>
+        {% if turnos_confirmados %}
+            <table class="turnos-table">
+                <!-- (similar a la tabla de arriba, pero para turnos confirmados) -->
+                 <thead>
+                    <tr>
+                        <th>Cliente</th>
+                        <th>Servicio</th>
+                        <th>Fecha y Hora</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for turno in turnos_confirmados %}
+                    <tr>
+                        <td>{{ turno.cliente.username }}</td>
+                        <td>{{ turno.servicio.nombre }}</td>
+                        <td>{{ turno.fecha|date:"d/m/Y" }} - {{ turno.hora|time:"H:i" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>No hay próximos turnos confirmados.</p>
+        {% endif %}
+    </div>
+
+    <div class="dashboard-section">
+        <h2>Historial de Turnos Pasados</h2>
+        {% if turnos_pasados %}
+            <table class="turnos-table">
+                <!-- (similar, para turnos pasados) -->
+                 <thead>
+                    <tr>
+                        <th>Cliente</th>
+                        <th>Servicio</th>
+                        <th>Fecha y Hora</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for turno in turnos_pasados %}
+                    <tr>
+                        <td>{{ turno.cliente.username }}</td>
+                        <td>{{ turno.servicio.nombre }}</td>
+                        <td>{{ turno.fecha|date:"d/m/Y" }} - {{ turno.hora|time:"H:i" }}</td>
+                        <td>{{ turno.get_estado_display }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>No hay historial de turnos.</p>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+    /* Estilos rápidos para el dashboard, puedes moverlos a tu main.css */
+    .dashboard-section {
+        background-color: #333;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 25px;
+    }
+    .turnos-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 15px;
+    }
+    .turnos-table th, .turnos-table td {
+        border: 1px solid #555;
+        padding: 10px;
+        text-align: left;
+    }
+    .turnos-table th {
+        background-color: #444;
+    }
+    .btn-confirmar, .btn-cancelar {
+        padding: 5px 10px;
+        border: none;
+        color: white;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+    .btn-confirmar { background-color: #28a745; }
+    .btn-cancelar { background-color: #dc3545; }
+</style>
+{% endblock %}
