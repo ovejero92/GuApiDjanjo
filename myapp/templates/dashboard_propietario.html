@@ -6,10 +6,11 @@
     <h1>Dashboard de Mi Negocio</h1>
     <p>Hola, {{ user.username|title }}. Aquí puedes gestionar los turnos de tus servicios.</p>
 
+    <!-- ================== SECCIÓN DE TURNOS PENDIENTES ================== -->
     <div class="dashboard-section">
         <h2>Turnos Pendientes de Confirmación</h2>
         {% if turnos_pendientes %}
-            <table class="turnos-table">
+            <table class="turnos-table responsive-table"> {# Añadí la clase 'responsive-table' #}
                 <thead>
                     <tr>
                         <th>Cliente</th>
@@ -21,10 +22,11 @@
                 <tbody>
                     {% for turno in turnos_pendientes %}
                     <tr>
-                        <td>{{ turno.cliente.username }}</td>
-                        <td>{{ turno.servicio.nombre }}</td>
-                        <td>{{ turno.fecha|date:"d/m/Y" }} - {{ turno.hora|time:"H:i" }}</td>
-                        <td>
+                        {# La magia está en estos atributos 'data-label' #}
+                        <td data-label="Cliente">{{ turno.cliente.username }}</td>
+                        <td data-label="Servicio">{{ turno.servicio.nombre }}</td>
+                        <td data-label="Fecha y Hora">{{ turno.fecha|date:"d/m/Y" }} - {{ turno.hora|time:"H:i" }}</td>
+                        <td data-label="Acciones">
                             <div class="action-buttons">
                                 <form action="{% url 'confirmar_turno' turno.id %}" method="post" style="display:inline;">
                                     {% csrf_token %}
@@ -45,11 +47,11 @@
         {% endif %}
     </div>
 
+    <!-- ================== SECCIÓN DE TURNOS CONFIRMADOS ================== -->
     <div class="dashboard-section">
         <h2>Próximos Turnos Confirmados</h2>
         {% if turnos_confirmados %}
-            <table class="turnos-table">
-                <!-- (similar a la tabla de arriba, pero para turnos confirmados) -->
+            <table class="turnos-table responsive-table"> {# Clase 'responsive-table' #}
                  <thead>
                     <tr>
                         <th>Cliente</th>
@@ -60,9 +62,9 @@
                 <tbody>
                     {% for turno in turnos_confirmados %}
                     <tr>
-                        <td>{{ turno.cliente.username }}</td>
-                        <td>{{ turno.servicio.nombre }}</td>
-                        <td>{{ turno.fecha|date:"d/m/Y" }} - {{ turno.hora|time:"H:i" }}</td>
+                        <td data-label="Cliente">{{ turno.cliente.username }}</td>
+                        <td data-label="Servicio">{{ turno.servicio.nombre }}</td>
+                        <td data-label="Fecha y Hora">{{ turno.fecha|date:"d/m/Y" }} - {{ turno.hora|time:"H:i" }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -72,11 +74,11 @@
         {% endif %}
     </div>
 
+    <!-- ================== SECCIÓN DE HISTORIAL DE TURNOS ================== -->
     <div class="dashboard-section">
         <h2>Historial de Turnos Pasados</h2>
         {% if turnos_pasados %}
-            <table class="turnos-table">
-                <!-- (similar, para turnos pasados) -->
+            <table class="turnos-table responsive-table"> {# Clase 'responsive-table' #}
                  <thead>
                     <tr>
                         <th>Cliente</th>
@@ -88,10 +90,10 @@
                 <tbody>
                     {% for turno in turnos_pasados %}
                     <tr>
-                        <td>{{ turno.cliente.username }}</td>
-                        <td>{{ turno.servicio.nombre }}</td>
-                        <td>{{ turno.fecha|date:"d/m/Y" }} - {{ turno.hora|time:"H:i" }}</td>
-                        <td>{{ turno.get_estado_display }}</td>
+                        <td data-label="Cliente">{{ turno.cliente.username }}</td>
+                        <td data-label="Servicio">{{ turno.servicio.nombre }}</td>
+                        <td data-label="Fecha y Hora">{{ turno.fecha|date:"d/m/Y" }} - {{ turno.hora|time:"H:i" }}</td>
+                        <td data-label="Estado">{{ turno.get_estado_display }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -103,12 +105,13 @@
 </div>
 
 <style>
-    /* Estilos rápidos para el dashboard, puedes moverlos a tu main.css */
+    /* Estilos generales (los que ya tenías) */
     .dashboard-section {
         background-color: #333;
         padding: 20px;
         border-radius: 8px;
         margin-bottom: 25px;
+        overflow-x: auto; /* AÑADIDO: Como fallback, permite scroll horizontal si todo falla */
     }
     .turnos-table {
         width: 100%;
@@ -117,20 +120,89 @@
     }
     .turnos-table th, .turnos-table td {
         border: 1px solid #555;
-        padding: 10px;
+        padding: 12px 15px; /* Un poco más de padding */
         text-align: left;
     }
     .turnos-table th {
         background-color: #444;
+        font-size: 14px;
+        text-transform: uppercase;
     }
     .btn-confirmar, .btn-cancelar {
-        padding: 5px 10px;
+        padding: 8px 12px; /* Botones un poco más grandes */
         border: none;
         color: white;
-        border-radius: 4px;
+        border-radius: 5px;
         cursor: pointer;
+        font-weight: bold;
+        margin: 2px;
     }
     .btn-confirmar { background-color: #28a745; }
     .btn-cancelar { background-color: #dc3545; }
+    .action-buttons form {
+        display: inline-block; /* Mejor que inline para botones */
+    }
+
+    /* ================================================================ */
+    /* ========== INICIO DE LA MODIFICACIÓN: ESTILOS RESPONSIVOS ========== */
+    /* ================================================================ */
+    
+    /* Esto se aplicará en pantallas de 768px de ancho o menos (móviles y tablets pequeñas) */
+    @media screen and (max-width: 768px) {
+        .responsive-table thead {
+            /* Ocultamos los encabezados de la tabla original */
+            display: none;
+        }
+
+        .responsive-table, .responsive-table tbody, .responsive-table tr, .responsive-table td {
+            /* Hacemos que todo se comporte como bloques, no como elementos de tabla */
+            display: block;
+            width: 100%;
+        }
+
+        .responsive-table tr {
+            /* Cada fila 'tr' se convierte en una tarjeta visual */
+            margin-bottom: 15px;
+            border: 1px solid #555;
+            border-radius: 5px;
+            background-color: #404040;
+        }
+
+        .responsive-table td {
+            /* Las celdas se apilan verticalmente */
+            text-align: right; /* Alineamos el contenido a la derecha */
+            padding-left: 50%; /* Dejamos espacio a la izquierda para el "label" */
+            position: relative;
+            border: none;
+            border-bottom: 1px solid #555; /* Separador entre "campos" de la tarjeta */
+        }
+        
+        .responsive-table td:last-child {
+            border-bottom: 0; /* Quitamos el borde de la última celda */
+        }
+
+        .responsive-table td::before {
+            /* Aquí usamos el 'data-label' que pusimos en el HTML */
+            content: attr(data-label); /* Muestra el texto del data-label */
+            position: absolute;
+            left: 15px; /* Lo posicionamos a la izquierda */
+            width: 45%;
+            text-align: left;
+            font-weight: bold;
+            color: #ccc;
+        }
+
+        /* Ajustes específicos para la celda de acciones */
+        .responsive-table td[data-label="Acciones"] {
+            text-align: center;
+            padding-left: 15px; /* Reseteamos el padding para los botones */
+        }
+        .responsive-table td[data-label="Acciones"]::before {
+            display: none; /* No necesitamos el label "Acciones" */
+        }
+        .action-buttons {
+            padding: 10px 0;
+        }
+    }
 </style>
 {% endblock %}
