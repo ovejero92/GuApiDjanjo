@@ -1,8 +1,142 @@
-{% extends 'layouts/navbar.html'%}
+{% extends 'layouts/navbar.html' %}
+{% load static %}
 
 {% block content %}
+<div class="about-container">
+    <div class="hero-section">
+        <h1>Tu Tiempo, Tu Turno, Tu Éxito.</h1>
+        <p class="subtitle">Conectamos a clientes con los mejores servicios locales y empoderamos a los negocios con la gestión de turnos más simple y potente del mercado.</p>
+    </div>
 
-<h1>Hola, {{username}}</h1>
-<h2>About</h2>
-<p>Lorem ipsum, dolor sit amet consectetur adipisicing elit. Iste incidunt laudantium necessitatibus quia amet repellat ad voluptatibus officia, aperiam quas omnis fugiat totam neque aut, possimus illo error assumenda deleniti reiciendis doloremque ab officiis odio iure odit? Mollitia voluptatem exercitationem omnis quibusdam iure voluptates nobis! Debitis quaerat ratione quam facere, eaque cupiditate distinctio iste qui eius quasi illo quidem tempora commodi, facilis incidunt, ea dolore laborum magnam! Deleniti, quaerat. Dignissimos pariatur tempore eos error eveniet! Blanditiis repellat quae obcaecati, vitae fugit tempore iure rerum? Voluptate enim nesciunt eius iure ratione accusamus facere quas, molestiae quo veniam debitis quasi illo corporis?</p>
+    <div class="features-grid">
+        <!-- Tarjeta para el Cliente Final -->
+        <div class="feature-card">
+            <i class="fa-solid fa-users-viewfinder cliente"></i>
+            <h2>Para Ti, Cliente</h2>
+            <p>¿Cansado de llamar para conseguir un turno? Con nuestra plataforma, puedes descubrir, reservar y gestionar tus citas en tus locales favoritos, 24/7, desde cualquier lugar. Olvídate de las esperas y toma el control de tu agenda.</p>
+            <ul class="feature-list">
+                <li>✓ Explora servicios cerca de ti.</li>
+                <li>✓ Reserva en segundos, sin llamadas.</li>
+                <li>✓ Recibe notificaciones y recordatorios.</li>
+                <li>✓ Gestiona todos tus turnos en un solo lugar.</li>
+            </ul>
+        </div>
+
+        <!-- Tarjeta para el Dueño del Negocio -->
+        <div class="feature-card">
+            <i class="fa-solid fa-user-tie cliente"></i>
+            <h2>Para Tu Negocio</h2>
+            <p>Dedica tu tiempo a lo que amas, no a gestionar una agenda desordenada. Nuestra plataforma te proporciona una "llave digital" para que recibas reservas de forma automática, reduzcas las ausencias y entiendas mejor a tus clientes con métricas claras.</p>
+            <ul class="feature-list">
+                <li>✓ Agenda online siempre disponible para tus clientes.</li>
+                <li>✓ Dashboard intuitivo para gestionar todos tus turnos.</li>
+                <li>✓ Reduce el tiempo perdido en llamadas y mensajes.</li>
+                <li>✓ Próximamente: Métricas y estadísticas para hacer crecer tu negocio.</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="cta-section">
+        <h2>¿Listo para dar el siguiente paso?</h2>
+        <p>Tanto si buscas tu próximo turno como si quieres transformar la gestión de tu negocio, estás en el lugar correcto.</p>
+        {% if not user.is_authenticated %}
+            <a href="{% url 'register' %}" class="btn-cta">¡Crea tu cuenta ahora!</a>
+        {% else %}
+            <a href="{% url 'index' %}" class="btn-cta">Explora los servicios</a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- NOTA: Debes tener iconos en static/image/cliente-icono.png y static/image/negocio-icono.png -->
+<!-- Puedes buscar iconos gratuitos en sitios como flaticon.com o useanimations.com -->
+
+<style>
+/* Mueve estos estilos a tu main.css para mantener todo organizado */
+.about-container {
+    max-width: 1000px;
+    margin: 10px auto;
+    padding: 20px;
+    color: #f0f0f0;
+}
+.hero-section {
+    text-align: center;
+    margin-bottom: 60px;
+}
+.hero-section h1 {
+    font-size: 3em;
+    margin-bottom: 10px;
+    color: #fff;
+}
+.subtitle {
+    font-size: 1.2em;
+    color: #ccc;
+    max-width: 700px;
+    margin: 0 auto;
+}
+.features-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+    margin-bottom: 60px;
+}
+.feature-card {
+    background-color: #2a2a2a;
+    padding: 30px;
+    border-radius: 10px;
+    border: 1px solid #444;
+    text-align: center;
+}
+.feature-icon {
+    width: 60px;
+    height: 60px;
+    margin-bottom: 20px;
+}
+.feature-card h2 {
+    color: aqua;
+    margin-bottom: 15px;
+}
+.feature-list {
+    list-style: none;
+    padding: 0;
+    text-align: left;
+    margin-top: 20px;
+}
+.feature-list li {
+    margin-bottom: 10px;
+    color: #ccc;
+}
+.cta-section {
+    text-align: center;
+    background-color: #007bff;
+    padding: 40px;
+    border-radius: 10px;
+    color: white;
+}
+.cta-section h2 {
+    margin-top: 0;
+}
+.btn-cta {
+    display: inline-block;
+    background-color: #fff;
+    color: #007bff;
+    padding: 12px 25px;
+    border-radius: 5px;
+    text-decoration: none;
+    font-weight: bold;
+    margin-top: 20px;
+    transition: transform 0.2s;
+}
+.btn-cta:hover {
+    transform: scale(1.05);
+}
+
+@media (max-width: 768px) {
+    .hero-section h1 {
+        font-size: 2.2em;
+    }
+    .features-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
 {% endblock %}

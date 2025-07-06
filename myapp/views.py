@@ -1,7 +1,8 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth import login
+from django.contrib import messages, auth
 from .models import Servicio, Turno
-from .forms import CustomUserCreationForm, TurnoForm
+from .forms import CustomUserCreationForm, TurnoForm, UserUpdateForm
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.utils import timezone
@@ -152,6 +153,26 @@ def obtener_notificaciones(request):
     ).count()
 
     return JsonResponse({'conteo': conteo_notificaciones})
+
+@login_required
+def editar_perfil(request):
+    if request.method == 'POST':
+        # Pasamos request.POST para procesar los datos enviados y 'instance'
+        # para saber qué usuario estamos actualizando.
+        form = UserUpdateForm(request.POST, instance=request.user)
+        if form.is_valid():
+            form.save()
+            # Enviamos un mensaje de éxito que se mostrará en la plantilla
+            messages.success(request, '¡Tu perfil ha sido actualizado correctamente!')
+            return redirect('editar_perfil') # Redirigimos a la misma página
+    else:
+        # Si no es POST, simplemente mostramos el formulario con los datos actuales del usuario
+        form = UserUpdateForm(instance=request.user)
+
+    context = {
+        'form': form
+    }
+    return render(request, 'editar_perfil.html', context)
 
 # ========== INICIO DE LA MODIFICACIÓN ==========
 # Vista de Login personalizada para tener control total sobre la redirección.

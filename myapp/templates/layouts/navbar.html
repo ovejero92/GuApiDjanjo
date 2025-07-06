@@ -20,7 +20,8 @@
                     <div class="user-menu">
                         <button id="userButton" class="user-button">{{ user.username|title }}</button>
                         <div id="userDropdown" class="user-dropdown hidden">
-                            <a href="#">Editar perfil</a>
+                            <a href="{% url 'editar_perfil' %}">Editar perfil</a>
+                            <a href="{% url 'password_change' %}">Cambiar contraseña</a>
                             {% if user.servicios_propios.exists %}
                             <a href="{% url 'dashboard_propietario' %}">Mi Dashboard</a>
                             {% endif %}
@@ -41,6 +42,39 @@
     <main class="container">
         {% block content %}{% endblock %}
     </main>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-section about">
+                <h3>Turnos Online</h3>
+                <p>Simplificando la forma en que conectas con servicios locales. Reserva fácil, gestiona mejor.</p>
+                <div class="social-links">
+                    <a href="#"><i class="fab fa-facebook"></i></a>
+                    <a href="#"><i class="fab fa-instagram"></i></a>
+                    <a href="#"><i class="fab fa-twitter"></i></a>
+                </div>
+            </div>
+            <div class="footer-section links">
+                <h3>Enlaces Rápidos</h3>
+                <ul>
+                    <li><a href="{% url 'index' %}">Inicio</a></li>
+                    <li><a href="{% url 'about' %}">Acerca de Nosotros</a></li>
+                    <li><a href="#">Preguntas Frecuentes</a></li>
+                    <li><a href="#">Términos de Servicio</a></li>
+                    <li><a href="#">Política de Privacidad</a></li>
+                </ul>
+            </div>
+            <div class="footer-section contact">
+                <h3>Contacto</h3>
+                <p><i class="fas fa-envelope"></i> contacto@turnosonline.com</p>
+                <p><i class="fas fa-phone"></i> +54 9 11 1234-5678</p>
+                <p>¿Quieres registrar tu negocio? <a href="#" style="color:aqua;">¡Contáctanos!</a></p>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            © {% now "Y" %} TurnosOnline.com | Todos los derechos reservados.
+        </div>
+    </footer>
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
@@ -103,5 +137,9 @@ document.addEventListener('DOMContentLoaded', function() {
     display: none;
 }
 </style>
+
+
+
+<script src="https://kit.fontawesome.com/76e20a326e.js" crossorigin="anonymous"></script>
 </body>
 </html>

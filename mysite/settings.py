@@ -29,7 +29,7 @@ SECRET_KEY = os.environ.get('SECRET_KEY',default='your secret key')
 DEBUG = os.environ.get('DEBUG', 'False').lower() in ('true', '1', 't')
 #DEBUG = True
 
-ALLOWED_HOSTS = ['guapidjanjo.onrender.com', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['guapidjanjo.onrender.com', 'localhost', '127.0.0.1','TurnosOnline.onrender.com']
 
 RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
 if RENDER_EXTERNAL_HOSTNAME:

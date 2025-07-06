@@ -10,7 +10,7 @@
     <div class="dashboard-section">
         <h2>Turnos Pendientes de Confirmación</h2>
         {% if turnos_pendientes %}
-            <table class="turnos-table responsive-table"> {# Añadí la clase 'responsive-table' #}
+            <table class="turnos-table responsive-table">
                 <thead>
                     <tr>
                         <th>Cliente</th>
@@ -22,17 +22,24 @@
                 <tbody>
                     {% for turno in turnos_pendientes %}
                     <tr>
-                        {# La magia está en estos atributos 'data-label' #}
-                        <td data-label="Cliente">{{ turno.cliente.username }}</td>
-                        <td data-label="Servicio">{{ turno.servicio.nombre }}</td>
-                        <td data-label="Fecha y Hora">{{ turno.fecha|date:"d/m/Y" }} - {{ turno.hora|time:"H:i" }}</td>
+                        <td data-label="Cliente">
+                            <!-- CAMBIO AQUÍ: Envolvemos el valor en un span -->
+                            <span class="data-value">{{ turno.cliente.username }}</span>
+                        </td>
+                        <td data-label="Servicio">
+                            <span class="data-value">{{ turno.servicio.nombre }}</span>
+                        </td>
+                        <td data-label="Fecha y Hora">
+                            <span class="data-value">{{ turno.fecha|date:"d/m/Y" }} - {{ turno.hora|time:"H:i" }}</span>
+                        </td>
                         <td data-label="Acciones">
+                            <!-- El div ya actúa como contenedor, no necesita span extra -->
                             <div class="action-buttons">
-                                <form action="{% url 'confirmar_turno' turno.id %}" method="post" style="display:inline;">
+                                <form action="{% url 'confirmar_turno' turno.id %}" method="post">
                                     {% csrf_token %}
                                     <button type="submit" class="btn-confirmar">Confirmar</button>
                                 </form>
-                                <form action="{% url 'cancelar_turno' turno.id %}" method="post" style="display:inline;">
+                                <form action="{% url 'cancelar_turno' turno.id %}" method="post">
                                     {% csrf_token %}
                                     <button type="submit" class="btn-cancelar">Cancelar</button>
                                 </form>
@@ -51,7 +58,7 @@
     <div class="dashboard-section">
         <h2>Próximos Turnos Confirmados</h2>
         {% if turnos_confirmados %}
-            <table class="turnos-table responsive-table"> {# Clase 'responsive-table' #}
+            <table class="turnos-table responsive-table">
                  <thead>
                     <tr>
                         <th>Cliente</th>
@@ -62,9 +69,9 @@
                 <tbody>
                     {% for turno in turnos_confirmados %}
                     <tr>
-                        <td data-label="Cliente">{{ turno.cliente.username }}</td>
-                        <td data-label="Servicio">{{ turno.servicio.nombre }}</td>
-                        <td data-label="Fecha y Hora">{{ turno.fecha|date:"d/m/Y" }} - {{ turno.hora|time:"H:i" }}</td>
+                        <td data-label="Cliente"><span class="data-value">{{ turno.cliente.username }}</span></td>
+                        <td data-label="Servicio"><span class="data-value">{{ turno.servicio.nombre }}</span></td>
+                        <td data-label="Fecha y Hora"><span class="data-value">{{ turno.fecha|date:"d/m/Y" }} - {{ turno.hora|time:"H:i" }}</span></td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -78,7 +85,7 @@
     <div class="dashboard-section">
         <h2>Historial de Turnos Pasados</h2>
         {% if turnos_pasados %}
-            <table class="turnos-table responsive-table"> {# Clase 'responsive-table' #}
+            <table class="turnos-table responsive-table">
                  <thead>
                     <tr>
                         <th>Cliente</th>
@@ -90,10 +97,10 @@
                 <tbody>
                     {% for turno in turnos_pasados %}
                     <tr>
-                        <td data-label="Cliente">{{ turno.cliente.username }}</td>
-                        <td data-label="Servicio">{{ turno.servicio.nombre }}</td>
-                        <td data-label="Fecha y Hora">{{ turno.fecha|date:"d/m/Y" }} - {{ turno.hora|time:"H:i" }}</td>
-                        <td data-label="Estado">{{ turno.get_estado_display }}</td>
+                        <td data-label="Cliente"><span class="data-value">{{ turno.cliente.username }}</span></td>
+                        <td data-label="Servicio"><span class="data-value">{{ turno.servicio.nombre }}</span></td>
+                        <td data-label="Fecha y Hora"><span class="data-value">{{ turno.fecha|date:"d/m/Y" }} - {{ turno.hora|time:"H:i" }}</span></td>
+                        <td data-label="Estado"><span class="data-value">{{ turno.get_estado_display }}</span></td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -105,13 +112,12 @@
 </div>
 
 <style>
-    /* Estilos generales (los que ya tenías) */
+    /* Estilos generales (ligeramente ajustados) */
     .dashboard-section {
         background-color: #333;
         padding: 20px;
         border-radius: 8px;
         margin-bottom: 25px;
-        overflow-x: auto; /* AÑADIDO: Como fallback, permite scroll horizontal si todo falla */
     }
     .turnos-table {
         width: 100%;
@@ -119,17 +125,21 @@
         margin-top: 15px;
     }
     .turnos-table th, .turnos-table td {
-        border: 1px solid #555;
-        padding: 12px 15px; /* Un poco más de padding */
+        border-bottom: 1px solid #555; /* Borde solo abajo para un look más limpio */
+        padding: 12px 15px;
         text-align: left;
     }
     .turnos-table th {
         background-color: #444;
         font-size: 14px;
         text-transform: uppercase;
+        border-bottom: 2px solid #666;
+    }
+    .turnos-table tr:last-child td {
+        border-bottom: 0; /* Sin borde en la última fila */
     }
     .btn-confirmar, .btn-cancelar {
-        padding: 8px 12px; /* Botones un poco más grandes */
+        padding: 8px 12px;
         border: none;
         color: white;
         border-radius: 5px;
@@ -140,68 +150,68 @@
     .btn-confirmar { background-color: #28a745; }
     .btn-cancelar { background-color: #dc3545; }
     .action-buttons form {
-        display: inline-block; /* Mejor que inline para botones */
+        display: inline-block;
     }
 
     /* ================================================================ */
-    /* ========== INICIO DE LA MODIFICACIÓN: ESTILOS RESPONSIVOS ========== */
+    /* ==========        CSS RESPONSIVO CON FLEXBOX (CORRECTO)       ========== */
     /* ================================================================ */
     
-    /* Esto se aplicará en pantallas de 768px de ancho o menos (móviles y tablets pequeñas) */
     @media screen and (max-width: 768px) {
         .responsive-table thead {
-            /* Ocultamos los encabezados de la tabla original */
-            display: none;
-        }
-
-        .responsive-table, .responsive-table tbody, .responsive-table tr, .responsive-table td {
-            /* Hacemos que todo se comporte como bloques, no como elementos de tabla */
-            display: block;
-            width: 100%;
+            display: none; /* Ocultamos los encabezados, como antes */
         }
 
         .responsive-table tr {
-            /* Cada fila 'tr' se convierte en una tarjeta visual */
-            margin-bottom: 15px;
+            display: block; /* La fila es un bloque */
             border: 1px solid #555;
             border-radius: 5px;
+            margin-bottom: 15px;
+            padding: 10px;
             background-color: #404040;
         }
 
         .responsive-table td {
-            /* Las celdas se apilan verticalmente */
-            text-align: right; /* Alineamos el contenido a la derecha */
-            padding-left: 50%; /* Dejamos espacio a la izquierda para el "label" */
-            position: relative;
-            border: none;
-            border-bottom: 1px solid #555; /* Separador entre "campos" de la tarjeta */
+            display: flex; /* ¡LA MAGIA DE FLEXBOX! La celda es un contenedor flexible. */
+            justify-content: space-between; /* Empuja el label a la izq y el valor a la der. */
+            align-items: center; /* Los alinea verticalmente si tienen distintas alturas. */
+            border-bottom: 1px solid #555; /* Separador entre datos */
+            padding: 10px 0; /* Padding vertical, sin padding horizontal */
+            text-align: left; /* Reseteamos alineación */
         }
-        
-        .responsive-table td:last-child {
-            border-bottom: 0; /* Quitamos el borde de la última celda */
+
+        .responsive-table tr td:last-child {
+            border-bottom: 0; /* Sin borde en el último dato de la tarjeta */
         }
 
         .responsive-table td::before {
-            /* Aquí usamos el 'data-label' que pusimos en el HTML */
-            content: attr(data-label); /* Muestra el texto del data-label */
-            position: absolute;
-            left: 15px; /* Lo posicionamos a la izquierda */
-            width: 45%;
-            text-align: left;
+            content: attr(data-label); /* El label que definimos en el HTML */
             font-weight: bold;
             color: #ccc;
+            padding-right: 15px; /* Espacio entre el label y el valor */
         }
 
-        /* Ajustes específicos para la celda de acciones */
+        .responsive-table td .data-value {
+            text-align: right; /* Alineamos el valor a la derecha */
+            /* ESTA LÍNEA ES CLAVE PARA TEXTO LARGO */
+            overflow-wrap: break-word; /* Permite que el texto se rompa y pase a la siguiente línea */
+            word-wrap: break-word;     /* Compatibilidad con navegadores antiguos */
+            flex: 1; /* Permite que el valor ocupe el espacio flexible restante */
+        }
+
+        /* Caso especial para los botones de acciones */
         .responsive-table td[data-label="Acciones"] {
-            text-align: center;
-            padding-left: 15px; /* Reseteamos el padding para los botones */
+            display: block; /* Para los botones no usamos flex, sino un bloque centrado */
+            padding-top: 10px;
         }
+
         .responsive-table td[data-label="Acciones"]::before {
-            display: none; /* No necesitamos el label "Acciones" */
+            display: none; /* No queremos el label "Acciones" visible */
         }
+
         .action-buttons {
-            padding: 10px 0;
+            width: 100%;
+            text-align: center; /* Centramos los botones */
         }
     }
 </style>

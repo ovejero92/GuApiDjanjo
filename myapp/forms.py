@@ -41,3 +41,13 @@ class CustomUserCreationForm(UserCreationForm):
     class Meta:
         model = User
         fields = ('username', 'email', 'password1', 'password2')
+
+class UserUpdateForm(forms.ModelForm):
+    email = forms.EmailField()
+
+    class Meta:
+        model = User
+        # Estos son los campos que el usuario podrá editar
+        fields = ['username', 'email', 'first_name', 'last_name']
+        # NOTA: Nunca incluimos 'password' en un formulario como este.
+        # El cambio de contraseña es un proceso diferente y más seguro.
