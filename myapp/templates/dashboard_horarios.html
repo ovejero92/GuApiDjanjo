@@ -1,0 +1,119 @@
+{% extends 'layouts/dashboard_base.html' %}
+
+{% block dashboard_content %}
+    <h1>Horarios y Disponibilidad</h1>
+    <p>Define tus horarios de trabajo para cada día y bloquea fechas por vacaciones o eventos especiales.</p>
+    
+    {% if no_hay_servicio %}
+        <div class="dashboard-section">
+            <p>Aún no tienes un servicio configurado. Por favor, contacta al administrador.</p>
+        </div>
+    {% else %}
+        <!-- FORMULARIO DE HORARIO SEMANAL -->
+        <div class="dashboard-section">
+            <h2>Configuración de Horario Semanal para: <strong>{{ servicio.nombre }}</strong></h2>
+            <form method="post">
+                {% csrf_token %}
+                {{ formset.management_form }} {# Campo oculto necesario para el formset #}
+
+                <table class="schedule-table">
+                    <thead>
+                        <tr>
+                            <th>Día</th>
+                            <th>Abierto / Cerrado</th>
+                            <th>Horario de Apertura</th>
+                            <th>Horario de Cierre</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for form in formset %}
+                            <tr>
+                                <td>
+                                    {# Mostramos el nombre del día, no el campo del formulario #}
+                                    <strong>{{ form.instance.get_dia_semana_display }}</strong>
+                                    {# Campo oculto para el ID del horario #}
+                                    {{ form.id }}
+                                </td>
+                                <td>{{ form.activo }}</td>
+                                <td>{{ form.horario_apertura }}</td>
+                                <td>{{ form.horario_cierre }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <button type="submit" class="btn-submit" style="margin-top: 20px;">Guardar Horarios</button>
+            </form>
+        </div>
+
+         <!-- SECCIÓN DE BLOQUEO DE FECHAS -->
+        <div class="dashboard-section">
+            <h2>Bloquear Fechas o Periodos</h2>
+            <p>Añade días completos (ej. vacaciones) o franjas horarias (ej. cita médica) en las que no estarás disponible.</p>
+            
+            <!-- Formulario para crear un nuevo bloqueo -->
+            <form method="post" class="bloqueo-form">
+                {% csrf_token %}
+                {{ bloqueo_form.as_p }}
+                <button type="submit" name="crear_bloqueo" class="btn-submit">Crear Bloqueo</button>
+            </form>
+            <hr style="margin: 30px 0; border-color: #555;">
+
+            <!-- Lista de bloqueos existentes -->
+            <h3>Próximos Bloqueos</h3>
+            {% if bloqueos %}
+                <ul class="lista-bloqueos">
+                    {% for bloqueo in bloqueos %}
+                        <li>
+                            <span>
+                                <strong>{{ bloqueo.fecha|date:"d/m/Y" }}:</strong> 
+                                {% if bloqueo.hora_inicio %}
+                                    de {{ bloqueo.hora_inicio|time:"H:i" }} a {{ bloqueo.hora_fin|time:"H:i" }}
+                                {% else %}
+                                    Día completo
+                                {% endif %}
+                                ({{ bloqueo.motivo|default:"Sin motivo" }})
+                            </span>
+                            <!-- Próximamente: Botón para eliminar el bloqueo -->
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p>No tienes bloqueos programados.</p>
+            {% endif %}
+        </div>
+    {% endif %}
+
+    <style>
+    .schedule-table {
+        width: 100%;
+        margin-top: 20px;
+        border-collapse: collapse;
+    }
+    .schedule-table th, .schedule-table td {
+        padding: 12px;
+        border: 1px solid #444;
+        text-align: center;
+    }
+    .schedule-table th {
+        background-color: #3a3a3a;
+    }
+    .schedule-table input[type="time"], .schedule-table input[type="checkbox"] {
+        background-color: #555;
+        color: white;
+        border: 1px solid #777;
+        padding: 5px;
+        border-radius: 4px;
+    }
+    .btn-submit {
+        background-color: #007bff; color: white; padding: 10px 15px;
+        border: none; border-radius: 5px; cursor: pointer;
+    }
+    .bloqueo-form p { display: inline-block; margin-right: 15px; }
+    .lista-bloqueos { list-style: none; padding-left: 0; }
+    .lista-bloqueos li { background-color: #444; padding: 10px; border-radius: 4px; margin-bottom: 8px; }
+    .btn-submit { /* Estilo general */
+        background-color: #007bff; color: white; padding: 10px 15px;
+        border: none; border-radius: 5px; cursor: pointer;
+    }
+    </style>
+{% endblock %}

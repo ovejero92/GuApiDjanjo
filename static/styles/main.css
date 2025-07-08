@@ -186,6 +186,26 @@ form button {
 .hidden {
     display: none;
 }
+.card-servicio { position: relative; /* Necesario para posicionar el botón */ }
+.favorito-btn {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    font-size: 1.5rem;
+    color: #e63946; /* Rojo */
+    text-decoration: none;
+    background: rgba(0,0,0,0.3);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.btn-solicitar { /* Estilo unificado para el botón de solicitar */
+    display: inline-block; padding: 10px 20px; background-color: #007bff;
+    color: white; text-decoration: none; border-radius: 5px; margin-top: 10px;
+}
 /*FOOTER */
 .footer {
     background-color: #1a1a1a;

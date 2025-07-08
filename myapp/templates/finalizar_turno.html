@@ -1,0 +1,37 @@
+{% extends 'layouts/dashboard_base.html' %}
+    
+{% block dashboard_content %}
+    <div class="dashboard-section">
+        <h1>Finalizar Turno y Registrar Ingreso</h1>
+        <p>Confirma el monto final cobrado para este turno. Al guardar, el turno se marcará como <strong>Completado</strong>.</p>
+        <hr>
+        
+        <div class="turno-info">
+            <p><strong>Cliente:</strong> {{ turno.cliente.username }}</p>
+            <p><strong>Servicio:</strong> {{ turno.servicio.nombre }} (Precio estándar: ${{ turno.servicio.precio_estandar }})</p>
+            <p><strong>Fecha:</strong> {{ turno.fecha|date:"d/m/Y" }} a las {{ turno.hora|time:"H:i" }}</p>
+        </div>
+
+        <form method="post" class="finalizar-form">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit" class="btn-submit btn-completar">Finalizar y Guardar</button>
+        </form>
+    </div>
+
+    <style>
+    /* Puedes mover esto a tu archivo de estilos principal */
+    .turno-info {
+        margin-bottom: 20px;
+        padding: 15px;
+        background-color: #444;
+        border-radius: 5px;
+    }
+    .finalizar-form {
+        margin-top: 20px;
+    }
+    .btn-submit.btn-completar { /* Combinando clases para un estilo específico */
+        background-color: #28a745;
+    }
+    </style>
+{% endblock %}

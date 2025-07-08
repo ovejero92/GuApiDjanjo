@@ -1,61 +1,172 @@
 {% extends 'layouts/navbar.html' %}
+{% load static %}
 
 {% block content %}
 <div class="container">
-    <h1>Solicitar turno para: {{ servicio.nombre }}</h1>
-    <p>{{ servicio.descripcion }}</p>
-    <p>Horario de atención: {{ servicio.horario_apertura|time:"H:i" }} a {{ servicio.horario_cierre|time:"H:i" }}</p>
-
     <div class="turno-form-container">
-        <form method="post">
+        <h1>Solicitar turno para: {{ servicio.nombre }}</h1>
+        <p>{{ servicio.descripcion }}</p>
+        <p>Duración aproximada: {{ servicio.duracion }} minutos.</p>
+
+        <form method="post" id="turnoForm">
             {% csrf_token %}
             
+            {# Mostramos los errores del formulario si los hay #}
             {% if form.non_field_errors %}
-                <div class="form-error">
-                    {{ form.non_field_errors }}
-                </div>
+                <div class="form-error">{{ form.non_field_errors }}</div>
             {% endif %}
+            
+            {# Campo de fecha #}
+            <div class="form-group">
+                <label for="id_fecha">1. Selecciona una fecha:</label>
+                {{ form.fecha }}
+                {% if form.fecha.errors %}<div class="form-error">{{ form.fecha.errors }}</div>{% endif %}
+            </div>
 
-            {{ form.as_p }}
-            <button type="submit">Solicitar Turno</button>
+            {# Aquí se cargarán los slots de tiempo disponibles #}
+            <div class="form-group">
+                <label>2. Elige un horario disponible:</label>
+                <div id="slotsContainer" class="slots-container">
+                    <p id="slots-placeholder">Selecciona una fecha para ver los horarios...</p>
+                </div>
+                {% if form.hora.errors %}<div class="form-error">{{ form.hora.errors }}</div>{% endif %}
+            </div>
+            
+            {# Campo de hora (oculto), lo llenaremos con JavaScript #}
+            {{ form.hora.as_hidden }}
+
+            <button type="submit" class="btn-submit" disabled>Solicitar Turno</button>
         </form>
     </div>
+    <div class="reseñas-container">
+    <h2>Opiniones de Nuestros Clientes</h2>
+    {% if calificacion_promedio %}
+        <div class="resumen-calificacion">
+            <span class="promedio-numero">{{ calificacion_promedio|floatformat:1 }}</span>
+            <span class="promedio-estrellas">
+                {# Lógica para mostrar las estrellas #}
+                {% for i in "12345" %}
+                    {% if calificacion_promedio >= i|add:"0" %}
+                        <i class="fas fa-star"></i>
+                    {% else %}
+                        <i class="far fa-star"></i>
+                    {% endif %}
+                {% endfor %}
+            </span>
+            <span class="total-reseñas"> (basado en {{ reseñas|length }} reseñas)</span>
+        </div>
+    {% endif %}
 
-    <div class="horarios-ocupados">
-        <h3>Horarios ya reservados para hoy ({{ fecha_mostrada|date:"d/m/Y" }}):</h3>
-        {% if horas_ocupadas %}
-            <ul>
-            {% for hora in horas_ocupadas %}
-                <li>{{ hora }}</li>
-            {% endfor %}
-            </ul>
-        {% else %}
-            <p>¡Todos los horarios de hoy están disponibles!</p>
-        {% endif %}
+    <div class="lista-reseñas">
+    {% for reseña in reseñas %}
+        <div class="reseña-card">
+            <div class="reseña-header">
+                <span class="reseña-usuario">{{ reseña.usuario.username }}</span>
+                <span class="reseña-fecha">{{ reseña.fecha_creacion|date:"d/m/Y" }}</span>
+            </div>
+            <div class="reseña-calificacion">
+                {% for i in "12345" %}
+                    {% if reseña.calificacion >= i|add:"0" %}<i class="fas fa-star"></i>{% endif %}
+                {% endfor %}
+            </div>
+            <p class="reseña-comentario">{{ reseña.comentario|linebreaksbr }}</p>
+        </div>
+    {% empty %}
+        <p>Este servicio aún no tiene reseñas. ¡Sé el primero en dejar una!</p>
+    {% endfor %}
+    </div>
     </div>
 </div>
 
 <style>
-/* Puedes mover esto a main.css */
-.turno-form-container {
-    background-color: #333;
-    padding: 20px;
-    border-radius: 8px;
-    max-width: 500px;
-    margin: 20px auto;
+/* Estilos para los slots, puedes moverlos a tu main.css */
+.turno-form-container { background-color: #333; padding: 30px; border-radius: 8px; max-width: 600px; margin: 40px auto; }
+.form-group { margin-bottom: 20px; }
+.slots-container { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; padding: 10px; background-color: #2a2a2a; border-radius: 5px; min-height: 50px; }
+.slot-button { background-color: #007bff; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; }
+.slot-button.selected { background-color: #28a745; font-weight: bold; }
+.form-error { color: #ff6b6b; background-color: #5d1a1a; padding: 10px; border-radius: 5px; margin-top: 5px; }
+.btn-submit { /* Estilo general */
+    background-color: #007bff; color: white; padding: 10px 15px; width:100%;
+    border: none; border-radius: 5px; cursor: pointer; transition: background-color 0.2s;
 }
-.horarios-ocupados {
-    margin-top: 30px;
-    background-color: #404040;
-    padding: 15px;
-    border-radius: 8px;
-}
-.form-error {
-    color: #ff6b6b;
-    background-color: #5d1a1a;
-    padding: 10px;
-    border-radius: 5px;
-    margin-bottom: 15px;
-}
+.btn-submit:disabled { background-color: #555; cursor: not-allowed; }
+.reseñas-container { background-color: #333; padding: 30px; border-radius: 8px; max-width: 800px; margin: 40px auto; }
+.resumen-calificacion { text-align: center; margin-bottom: 30px; }
+.promedio-numero { font-size: 3em; font-weight: bold; }
+.promedio-estrellas { font-size: 1.5em; color: #ffc107; margin: 0 10px; }
+.reseña-card { border-bottom: 1px solid #555; padding: 20px 0; }
+.reseña-card:last-child { border-bottom: none; }
+.reseña-header { display: flex; justify-content: space-between; margin-bottom: 5px; }
+.reseña-usuario { font-weight: bold; }
+.reseña-fecha { font-size: 0.9em; color: #999; }
+.reseña-calificacion { color: #ffc107; margin-bottom: 10px; }
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const fechaInput = document.getElementById('id_fecha');
+    const horaInput = document.getElementById('id_hora');
+    const slotsContainer = document.getElementById('slotsContainer');
+    const slotsPlaceholder = document.getElementById('slots-placeholder');
+    const submitButton = document.querySelector('button[type="submit"]');
+
+    let selectedSlotButton = null;
+
+    async function cargarSlots(fecha) {
+        slotsContainer.innerHTML = '<p id="slots-placeholder">Cargando horarios...</p>'; // Feedback visual
+        submitButton.disabled = true;
+        horaInput.value = '';
+
+        try {
+            const url = `/api/slots-disponibles/{{ servicio.id }}/?fecha=${fecha}`;
+            const response = await fetch(url);
+            const data = await response.json();
+
+            slotsContainer.innerHTML = ''; // Limpiar contenedor
+            if (data.slots && data.slots.length > 0) {
+                data.slots.forEach(slot => {
+                    const button = document.createElement('button');
+                    button.type = 'button'; // Para que no envíe el formulario
+                    button.className = 'slot-button';
+                    button.textContent = slot;
+                    button.dataset.hora = slot;
+                    
+                    button.addEventListener('click', function() {
+                        // Deseleccionar el anterior
+                        if (selectedSlotButton) {
+                            selectedSlotButton.classList.remove('selected');
+                        }
+                        // Seleccionar el nuevo
+                        this.classList.add('selected');
+                        selectedSlotButton = this;
+
+                        // Actualizar el campo de hora oculto
+                        horaInput.value = this.dataset.hora;
+                        // Habilitar el botón de envío
+                        submitButton.disabled = false;
+                    });
+                    
+                    slotsContainer.appendChild(button);
+                });
+            } else {
+                slotsContainer.innerHTML = '<p id="slots-placeholder">No hay horarios disponibles para este día.</p>';
+            }
+        } catch (error) {
+            console.error('Error al cargar los slots:', error);
+            slotsContainer.innerHTML = '<p id="slots-placeholder" style="color:red;">Error al cargar horarios. Inténtalo de nuevo.</p>';
+        }
+    }
+
+    // Cargar slots cuando cambia la fecha
+    fechaInput.addEventListener('change', function() {
+        cargarSlots(this.value);
+    });
+
+    // Cargar slots para la fecha inicial al cargar la página
+    if (fechaInput.value) {
+        cargarSlots(fechaInput.value);
+    }
+});
+</script>
 {% endblock %}

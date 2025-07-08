@@ -1,0 +1,20 @@
+{% extends 'layouts/navbar.html' %}
+{% block content %}
+<div class="container">
+    <div class="form-container">
+        <h1>Dejar una Reseña</h1>
+        <p>Tu opinión sobre el turno en <strong>{{ turno.servicio.nombre }}</strong> el día <strong>{{ turno.fecha|date:"d/m/Y" }}</strong> es muy importante.</p>
+        <hr>
+        <form method="post">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit" class="btn-submit">Enviar Reseña</button>
+        </form>
+    </div>
+</div>
+<!-- Estilos que puedes mover a tu main.css -->
+<style>
+.form-container { background-color: #333; padding: 30px; border-radius: 8px; max-width: 600px; margin: 40px auto; }
+.btn-submit { background-color: #007bff; color: white; padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; width: 100%; margin-top: 10px; font-size: 16px; }
+</style>
+{% endblock %}

@@ -1,0 +1,25 @@
+{% load i18n %}
+{% load socialaccount %}
+
+{% get_providers as socialaccount_providers %}
+
+{% if socialaccount_providers %}
+<div class="socialaccount_ballot">
+  <div class="divider">
+    <span>{% trans "O" %}</span>
+  </div>
+
+  <ul class="socialaccount_providers">
+    {% for provider in socialaccount_providers %}
+    {% if provider.id == "google" %}
+      <li>
+        <a title="{{provider.name}}" class="google-btn" href="{% provider_login_url provider.id process=process scope=scope auth_params=auth_params %}">
+            <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google logo">
+            <span>{% blocktrans %}Continuar con {{provider.name}}{% endblocktrans %}</span>
+        </a>
+      </li>
+    {% endif %}
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}

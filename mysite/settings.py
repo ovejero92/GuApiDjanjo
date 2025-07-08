@@ -44,6 +44,11 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.sites',
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+    'allauth.socialaccount.providers.google',
     'myapp',
     'rest_framework'
 ]
@@ -57,6 +62,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    "allauth.account.middleware.AccountMiddleware",
 ]
 
 ROOT_URLCONF = 'mysite.urls'
@@ -64,7 +70,7 @@ ROOT_URLCONF = 'mysite.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -144,3 +150,54 @@ if not DEBUG:
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# --- CONFIGURACIÓN DE EMAIL ---
+# Para desarrollo, los emails se mostrarán en la consola donde ejecutas 'runserver'
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+# Para producción (cuando uses un servicio real como SendGrid), comentarás la línea de arriba y descomentarás estas:
+# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+# EMAIL_HOST = 'smtp.sendgrid.net'
+# EMAIL_HOST_USER = 'apikey' # Esto es literal, la palabra 'apikey'
+# EMAIL_HOST_PASSWORD = os.environ.get('SENDGRID_API_KEY') # Tu API Key de SendGrid
+# EMAIL_PORT = 587
+# EMAIL_USE_TLS = True
+DEFAULT_FROM_EMAIL = 'tu-email@tudominio.com' # El email que aparecerá como remitente
+
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+    'allauth.account.auth_backends.AuthenticationBackend',
+]
+
+# ID del sitio, requerido por allauth
+SITE_ID = 1
+
+# Redirección después del login (allauth la respeta)
+LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = '/'
+
+# Verificación de email
+ACCOUNT_EMAIL_VERIFICATION = "mandatory" # Esto sigue igual y es correcto
+ACCOUNT_EMAIL_REQUIRED = True # Sigue siendo útil tenerlo
+
+# Especifica cómo un usuario puede iniciar sesión
+ACCOUNT_AUTHENTICATION_METHOD = "email" # Forzamos que el email sea el método principal
+ACCOUNT_USERNAME_REQUIRED = False # Hacemos que el nombre de usuario no sea obligatorio
+
+# Campos requeridos durante el registro
+ACCOUNT_SIGNUP_FORM_CLASS = 'myapp.forms.CustomUserCreationForm' # Usamos nuestro formulario
+
+# Configuración para el login social
+SOCIALACCOUNT_AUTO_SIGNUP = True # Si un usuario se loguea con Google y no tiene cuenta, se le crea una automáticamente
+SOCIALACCOUNT_EMAIL_VERIFICATION = 'none' # Asumimos que el email de Google ya está verificado
+SOCIALACCOUNT_PROVIDERS = {
+    'google': {
+        'SCOPE': [
+            'profile',
+            'email',
+        ],
+        'AUTH_PARAMS': {
+            'access_type': 'online',
+        }
+    }
+}

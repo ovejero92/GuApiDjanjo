@@ -40,6 +40,7 @@
                         <th>Negocio</th>
                         <th>Fecha y Hora</th>
                         <th>Estado</th>
+                        <th>Acción</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -48,6 +49,11 @@
                         <td>{{ turno.servicio.nombre }}</td>
                         <td>{{ turno.fecha|date:"d/m/Y" }} - {{ turno.hora|time:"H:i" }}</td>
                         <td><span class="estado-{{ turno.estado }}">{{ turno.get_estado_display }}</span></td>
+                        <td>
+                        {% if turno.estado == 'completado' and not turno.reseña %}
+                            <a href="{% url 'crear_reseña' turno.id %}" class="btn-reseña">Dejar Reseña</a>
+                        {% endif %}
+                    </td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -68,5 +74,6 @@
     .estado-confirmado { color: #28a745; font-weight: bold; }
     .estado-cancelado { color: #dc3545; text-decoration: line-through; }
     .estado-completado { color: #6c757d; }
+    .btn-reseña { background-color: #ffc107; color: #212529; padding: 5px 10px; border-radius: 4px; text-decoration: none; font-weight: bold; font-size: 0.9em; }
 </style>
 {% endblock %}

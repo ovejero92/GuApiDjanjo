@@ -1,0 +1,8 @@
+Hola {{ user.username }},
+
+Gracias por registrarte en TurnosOnline. Por favor, haz clic en el siguiente enlace para activar tu cuenta:
+
+http://{{ domain }}{% url 'activate' uidb64=uid token=token %}
+
+¡Saludos!
+El equipo de TurnosOnline.
