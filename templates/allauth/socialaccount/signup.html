@@ -1,0 +1,64 @@
+{% extends "layouts/navbar.html" %}
+{% load i18n %}
+
+{% block content %}
+<div class="form-container">
+    <h1>{% trans "Finalizar Registro con Google" %}</h1>
+
+    <p>{% blocktrans with provider_name=account.get_provider.name site_name=site.name %}Estás a punto de usar tu cuenta de Google para registrarte en {{ site_name }}. Como último paso, por favor completa el siguiente formulario:{% endblocktrans %}</p>
+
+    <form class="signup" method="post" action="{% url 'socialaccount_signup' %}">
+        {% csrf_token %}
+        
+        {{ form.as_p }}
+
+        {% if redirect_field_value %}
+            <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}" />
+        {% endif %}
+        
+        <button class="btn-submit" type="submit">{% trans "Completar Registro" %}</button>
+    </form>
+</div>
+
+<!-- Reutilizamos los estilos que ya creaste -->
+<style>
+    .form-container {
+        background-color: #333;
+        padding: 30px 40px;
+        border-radius: 8px;
+        max-width: 420px;
+        margin: 40px auto;
+        color: #f0f0f0;
+    }
+    .form-container h1 { text-align: center; margin-bottom: 20px; }
+    .signup p { margin-bottom: 15px; }
+    .signup label { display: block; margin-bottom: 5px; font-weight: bold; }
+    .signup input[type="email"],
+    .signup input[type="text"],
+    .signup input[type="password"] {
+        width: 100%;
+        padding: 10px;
+        background-color: #555;
+        border: 1px solid #777;
+        color: white;
+        border-radius: 4px;
+        box-sizing: border-box;
+    }
+    /* Deshabilitamos el campo de email que viene de Google */
+    .signup input[type="email"][readonly] {
+        background-color: #444;
+        cursor: not-allowed;
+    }
+    .btn-submit {
+        background-color: #28a745;
+        color: white;
+        padding: 12px 15px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        width: 100%;
+        font-size: 16px;
+        margin-top: 20px;
+    }
+</style>
+{% endblock %}

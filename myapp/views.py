@@ -4,7 +4,7 @@ from django.contrib.auth import login
 from django.contrib import messages
 from django.forms import inlineformset_factory
 from .models import Servicio, Turno, HorarioLaboral
-from .forms import BloqueoForm, CustomUserCreationForm, TurnoForm, UserUpdateForm, IngresoTurnoForm, ReseñaForm
+from .forms import BloqueoForm, TurnoForm, UserUpdateForm, IngresoTurnoForm, ReseñaForm, CustomSignupForm, CustomSocialSignupForm
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from django.http import JsonResponse

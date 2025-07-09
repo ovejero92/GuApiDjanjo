@@ -1,0 +1,12 @@
+{% load i18n %}{% autoescape off %}
+{% blocktrans %}¡Hola, {{ user.get_full_name|default:user.username }}!{% endblocktrans %}
+
+{% blocktrans %}Bienvenido a TurnosOnline. Para completar tu registro y activar tu cuenta, por favor haz clic en el siguiente enlace:{% endblocktrans %}
+
+{{ activate_url }}
+
+{% blocktrans %}Si no puedes hacer clic en el enlace, por favor cópialo y pégalo en la barra de direcciones de tu navegador.{% endblocktrans %}
+
+{% blocktrans %}¡Gracias!{% endblocktrans %}
+El equipo de TurnosOnline
+{% endautoescape %}

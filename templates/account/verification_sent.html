@@ -1,0 +1,23 @@
+{% extends 'layouts/navbar.html' %}
+{% load i18n %}
+
+{% block content %}
+<div class="form-container">
+    <h1>{% trans "Verifica tu dirección de E-mail" %}</h1>
+
+    <p>{% blocktrans %}Te hemos enviado un correo electrónico para verificar tu cuenta. Por favor, sigue el enlace que se encuentra en el correo para finalizar el proceso de registro.{% endblocktrans %}</p>
+    <p>{% blocktrans %}Si no ves el correo en tu bandeja de entrada principal, por favor revisa tu carpeta de spam.{% endblocktrans %}</p>
+</div>
+
+<style>
+    .form-container {
+        background-color: #333;
+        padding: 40px;
+        border-radius: 8px;
+        max-width: 600px;
+        margin: 40px auto;
+        color: #f0f0f0;
+        text-align: center;
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,23 @@
+{% extends "layouts/navbar.html" %}
+{% load i18n %}
+
+{% block content %}
+<div class="form-container">
+    <h1>{% trans "Continuar con Google" %}</h1>
+
+    {% if process == "connect" %}
+        <p>{% blocktrans with provider.name as provider %}Estás a punto de conectar tu cuenta de {{ provider }} a tu cuenta de TurnosOnline.{% endblocktrans %}</p>
+    {% else %}
+        <p>{% blocktrans with provider.name as provider %}Estás a punto de iniciar sesión en TurnosOnline usando tu cuenta de {{ provider }}.{% endblocktrans %}</p>
+    {% endif %}
+
+    <form method="post">
+        {% csrf_token %}
+        <button class="btn-submit" type="submit">{% trans "Continuar" %}</button>
+    </form>
+</div>
+<style>
+    .form-container { background-color: #333; padding: 40px; border-radius: 8px; max-width: 600px; margin: 40px auto; color: #f0f0f0; text-align: center; }
+    .btn-submit { background-color: #007bff; color: white; padding: 12px 25px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; margin-top: 20px; }
+</style>
+{% endblock %}

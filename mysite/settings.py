@@ -25,11 +25,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get('SECRET_KEY',default='your secret key')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-# DEBUG = 'RENDER' not in os.environ
-DEBUG = os.environ.get('DEBUG', 'False').lower() in ('true', '1', 't')
-#DEBUG = True
+DEBUG = 'RENDER' not in os.environ
+# DEBUG = os.environ.get('DEBUG', 'False').lower() in ('true', '1', 't')
+# DEBUG = True
 
-ALLOWED_HOSTS = ['guapidjanjo.onrender.com', 'localhost', '127.0.0.1','TurnosOnline.onrender.com']
+ALLOWED_HOSTS = ['guapidjanjo.onrender.com', 'localhost', '127.0.0.1']
 
 RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
 if RENDER_EXTERNAL_HOSTNAME:
@@ -44,13 +44,17 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'django.contrib.sites',
+
+    # Apps de Terceros (Allauth)
+    'django.contrib.sites', # Requerido por allauth
     'allauth',
     'allauth.account',
     'allauth.socialaccount',
     'allauth.socialaccount.providers.google',
+
+    # Tus Apps
     'myapp',
-    'rest_framework'
+    'rest_framework',
 ]
 
 MIDDLEWARE = [
@@ -62,7 +66,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    "allauth.account.middleware.AccountMiddleware",
+    "allauth.account.middleware.AccountMiddleware", # Middleware de Allauth
 ]
 
 ROOT_URLCONF = 'mysite.urls'
@@ -70,13 +74,15 @@ ROOT_URLCONF = 'mysite.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join(BASE_DIR, 'templates')],
+        'DIRS': [os.path.join(BASE_DIR, 'templates')], # Directorio de plantillas a nivel de proyecto
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                # 'allauth' necesita este context processor para funcionar bien
+                'django.template.context_processors.request',
             ],
         },
     },
@@ -84,112 +90,89 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'mysite.wsgi.application'
 
-
-# Database
-# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
-
 DATABASES = {
     'default': dj_database_url.config(
-        default='sqlite:///db.sqlite3',
+        default=f'sqlite:///{os.path.join(BASE_DIR, "db.sqlite3")}',
         conn_max_age=600
     )
 }
 
-# ========== INICIO DE LA MODIFICACIÓN ==========
-# Le decimos a Django a dónde ir después de un login exitoso.
-# Nuestra nueva vista tiene prioridad, pero esto es una buena práctica.
-LOGIN_REDIRECT_URL = '/'
-# La redirección de logout la controlaremos directamente en la URL,
-# por lo que LOGOUT_REDIRECT_URL ya no es necesaria.
-# ========== FIN DE LA MODIFICACIÓN ==========
-
-
-# Password validation
-# https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
-
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
+    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
-
-# Internationalization
-# https://docs.djangoproject.com/en/5.2/topics/i18n/
-
-LANGUAGE_CODE = 'en-us'
-
+LANGUAGE_CODE = 'es-es' # Cambiado a español
 TIME_ZONE = 'UTC'
-
 USE_I18N = True
-
 USE_TZ = True
 
-
 # Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.2/howto/static-files/
-
 STATIC_URL = '/static/'
-
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
-
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 if not DEBUG:
-    STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
     STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
-
-# Default primary key field type
-# https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# --- CONFIGURACIÓN DE EMAIL ---
-# Para desarrollo, los emails se mostrarán en la consola donde ejecutas 'runserver'
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
-# Para producción (cuando uses un servicio real como SendGrid), comentarás la línea de arriba y descomentarás estas:
-# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-# EMAIL_HOST = 'smtp.sendgrid.net'
-# EMAIL_HOST_USER = 'apikey' # Esto es literal, la palabra 'apikey'
-# EMAIL_HOST_PASSWORD = os.environ.get('SENDGRID_API_KEY') # Tu API Key de SendGrid
-# EMAIL_PORT = 587
-# EMAIL_USE_TLS = True
-DEFAULT_FROM_EMAIL = 'tu-email@tudominio.com' # El email que aparecerá como remitente
+# ==============================================================================
+# CONFIGURACIÓN DE EMAIL (SEPARADA PARA LOCAL Y PRODUCCIÓN)
+# ==============================================================================
+if DEBUG:
+    # --- EN LOCAL (DESARROLLO) ---
+    # Los correos no se envían, se imprimen en la consola donde ejecutas 'runserver'.
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+    DEFAULT_FROM_EMAIL = 'desarrollo-local@turnosonline.com'
+else:
+    # --- EN PRODUCCIÓN (RENDER) ---
+    # Aquí usaríamos un servicio real como SendGrid.
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_HOST = 'smtp.sendgrid.net'
+    EMAIL_HOST_USER = 'apikey'  # Esto es literal, la palabra 'apikey'
+    EMAIL_HOST_PASSWORD = os.environ.get('SENDGRID_API_KEY', '') # Tu API Key de SendGrid
+    EMAIL_PORT = 587
+    EMAIL_USE_TLS = True
+    DEFAULT_FROM_EMAIL = 'casti.india@gmail.com' # Un email verificado en SendGrid
 
+
+# ==============================================================================
+# CONFIGURACIÓN DE DJANGO-ALLAUTH
+# ==============================================================================
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
     'allauth.account.auth_backends.AuthenticationBackend',
 ]
 
-# ID del sitio, requerido por allauth
 SITE_ID = 1
 
-# Redirección después del login (allauth la respeta)
+# --- Flujo de Autenticación Principal ---
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
 
-# Verificación de email
-ACCOUNT_EMAIL_VERIFICATION = "mandatory" # Esto sigue igual y es correcto
-ACCOUNT_EMAIL_REQUIRED = True # Sigue siendo útil tenerlo
+# --- Configuración de la Cuenta (Registro/Login Normal) ---
+ACCOUNT_AUTHENTICATION_METHOD = 'email'       # Los usuarios se loguean con su email.
+ACCOUNT_EMAIL_REQUIRED = True                 # El email es obligatorio.
+ACCOUNT_USERNAME_REQUIRED = False             # No pedimos un username aparte del email.
+ACCOUNT_EMAIL_VERIFICATION = 'mandatory'      # Se requiere verificación de email para poder loguearse.
+ACCOUNT_SIGNUP_PASSWORD_ENTER_TWICE = True    # Pide confirmar la contraseña.
+ACCOUNT_SESSION_REMEMBER = True               # Opción de "Recordarme".
+ACCOUNT_UNIQUE_EMAIL = True                   # Asegura que cada email sea único.
 
-# Especifica cómo un usuario puede iniciar sesión
-ACCOUNT_AUTHENTICATION_METHOD = "email" # Forzamos que el email sea el método principal
-ACCOUNT_USERNAME_REQUIRED = False # Hacemos que el nombre de usuario no sea obligatorio
+# --- Formularios Personalizados ---
+# Le decimos a allauth qué formularios usar para cada flujo.
+ACCOUNT_SIGNUP_FORM_CLASS = 'myapp.forms.CustomSignupForm'
+SOCIALACCOUNT_SIGNUP_FORM_CLASS = 'myapp.forms.CustomSocialSignupForm'
 
-# Campos requeridos durante el registro
-ACCOUNT_SIGNUP_FORM_CLASS = 'myapp.forms.CustomUserCreationForm' # Usamos nuestro formulario
+# --- Configuración de Cuentas Sociales (Google) ---
+SOCIALACCOUNT_AUTO_SIGNUP = True              # Si viene de Google con datos válidos, se registra automáticamente.
+SOCIALACCOUNT_EMAIL_VERIFICATION = 'none'     # Confiamos en que el email de Google está verificado.
+SOCIALACCOUNT_LOGIN_ON_GET = True             # Omite la página intermedia de "Continuar con Google".
 
-# Configuración para el login social
-SOCIALACCOUNT_AUTO_SIGNUP = True # Si un usuario se loguea con Google y no tiene cuenta, se le crea una automáticamente
-SOCIALACCOUNT_EMAIL_VERIFICATION = 'none' # Asumimos que el email de Google ya está verificado
+# --- Proveedores Sociales ---
 SOCIALACCOUNT_PROVIDERS = {
     'google': {
         'SCOPE': [

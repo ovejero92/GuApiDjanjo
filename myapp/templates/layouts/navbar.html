@@ -19,7 +19,7 @@
                 <a href="{% url 'mis_favoritos' %}">Mis Favoritos</a>
                 <a href="{% url 'mis_turnos' %}">Mis Turnos  <span id="notificacion-circulo" class="notificacion-circulo hidden"></span></a>
                     <div class="user-menu">
-                        <button id="userButton" class="user-button">{{ user.username|title }}</button>
+                        <button id="userButton" class="user-button">{{ user.first_name|default:user.username|title }}</button>
                         <div id="userDropdown" class="user-dropdown hidden">
                             <a href="{% url 'editar_perfil' %}">Editar perfil</a>
                             <a href="{% url 'account_change_password' %}">Cambiar contraseña</a>
