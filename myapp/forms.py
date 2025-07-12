@@ -19,10 +19,6 @@ class CustomSignupForm(forms.Form):
         user.save()
         return user
 
-# ==============================================================================
-# FORMULARIO PARA EL REGISTRO SOCIAL (CON GOOGLE)
-# ==============================================================================
-# Este es el que se mostrará DESPUÉS de hacer login con Google por primera vez.
 class CustomSocialSignupForm(forms.Form):
     first_name = forms.CharField(max_length=30, label="Tu Nombre", required=True)
 
@@ -40,7 +36,7 @@ class TurnoForm(forms.ModelForm):
         model = Turno
         fields = ['fecha', 'hora']
         widgets = {
-            'fecha': forms.DateInput(attrs={'type': 'date'}),
+            'fecha': forms.DateInput( format='%Y-%m-%d',attrs={'type': 'date'}),
             'hora': forms.TimeInput(attrs={'type': 'time'}),
         }
 

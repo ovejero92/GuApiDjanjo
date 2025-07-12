@@ -20,23 +20,45 @@
                     <thead>
                         <tr>
                             <th>Día</th>
-                            <th>Abierto / Cerrado</th>
-                            <th>Horario de Apertura</th>
-                            <th>Horario de Cierre</th>
-                        </tr>
+                            <th>Abierto</th>
+                            <th>Apertura</th>
+                            <th>Cierre</th>
+                            {% if formset.can_delete %}<th>Eliminar</th>{% endif %}
+                     </tr>
                     </thead>
                     <tbody>
                         {% for form in formset %}
                             <tr>
+                                {# El campo oculto 'id' es crucial para que Django sepa qué objeto actualizar #}
+                                {{ form.id }} 
+                
                                 <td>
-                                    {# Mostramos el nombre del día, no el campo del formulario #}
-                                    <strong>{{ form.instance.get_dia_semana_display }}</strong>
-                                    {# Campo oculto para el ID del horario #}
-                                    {{ form.id }}
+                                    {# Si el objeto ya existe (tiene un 'instance.pk'), mostramos el nombre del día como texto. #}
+                                    {% if form.instance.pk %}
+                                        <strong>{{ form.instance.get_dia_semana_display }}</strong>
+                        {# También incluimos el campo dia_semana pero oculto, para que no se pierda el valor #}
+                                        <div style="display:none;">{{ form.dia_semana }}</div>
+                                    {% else %}
+                                        {# Si es un formulario nuevo (extra), mostramos el desplegable para elegir el día. #}
+                                        {{ form.dia_semana }}
+                                        {% if form.dia_semana.errors %}<div class="form-error">{{ form.dia_semana.errors }}</div>{% endif %}
+                                    {% endif %}
                                 </td>
                                 <td>{{ form.activo }}</td>
-                                <td>{{ form.horario_apertura }}</td>
-                                <td>{{ form.horario_cierre }}</td>
+                                <td>
+                                    {{ form.horario_apertura }}
+                                    {% if form.horario_apertura.errors %}<div class="form-error">{{ form.horario_apertura.errors }}</div>{% endif %}
+                                </td>
+                                <td>
+                                    {{ form.horario_cierre }}
+                                    {% if form.horario_cierre.errors %}<div class="form-error">{{ form.horario_cierre.errors }}</div>{% endif %}
+                                </td>
+                                {% if formset.can_delete %}
+                                <td>
+                                    {# Checkbox para marcar y eliminar la fila al guardar #}
+                                    {{ form.DELETE }}
+                                </td>
+                                {% endif %}
                             </tr>
                         {% endfor %}
                     </tbody>

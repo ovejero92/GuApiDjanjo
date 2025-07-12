@@ -1,11 +1,179 @@
 {% extends 'layouts/dashboard_base.html' %}
+{% load static %}
 
 {% block dashboard_content %}
-    <h1>Métricas y Reportes</h1>
-    <p>Analiza el rendimiento de tu negocio para tomar mejores decisiones.</p>
-    
-    <div class="dashboard-section">
-        <h2>Rendimiento General</h2>
-        <p><strong>Próximamente:</strong> Gráficos con total de turnos, ingresos estimados, comparación mensual, etc.</p>
+    <!-- ================================================================ -->
+    <!-- ==========        HTML DE LA PÁGINA DE MÉTRICAS         ========== -->
+    <!-- ================================================================ -->
+    <div class="metricas-header">
+        <h1>Métricas y Reportes</h1>
+        <div class="periodo-filtro">
+            <a href="?periodo=7d" class="btn-filtro {% if periodo_seleccionado == '7d' %}active{% endif %}">7 Días</a>
+            <a href="?periodo=30d" class="btn-filtro {% if periodo_seleccionado == '30d' %}active{% endif %}">30 Días</a>
+            <a href="?periodo=mes_actual" class="btn-filtro {% if periodo_seleccionado == 'mes_actual' %}active{% endif %}">Este Mes</a>
+            <a href="?periodo=año_actual" class="btn-filtro {% if periodo_seleccionado == 'año_actual' %}active{% endif %}">Este Año</a>
+        </div>
     </div>
+    <h2 class="subtitulo-periodo">{{ titulo_periodo }}</h2>
+    <div class="metric-cards">
+        <div class="metric-card">
+            <h3>Ingresos Totales</h3>
+            <p class="metric-value">${{ ingresos_totales|floatformat:2 }}</p>
+        </div>
+        <div class="metric-card">
+            <h3>Turnos Completados</h3>
+            <p class="metric-value">{{ turnos_totales }}</p>
+        </div>
+        <div class="metric-card">
+            <h3>Ingreso Promedio / Turno</h3>
+            <p class="metric-value">
+                {% if turnos_totales > 0 %}${% widthratio ingresos_totales turnos_totales 1 as promedio %}{{ promedio|floatformat:2 }}{% else %}$0.00{% endif %}
+            </p>
+        </div>
+    </div>
+    <div class="charts-grid">
+        <div class="dashboard-section chart-container">
+            <h2>Ingresos por Día</h2>
+            <canvas id="ingresosPorDiaChart"></canvas>
+        </div>
+        <div class="dashboard-section chart-container">
+            <h2>Servicios Populares (Top 5)</h2>
+            {% if data_servicios != '[]' %}<canvas id="serviciosPopularesChart"></canvas>{% else %}<p>No hay datos suficientes para mostrar este gráfico.</p>{% endif %}
+        </div>
+    </div>
+
+    <!-- ================================================================ -->
+    <!-- ==========      DATOS Y SCRIPTS SOLO PARA MÉTRICAS      ========== -->
+    <!-- ================================================================ -->
+    {{ labels_ingresos|json_script:"labels-ingresos-data" }}
+    {{ data_ingresos|json_script:"data-ingresos-data" }}
+    {{ labels_servicios|json_script:"labels-servicios-data" }}
+    {{ data_servicios|json_script:"data-servicios-data" }}
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // GUARDIÁN: Asegurarse de que el código se ejecuta después de que todo esté cargado
+        document.addEventListener('DOMContentLoaded', function() {
+            // Buscamos los canvas aquí, dentro de esta página específica
+            const canvasIngresos = document.getElementById('ingresosPorDiaChart');
+            const canvasServicios = document.getElementById('serviciosPopularesChart');
+
+            // Leemos los datos desde las etiquetas <script> que generó Django
+            const labelsIngresos = JSON.parse(document.getElementById('labels-ingresos-data').textContent);
+            const dataIngresos = JSON.parse(document.getElementById('data-ingresos-data').textContent);
+            const labelsServicios = JSON.parse(document.getElementById('labels-servicios-data').textContent);
+            const dataServicios = JSON.parse(document.getElementById('data-servicios-data').textContent);
+        
+            // Creamos el gráfico de Ingresos solo si el canvas existe
+            if (canvasIngresos) {
+                new Chart(canvasIngresos.getContext('2d'), {
+                    type: 'line',
+                    data: { labels: labelsIngresos, datasets: [{
+                        label: 'Ingresos ($)', data: dataIngresos,
+                        borderColor: 'aqua', backgroundColor: 'rgba(0, 255, 255, 0.2)',
+                        fill: true, tension: 0.1
+                    }]},
+                    options: { scales: { y: { beginAtZero: true } } }
+                });
+            }
+
+            // Creamos el gráfico de Servicios solo si el canvas existe y hay datos
+            if (canvasServicios && dataServicios.length > 0) {
+                new Chart(canvasServicios.getContext('2d'), {
+                    type: 'doughnut',
+                    data: { labels: labelsServicios, datasets: [{
+                        label: 'Nº de Turnos', data: dataServicios,
+                        backgroundColor: ['rgba(0, 123, 255, 0.7)', 'rgba(40, 167, 69, 0.7)', 'rgba(255, 193, 7, 0.7)', 'rgba(220, 53, 69, 0.7)', 'rgba(111, 66, 193, 0.7)']
+                    }]}
+                });
+            }
+        });
+    </script>
+    
+   <style>
+    /* --- Estructura Principal del Encabezado --- */
+    .metricas-header {
+        display: flex;
+        flex-direction: column; /* Apilado por defecto (mobile-first) */
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+    .metricas-header h1 {
+        margin: 0;
+        text-align: center;
+    }
+
+    /* --- Filtro de Período --- */
+    .periodo-filtro {
+        display: flex;
+        flex-wrap: nowrap; /* Evita que los botones se rompan en varias líneas */
+        overflow-x: auto;  /* PERMITE SCROLL HORIZONTAL SOLO EN LOS BOTONES */
+        -webkit-overflow-scrolling: touch; /* Scroll suave en iOS */
+        padding-bottom: 10px; /* Espacio para la barra de scroll */
+        scrollbar-width: thin; /* Barra de scroll más fina en Firefox */
+    }
+    .periodo-filtro::-webkit-scrollbar {
+        height: 5px; /* Altura de la barra de scroll en Chrome/Safari */
+    }
+    .periodo-filtro::-webkit-scrollbar-thumb {
+        background: #555;
+        border-radius: 10px;
+    }
+    .periodo-filtro a {
+        color: #ccc;
+        text-decoration: none;
+        padding: 8px 15px; /* Padding horizontal más grande */
+        border-radius: 5px;
+        background-color: #444;
+        white-space: nowrap; /* Evita que el texto del botón se rompa */
+        flex-shrink: 0; /* Evita que los botones se encojan */
+        margin: 0 4px;
+        transition: background-color 0.2s;
+    }
+    .periodo-filtro a.active, .periodo-filtro a:hover {
+        background-color: #007bff;
+        color: white;
+    }
+
+    /* --- Título y Tarjetas de Métricas --- */
+    .subtitulo-periodo { color: #ccc; margin-bottom: 20px; border-bottom: 1px solid #444; padding-bottom: 10px; text-align: center; }
+    .metric-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
+    .metric-card { background-color: #333; padding: 20px; border-radius: 8px; text-align: center; }
+    .metric-card h3 { margin-top: 0; color: #ccc; font-size: 0.9em; text-transform: uppercase; }
+    .metric-value { font-size: 2em; font-weight: bold; color: #fff; margin: 10px 0 0; }
+    
+    /* --- Gráficos --- */
+    .charts-grid { display: grid; grid-template-columns: 1fr; gap: 20px; } /* Apilados por defecto */
+    .chart-container { padding: 20px; }
+
+    /* ================================================================ */
+    /* ==========   MEDIA QUERY PARA PANTALLAS MÁS GRANDES   ========== */
+    /* ================================================================ */
+
+    /* Se aplica a partir de 768px (tablets y más grandes) */
+    @media (min-width: 768px) {
+        .metricas-header {
+            flex-direction: row; /* En pantallas grandes, se ponen en fila */
+            justify-content: space-between;
+            align-items: center;
+        }
+        .metricas-header h1 {
+            text-align: left;
+        }
+        .periodo-filtro {
+            overflow-x: visible; /* Ya no necesitamos el scroll en los botones */
+            padding-bottom: 0;
+        }
+        .subtitulo-periodo {
+            text-align: left;
+        }
+    }
+    
+    /* Se aplica a partir de 992px (escritorios) */
+    @media (min-width: 992px) {
+        .charts-grid {
+            grid-template-columns: 2fr 1fr; /* Los gráficos se ponen uno al lado del otro */
+        }
+    }
+</style>
 {% endblock %}

@@ -2,159 +2,201 @@
 {% load static %}
 
 {% block content %}
-<div class="dashboard-layout">
-    <!-- MENÚ LATERAL (SIDEBAR) -->
-    <aside class="dashboard-sidebar">
-        <nav class="sidebar-nav">
-            <ul>
-                <li class="{% if request.resolver_match.url_name == 'dashboard_turnos' %}active{% endif %}">
-                    <a href="{% url 'dashboard_turnos' %}"><i class="fas fa-tasks"></i> Gestión de Turnos</a>
-                </li>
-                <li class="{% if request.resolver_match.url_name == 'dashboard_horarios' %}active{% endif %}">
-                    <a href="{% url 'dashboard_horarios' %}"><i class="fas fa-calendar-alt"></i> Horarios y Bloqueos</a>
-                </li>
-                <li class="{% if request.resolver_match.url_name == 'dashboard_metricas' %}active{% endif %}">
-                    <a href="{% url 'dashboard_metricas' %}"><i class="fas fa-chart-line"></i> Métricas y Reportes</a>
-                </li>
-                <li class="{% if request.resolver_match.url_name == 'dashboard_servicios' %}active{% endif %}">
-                    <a href="{% url 'dashboard_servicios' %}"><i class="fas fa-cut"></i> Mis Servicios</a>
-                </li>
-                <li class="{% if request.resolver_match.url_name == 'editar_perfil' %}active{% endif %}">
-                    <a href="{% url 'editar_perfil' %}"><i class="fas fa-user-cog"></i> Configuración</a>
-                </li>
-            </ul>
-        </nav>
-    </aside>
+<div class="dashboard-wrapper">
+    <div class="dashboard-layout">
+        <!-- MENÚ LATERAL (SIDEBAR) -->
+        <aside class="dashboard-sidebar" id="dashboardSidebar">
+            <nav class="sidebar-nav">
+                <ul>
+                    <li class="{% if request.resolver_match.url_name == 'dashboard_turnos' %}active{% endif %}">
+                        <a href="{% url 'dashboard_turnos' %}"><i class="fas fa-tasks"></i> <span>Gestión de Turnos</span></a>
+                    </li>
+                    <li class="{% if request.resolver_match.url_name == 'dashboard_horarios' %}active{% endif %}">
+                        <a href="{% url 'dashboard_horarios' %}"><i class="fas fa-calendar-alt"></i> <span>Horarios y Bloqueos</span></a>
+                    </li>
+                    <li class="{% if request.resolver_match.url_name == 'dashboard_metricas' %}active{% endif %}">
+                        <a href="{% url 'dashboard_metricas' %}"><i class="fas fa-chart-line"></i> <span>Métricas y Reportes</span></a>
+                    </li>
+                    <li class="{% if request.resolver_match.url_name == 'dashboard_servicios' %}active{% endif %}">
+                        <a href="{% url 'dashboard_servicios' %}"><i class="fas fa-cut"></i> <span>Mis Servicios</span></a>
+                    </li>
+                    <li class="{% if request.resolver_match.url_name == 'editar_perfil' %}active{% endif %}">
+                        <a href="{% url 'editar_perfil' %}"><i class="fas fa-user-cog"></i> <span>Configuración</span></a>
+                    </li>
+                </ul>
+            </nav>
+            <button id="sidebarToggleBtn" class="sidebar-toggle-btn" title="Ocultar menú">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+        </aside>
 
-    <!-- ÁREA DE CONTENIDO PRINCIPAL -->
-    <main class="dashboard-content">
-        {% block dashboard_content %}{% endblock %}
-    </main>
+        <!-- ÁREA DE CONTENIDO PRINCIPAL -->
+        <main class="dashboard-content">
+            {% block dashboard_content %}{% endblock %}
+        </main>
+    </div>
 </div>
 
 <style>
-/* ================================================================ */
-/* ==========        ESTILOS GENERALES DEL DASHBOARD       ========== */
-/* ================================================================ */
-
-.dashboard-layout {
-    display: flex;
-    max-width: 1400px;
-    margin: 20px auto;
-    gap: 20px;
-}
-.dashboard-sidebar {
-    flex: 0 0 250px;
-    background-color: #2a2a2a;
-    padding: 20px;
-    border-radius: 8px;
-    height: fit-content;
-}
-.sidebar-nav ul { list-style: none; padding: 0; margin: 0; }
-.sidebar-nav li a {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 12px 15px;
-    color: #ccc;
-    text-decoration: none;
-    border-radius: 5px;
-    transition: background-color 0.2s, color 0.2s;
-}
-.sidebar-nav li a:hover { background-color: #444; color: #fff; }
-.sidebar-nav li.active a { background-color: #007bff; color: #fff; font-weight: bold; }
-.sidebar-nav i { width: 20px; text-align: center; }
-.dashboard-content { flex-grow: 1; }
-
-/* ================================================================ */
-/* ==========      ESTILOS PARA LAS SECCIONES Y TABLAS     ========== */
-/* ================================================================ */
-.btn-completar {
-    background-color: #17a2b8; /* Un color cian/informativo */
-    padding: 8px 12px;
-    border: none;
-    color: white;
-    border-radius: 5px;
-    cursor: pointer;
-    font-weight: bold;
-}
-.btn-editar-ingreso { background-color: #ffc107; color: #212529; padding: 5px 10px; border-radius: 4px; text-decoration: none; font-weight: bold; font-size: 0.9em; }
-.dashboard-section {
-    background-color: #333;
-    padding: 20px;
-    border-radius: 8px;
-    margin-bottom: 25px;
-}
-.turnos-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 15px;
-    color: #ccc;
-}
-/* --- ESTILOS PARA ESCRITORIO (PANTALLAS GRANDES) --- */
-.turnos-table thead { background-color: #444; }
-.turnos-table th {
-    padding: 12px 15px;
-    text-align: left;
-    font-weight: bold;
-    color: #fff;
-    text-transform: uppercase;
-    font-size: 0.85em;
-    letter-spacing: 0.05em;
-}
-.turnos-table tbody tr { border-bottom: 1px solid #4a4a4a; transition: background-color 0.2s; }
-.turnos-table tbody tr:hover { background-color: #3a3a3a; }
-.turnos-table tbody tr:last-child { border-bottom: none; }
-.turnos-table td { padding: 12px 15px; vertical-align: middle; }
-.turnos-table td::before { display: none; } /* Ocultamos los data-labels en escritorio */
-.btn-confirmar, .btn-cancelar { padding: 8px 12px; border: none; color: white; border-radius: 5px; cursor: pointer; font-weight: bold; margin: 2px; }
-.btn-confirmar { background-color: #28a745; }
-.btn-cancelar { background-color: #dc3545; }
-.action-buttons form { display: inline-block; }
-
-/* ================================================================ */
-/* ==========            ESTILOS RESPONSIVOS             ========== */
-/* ================================================================ */
-@media (max-width: 992px) {
-    /* Layout del dashboard */
-    .dashboard-layout { flex-direction: column; }
-    .dashboard-sidebar { flex-basis: auto; width: 100%; }
-
-    /* Transformación de la tabla a tarjetas */
-    .responsive-table thead { display: none; }
-    .responsive-table tr {
-        display: block;
-        margin-bottom: 15px;
-        border: 1px solid #555;
-        border-radius: 5px;
-        padding: 10px;
-        background-color: #404040;
+    /* --- Contenedor Principal y Layout --- */
+    /* Quitamos el padding del .container de la navbar para usar todo el ancho */
+    .container {
+        padding: 0;
+        max-width: 100%;
     }
-    .responsive-table td {
+    .dashboard-wrapper {
+        height: calc(100vh - 80px); /* Altura total de la ventana menos la navbar */
         display: flex;
-        justify-content: space-between;
+        overflow: hidden; /* Evita cualquier scroll en el contenedor principal */
+    }
+    .dashboard-layout {
+        display: flex;
+        width: 100%;
+        max-width: 1600px; /* Ancho máximo para el contenido */
+        margin: 0 auto;
+        padding: 20px;
+        gap: 20px;
+        transition: gap 0.3s ease; /* Transición suave para el gap */
+    }
+
+    /* --- Sidebar (Menú Lateral) --- */
+    .dashboard-sidebar {
+        flex: 0 0 250px; /* Base fija de 250px */
+        background-color: #2a2a2a;
+        padding: 20px;
+        border-radius: 8px;
+        position: relative; /* Necesario para posicionar el botón de toggle */
+        transition: all 0.3s ease; /* Transición suave para colapsar/expandir */
+        overflow: hidden; /* Oculta el texto cuando se colapsa */
+    }
+    .sidebar-nav ul { list-style: none; padding: 0; margin: 0; }
+    .sidebar-nav li a {
+        display: flex; align-items: center; gap: 10px;
+        padding: 12px 15px; color: #ccc; text-decoration: none;
+        border-radius: 5px; transition: background-color 0.2s, color 0.2s;
+        white-space: nowrap; /* Evita que el texto se rompa */
+    }
+    .sidebar-nav li a:hover { background-color: #444; color: #fff; }
+    .sidebar-nav li.active a { background-color: #007bff; color: #fff; font-weight: bold; }
+    .sidebar-nav i { width: 20px; text-align: center; }
+
+    .dashboard-sidebar.collapsed {
+        flex-basis: 70px; /* Ancho cuando está colapsado */
+        padding: 20px 0;
+    }
+    .dashboard-sidebar.collapsed .sidebar-nav li a {
+        justify-content: center; /* Centra el ícono */
+    }
+    .dashboard-sidebar.collapsed .sidebar-nav span {
+        display: none; /* Oculta el texto del enlace */
+    }
+    .dashboard-sidebar.collapsed .sidebar-toggle-btn i {
+        transform: rotate(180deg); /* Gira la flecha */
+    }
+
+    /* --- Botón para Ocultar/Mostrar --- */
+    .sidebar-toggle-btn {
+        position: absolute;
+        top: 50%;
+        right: -13px; /* Lo saca un poco del borde */
+        transform: translateY(-50%);
+        background-color: #007bff;
+        color: white;
+        border: 2px solid #202020;
+        border-radius: 50%;
+        width: 30px;
+        height: 30px;
+        display: flex;
         align-items: center;
-        border-bottom: 1px solid #555;
-        padding: 10px 0;
-        text-align: left;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
     }
-    .responsive-table tr td:last-child { border-bottom: 0; }
-    .responsive-table td::before {
-        display: inline-block;
-        content: attr(data-label);
-        font-weight: bold;
-        color: #ccc;
-        padding-right: 15px;
+    .sidebar-toggle-btn:hover {
+        background-color: aqua;
+        color: #202020;
     }
-    .responsive-table td .data-value {
-        text-align: right;
-        overflow-wrap: break-word;
-        word-wrap: break-word;
-        flex: 1;
+    .sidebar-toggle-btn i {
+        transition: transform 0.3s ease;
     }
-    .responsive-table td[data-label="Acciones"] { display: block; text-align: center; }
-    .responsive-table td[data-label="Acciones"]::before { display: none; }
-    .action-buttons { width: 100%; text-align: center; }
-}
+
+    /* --- Contenido Principal (con scroll propio) --- */
+    .dashboard-content {
+        flex-grow: 1; /* Ocupa el espacio restante */
+        min-width: 0; /* Solución clave para evitar desbordamiento en flexbox */
+        overflow-y: auto; /* AÑADE SCROLL VERTICAL SÓLO A ESTA COLUMNA */
+        padding-right: 10px; /* Espacio para que el scroll no tape el contenido */
+    }
+    /* Estilo del scrollbar */
+    .dashboard-content::-webkit-scrollbar { width: 8px; }
+    .dashboard-content::-webkit-scrollbar-track { background: transparent; }
+    .dashboard-content::-webkit-scrollbar-thumb { background: #555; border-radius: 4px; }
+    .dashboard-content::-webkit-scrollbar-thumb:hover { background: #777; }
+
+    /* --- Estilos para las tablas y botones (los que ya tenías) --- */
+    .dashboard-section { background-color: #333; padding: 20px; border-radius: 8px; margin-bottom: 25px; }
+    .turnos-table { width: 100%; border-collapse: collapse; margin-top: 15px; color: #ccc; }
+    .turnos-table th { padding: 12px 15px; text-align: left; font-weight: bold; color: #fff; text-transform: uppercase; font-size: 0.85em; letter-spacing: 0.05em; background-color: #444; }
+    .turnos-table td { padding: 12px 15px; vertical-align: middle; }
+    .turnos-table tbody tr { border-bottom: 1px solid #4a4a4a; }
+    .turnos-table tbody tr:last-child { border-bottom: none; }
+    .turnos-table td::before { display: none; }
+    
+    /* ================================================================ */
+    /* ==========            ESTILOS RESPONSIVOS             ========== */
+    /* ================================================================ */
+    @media (max-width: 992px) {
+        .dashboard-wrapper {
+            height: auto; /* En móvil, la altura es automática */
+            overflow: visible; /* Devolvemos el scroll al body */
+        }
+        .dashboard-layout {
+            flex-direction: column;
+            padding: 10px;
+        }
+        .dashboard-sidebar {
+            flex-shrink: 0; /* Evita que se encoja */
+        }
+        .dashboard-content {
+            overflow-y: visible; /* Ya no necesita su propio scroll */
+            padding-right: 0;
+        }
+
+        /* Transformación de la tabla a tarjetas (la que ya tenías) */
+        .responsive-table thead { display: none; }
+        .responsive-table tr { display: block; margin-bottom: 15px; border: 1px solid #555; border-radius: 5px; padding: 10px; background-color: #404040; }
+        .responsive-table td { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #555; padding: 10px 0; text-align: left; }
+        .responsive-table tr td:last-child { border-bottom: 0; }
+        .responsive-table td::before { display: inline-block; content: attr(data-label); font-weight: bold; color: #ccc; padding-right: 15px; }
+        .responsive-table td .data-value { text-align: right; overflow-wrap: break-word; word-wrap: break-word; flex: 1; }
+        .responsive-table td[data-label="Acciones"] { display: block; text-align: center; }
+        .responsive-table td[data-label="Acciones"]::before { display: none; }
+        .sidebar-toggle-btn {
+            display: none;
+        }
+    }
 </style>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const sidebar = document.getElementById('dashboardSidebar');
+    const toggleBtn = document.getElementById('sidebarToggleBtn');
+
+    // GUARDIÁN: Solo ejecutar si los elementos del dashboard existen en esta página.
+    if (sidebar && toggleBtn) {
+        const toggleIcon = toggleBtn.querySelector('i');
+
+        toggleBtn.addEventListener('click', function() {
+            sidebar.classList.toggle('collapsed');
+
+            if (sidebar.classList.contains('collapsed')) {
+                toggleIcon.className = 'fas fa-chevron-right';
+                toggleBtn.title = "Mostrar menú";
+            } else {
+                toggleIcon.className = 'fas fa-chevron-left';
+                toggleBtn.title = "Ocultar menú";
+            }
+        });
+    }
+});
+</script>
 {% endblock %}

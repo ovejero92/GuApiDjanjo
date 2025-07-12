@@ -9,14 +9,13 @@ from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from django.http import JsonResponse
 from datetime import datetime, timedelta
-from django.db.models import Avg
-from django.contrib.sites.shortcuts import get_current_site
-from django.template.loader import render_to_string
-from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
-from django.utils.encoding import force_bytes, force_str
+from django.db.models import Count, Sum,Avg
+from django.db.models.functions import TruncDay, TruncWeek, TruncMonth
+from django.utils.http import urlsafe_base64_decode
+from django.utils.encoding import force_str
 from django.contrib.auth.tokens import default_token_generator
-from django.core.mail import EmailMessage
 from django.contrib.auth.models import User
+import json
 
 # ========== INICIO DE LA MODIFICACIÓN ==========
 # Importaciones necesarias para la nueva vista de Login
@@ -117,12 +116,14 @@ def dashboard_horarios(request):
     HorarioFormSet = inlineformset_factory(
         Servicio,           # Modelo Padre
         HorarioLaboral,     # Modelo Hijo
-        fields=('activo', 'horario_apertura', 'horario_cierre'), # Campos a editar
-        extra=0,            # No mostrar formularios extra para añadir (ya deberían existir los 7)
-        can_delete=False,   # No permitir borrar horarios (solo desactivar)
-        widgets={           # Widgets para que se vean bien
-            'horario_apertura': forms.TimeInput(attrs={'type': 'time'}),
-            'horario_cierre': forms.TimeInput(attrs={'type': 'time'}),
+        fields=('dia_semana','activo', 'horario_apertura', 'horario_cierre'), # Campos a editar
+        extra=1,            # No mostrar formularios extra para añadir (ya deberían existir los 7)
+        can_delete=True,   # No permitir borrar horarios (solo desactivar)
+        widgets={
+            'horario_apertura': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
+            'horario_cierre': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
+            'dia_semana': forms.Select(attrs={'class': 'form-control'}),
+            'activo': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
     )
     # --- Lógica de Bloqueos (Formulario simple y lista) ---
@@ -161,7 +162,79 @@ def dashboard_horarios(request):
 
 @login_required
 def dashboard_metricas(request):
-    return render(request, 'dashboard_metricas.html')
+    # Obtener los servicios del propietario logueado
+    servicios_propietario = request.user.servicios_propios.all()
+
+    # --- LÓGICA DE FILTRADO POR FECHAS ---
+    # Por defecto, mostramos los últimos 30 días
+    periodo = request.GET.get('periodo', '30d')
+    hoy = timezone.localdate()
+    
+    if periodo == '7d':
+        fecha_inicio = hoy - timedelta(days=6)
+        titulo_periodo = "Últimos 7 días"
+    elif periodo == 'mes_actual':
+        fecha_inicio = hoy.replace(day=1)
+        titulo_periodo = "Este Mes"
+    elif periodo == 'año_actual':
+        fecha_inicio = hoy.replace(day=1, month=1)
+        titulo_periodo = "Este Año"
+    else: # Por defecto y para '30d'
+        fecha_inicio = hoy - timedelta(days=29)
+        titulo_periodo = "Últimos 30 días"
+    
+    # QuerySet base: todos los turnos completados del propietario en el rango de fechas
+    turnos_completados = Turno.objects.filter(
+        servicio__in=servicios_propietario,
+        estado='completado',
+        fecha__gte=fecha_inicio,
+        fecha__lte=hoy
+    )
+
+    # --- CÁLCULO DE MÉTRICAS CLAVE (TARJETAS) ---
+    agregados = turnos_completados.aggregate(
+        ingresos_totales=Sum('ingreso_real'),
+        turnos_totales=Count('id'),
+        ingreso_promedio=Avg('ingreso_real')
+    )
+    
+    # --- DATOS PARA GRÁFICOS ---
+    # Gráfico 1: Ingresos por día
+    ingresos_por_dia = turnos_completados.annotate(
+        dia=TruncDay('fecha')
+    ).values('dia').annotate(
+        total=Sum('ingreso_real')
+    ).order_by('dia')
+    
+    labels_ingresos = [d['dia'].strftime('%d/%m') for d in ingresos_por_dia]
+    data_ingresos = [float(d['total']) for d in ingresos_por_dia]
+
+    # Gráfico 2: Servicios más populares en el período
+    servicios_populares = turnos_completados.values(
+        'servicio__nombre'
+    ).annotate(
+        cantidad=Count('id')
+    ).order_by('-cantidad')[:5] # Top 5
+
+    labels_servicios = [s['servicio__nombre'] for s in servicios_populares]
+    data_servicios = [s['cantidad'] for s in servicios_populares]
+
+    context = {
+        'ingresos_totales': agregados['ingresos_totales'] or 0,
+        'turnos_totales': agregados['turnos_totales'] or 0,
+        'ingreso_promedio': agregados['ingreso_promedio'] or 0,
+        
+        # Datos para los gráficos, convertidos a JSON para JavaScript
+        'labels_ingresos': json.dumps(labels_ingresos),
+        'data_ingresos': json.dumps(data_ingresos),
+        'labels_servicios': json.dumps(labels_servicios),
+        'data_servicios': json.dumps(data_servicios),
+        
+        # Para el filtro de fechas
+        'titulo_periodo': titulo_periodo,
+        'periodo_seleccionado': periodo,
+    }
+    return render(request, 'dashboard_metricas.html', context)
 
 @login_required
 def dashboard_servicios(request):
@@ -270,71 +343,84 @@ def obtener_notificaciones(request):
 
 @login_required
 def obtener_slots_disponibles(request, servicio_id):
+    """
+    Calcula y devuelve los huecos de tiempo disponibles para un servicio y una fecha específicos,
+    considerando horarios laborales, turnos existentes y días de bloqueo.
+    """
     fecha_str = request.GET.get('fecha')
+    
     if not fecha_str:
-        return JsonResponse({'error': 'Falta el parámetro de fecha'}, status=400)
+        return JsonResponse({'error': 'Falta el parámetro de fecha.'}, status=400)
 
     try:
         fecha = datetime.strptime(fecha_str, '%Y-%m-%d').date()
-        servicio = Servicio.objects.get(id=servicio_id)
-    except (ValueError, Servicio.DoesNotExist):
-        return JsonResponse({'error': 'Fecha o servicio inválido'}, status=400)
+        servicio = get_object_or_404(Servicio, id=servicio_id)
+    except (ValueError, TypeError):
+        return JsonResponse({'error': 'Formato de fecha o servicio inválido.'}, status=400)
 
-    # --- LÓGICA CENTRAL PARA CALCULAR SLOTS ---
+    # --- INICIO DE LA LÓGICA DE CÁLCULO DE SLOTS ---
     slots_disponibles = []
     
-    # 1. Obtener horario laboral para el día seleccionado
-    dia_semana = fecha.weekday()
+    # 1. Obtener horario laboral para el día de la semana seleccionado
+    dia_semana = fecha.weekday()  # Lunes=0, Domingo=6
     try:
         horario_laboral = servicio.horarios.get(dia_semana=dia_semana, activo=True)
     except HorarioLaboral.DoesNotExist:
-        # Si no trabaja ese día, devolvemos una lista vacía
+        # Si el negocio no trabaja ese día, devolvemos una lista vacía.
         return JsonResponse({'slots': []})
 
     # 2. Obtener todos los turnos y bloqueos para ese día
-    turnos_del_dia = Turno.objects.filter(servicio=servicio, fecha=fecha)
+    turnos_del_dia = list(Turno.objects.filter(servicio=servicio, fecha=fecha, estado__in=['pendiente', 'confirmado']))
     bloqueos_del_dia = servicio.dias_no_disponibles.filter(fecha=fecha)
 
     # 3. Iterar por el día en intervalos según la duración del servicio
     duracion_servicio = timedelta(minutes=servicio.duracion)
-    hora_actual = datetime.combine(fecha, horario_laboral.horario_apertura)
-    hora_cierre = datetime.combine(fecha, horario_laboral.horario_cierre)
-
-    while hora_actual + duracion_servicio <= hora_cierre:
-        slot_inicio = hora_actual.time()
-        slot_fin = (hora_actual + duracion_servicio).time()
+    
+    # Combinamos la fecha con la hora para poder operar con datetimes
+    hora_actual_dt = datetime.combine(fecha, horario_laboral.horario_apertura)
+    hora_cierre_dt = datetime.combine(fecha, horario_laboral.horario_cierre)
+    
+    # Bucle para generar y validar cada posible slot
+    while hora_actual_dt + duracion_servicio <= hora_cierre_dt:
+        slot_inicio = hora_actual_dt.time()
+        slot_fin = (hora_actual_dt + duracion_servicio).time()
         
-        # Por defecto, el slot está libre
         slot_esta_disponible = True
 
-        # Comprobar si se superpone con un turno existente
-        for turno in turnos_del_dia:
-            turno_fin = (datetime.combine(fecha, turno.hora) + timedelta(minutes=turno.servicio.duracion)).time()
-            if max(slot_inicio, turno.hora) < min(slot_fin, turno_fin):
-                slot_esta_disponible = False
-                break
-        if not slot_esta_disponible:
-            hora_actual += duracion_servicio
-            continue
-            
-        # Comprobar si se superpone con un bloqueo
-        for bloqueo in bloqueos_del_dia:
-            # Bloqueo de día completo
-            if bloqueo.hora_inicio is None:
-                slot_esta_disponible = False
-                break
-            # Bloqueo de franja horaria
-            if max(slot_inicio, bloqueo.hora_inicio) < min(slot_fin, bloqueo.hora_fin):
-                slot_esta_disponible = False
-                break
-        if not slot_esta_disponible:
-            hora_actual += duracion_servicio
-            continue
+        # VALIDACIÓN A: No generar slots en el pasado
+        if fecha == timezone.localdate() and slot_inicio < timezone.localtime().time():
+            slot_esta_disponible = False
 
-        # Si pasó todas las validaciones, añadir el slot
-        slots_disponibles.append(slot_inicio.strftime('%H:%M'))
+        # VALIDACIÓN B: Comprobar si se superpone con un turno existente
+        if slot_esta_disponible:
+            for turno in turnos_del_dia:
+                turno_inicio_existente = turno.hora
+                # Asumimos que la duración del turno existente es la del servicio actual
+                duracion_existente = timedelta(minutes=servicio.duracion)
+                turno_fin_existente = (datetime.combine(fecha, turno_inicio_existente) + duracion_existente).time()
+                
+                # Lógica de superposición de rangos
+                if max(slot_inicio, turno_inicio_existente) < min(slot_fin, turno_fin_existente):
+                    slot_esta_disponible = False
+                    break
+
+        # VALIDACIÓN C: Comprobar si se superpone con un bloqueo
+        if slot_esta_disponible:
+            for bloqueo in bloqueos_del_dia:
+                if bloqueo.hora_inicio is None:  # Bloqueo de día completo
+                    slot_esta_disponible = False
+                    break
+                # Bloqueo de franja horaria
+                if max(slot_inicio, bloqueo.hora_inicio) < min(slot_fin, bloqueo.hora_fin):
+                    slot_esta_disponible = False
+                    break
         
-        hora_actual += duracion_servicio
+        # Si el slot pasó todas las validaciones, se añade a la lista
+        if slot_esta_disponible:
+            slots_disponibles.append(slot_inicio.strftime('%H:%M'))
+        
+        # Avanzamos al siguiente posible slot
+        hora_actual_dt += duracion_servicio
 
     return JsonResponse({'slots': slots_disponibles})
 
