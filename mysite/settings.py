@@ -136,7 +136,7 @@ else:
     EMAIL_HOST_PASSWORD = os.environ.get('SENDGRID_API_KEY') # Tu API Key de SendGrid
     EMAIL_PORT = 587
     EMAIL_USE_TLS = True
-    DEFAULT_FROM_EMAIL = 'casti.india@gmail.com' # Un email verificado en SendGrid
+    DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL') # Un email verificado en SendGrid
 
 
 # ==============================================================================
