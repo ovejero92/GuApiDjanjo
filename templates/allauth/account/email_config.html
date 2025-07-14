@@ -1,0 +1,47 @@
+{% extends "layouts/navbar.html" %}
+{% load i18n %}
+
+{% block content %}
+<div class="form-container">
+    <h1>{% trans "Confirmar Dirección de E-mail" %}</h1>
+
+    {% if confirmation %}
+        <p>{% blocktrans with confirmation.email_address.email as email %}Por favor, confirma que <a href="mailto:{{ email }}">{{ email }}</a> es tu dirección de correo electrónico haciendo clic en el botón de abajo.{% endblocktrans %}</p>
+        <form method="post" action="{% url 'account_confirm_email' confirmation.key %}">
+            {% csrf_token %}
+            <button class="btn-submit" type="submit">{% trans 'Confirmar' %}</button>
+        </form>
+    {% else %}
+        {% url 'account_email' as email_url %}
+        <p>{% blocktrans %}Este enlace de confirmación de e-mail ha expirado o no es válido. Por favor, <a href="{{ email_url }}">solicita una nueva confirmación por e-mail</a>.{% endblocktrans %}</p>
+    {% endif %}
+</div>
+
+<style>
+    .form-container {
+        background-color: #333;
+        padding: 40px;
+        border-radius: 8px;
+        max-width: 600px;
+        margin: 40px auto;
+        color: #f0f0f0;
+        text-align: center;
+    }
+    .form-container p a {
+        color: aqua;
+        font-weight: bold;
+    }
+    .btn-submit {
+        background-color: #28a745;
+        color: white;
+        padding: 12px 25px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 16px;
+        margin-top: 20px;
+        text-decoration: none;
+        display: inline-block;
+    }
+</style>
+{% endblock %}
