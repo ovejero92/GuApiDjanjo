@@ -16,100 +16,56 @@
     <!-- SECCIÓN PARA GESTIONAR EL CATÁLOGO -->
     <div class="dashboard-section">
         <h2>Catálogo de Servicios</h2>
-        <p>Añade, edita o elimina los diferentes servicios. Cada uno puede tener su propio precio y duración.</p>
-        <form method="post" class="formset-container">
+        <form method="post">
             {% csrf_token %}
             {{ formset.management_form }}
-            <div class="container-table">
-                <!-- Encabezados de la tabla -->
+            <div class="formset-container">
                 <div class="formset-header">
-                    <div class="header-item nombre-col">Nombre del Servicio</div>
+                    <div class="header-item nombre-col">Nombre</div>
                     <div class="header-item descripcion-col">Descripción</div>
                     <div class="header-item duracion-col">Duración (min)</div>
                     <div class="header-item precio-col">Precio ($)</div>
                     <div class="header-item eliminar-col">Eliminar</div>
                 </div>
-
-                <!-- Filas del formulario (formset) -->
                 {% for form in formset %}
                 <div class="formset-row">
                     {{ form.id }}
-                    <div class="form-item nombre-col">{{ form.nombre }}</div>
-                    <div class="form-item descripcion-col">{{ form.descripcion }}</div>
-                    <div class="form-item duracion-col">{{ form.duracion }}</div>
-                    <div class="form-item precio-col">{{ form.precio }}</div>
-                    <div class="form-item eliminar-col">{% if form.instance.pk %}{{ form.DELETE }}{% endif %}</div>
+                    <div class="form-item nombre-col"><label>Nombre del Servicio</label>{{ form.nombre }}</div>
+                    <div class="form-item descripcion-col"><label>Descripción</label>{{ form.descripcion }}</div>
+                    <div class="form-item duracion-col"><label>Duración (min)</label>{{ form.duracion }}</div>
+                    <div class="form-item precio-col"><label>Precio ($)</label>{{ form.precio }}</div>
+                    <div class="form-item eliminar-col"><label>Eliminar</label>{% if form.instance.pk %}{{ form.DELETE }}{% endif %}</div>
                 </div>
                 {% endfor %}
             </div>
             <button type="submit" name="guardar_catalogo" class="btn-submit" style="margin-top: 20px;">Guardar Catálogo</button>
         </form>
     </div>
-     <style>
-    .btn-submit {
-        background-color: #007bff; color: white; padding: 10px 15px;
-        border: none; border-radius: 5px; cursor: pointer;
-    }
-        .formset-container {
-            width: 900px;
-            margin: 20px 0px;
+    
+    <style>
+        .btn-submit { background-color: #007bff; color: white; padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; }
+        .formset-container { width: 100%; margin-top: 20px; }
 
-        }
-        .container-table{
-            width: 900px;
-        }
-        /* Usamos Flexbox para crear las filas, es más flexible que una tabla */
-        .formset-header, .formset-row {
-            display: flex;
-            align-items: flex-start; /* Alinea los elementos arriba */
-            gap: 15px; /* Espacio entre columnas */
-            border-bottom: 1px solid #555;
-            padding: 10px 0;
-        }
-
-        .formset-header {
-            font-weight: bold;
-            color: #ccc;
-            text-transform: uppercase;
-            font-size: 0.8em;
-            border-bottom: 2px solid #666;
-        }
-
-        .formset-row:last-of-type {
-            border-bottom: none;
-        }
-
-        /* Definimos el ancho de cada columna usando flex */
-        .header-item, .form-item {
-            padding: 0 5px;
-        }
-        .nombre-col { flex: 1 1 20%; } /* Crece y se encoge, base del 20% */
+        /* --- ESTILOS PARA ESCRITORIO --- */
+        .formset-header { display: flex; gap: 15px; padding: 0 5px 10px; font-weight: bold; color: #ccc; text-transform: uppercase; font-size: 0.8em; border-bottom: 2px solid #666; }
+        .formset-row { display: flex; align-items: flex-start; gap: 15px; border-bottom: 1px solid #555; padding: 15px 0; }
+        .form-item label { display: none; } /* Ocultamos los labels en escritorio */
+        .header-item, .form-item { padding: 0 5px; }
+        .nombre-col { flex: 1 1 20%; }
         .descripcion-col { flex: 1 1 35%; }
         .duracion-col { flex: 1 1 15%; }
         .precio-col { flex: 1 1 15%; }
-        .eliminar-col { flex: 0 0 70px; text-align: center; } /* Ancho fijo y centrado */
+        .eliminar-col { flex: 0 0 70px; text-align: center; }
+        .form-item input, .form-item textarea { width: 100%; background-color: #444; color: white; border: 1px solid #666; border-radius: 4px; padding: 10px; box-sizing: border-box; }
+        .form-item textarea { min-height: 50px; resize: vertical; }
+        .form-item input[type="checkbox"] { transform: scale(1.5); margin-top: 10px; }
 
-        /* Estilos para los inputs para que ocupen todo el espacio */
-        .form-item input[type="text"],
-        .form-item input[type="number"],
-        .form-item textarea {
-            width: 100%;
-            background-color: #444;
-            color: white;
-            border: 1px solid #666;
-            border-radius: 4px;
-            padding: 10px;
-            box-sizing: border-box;
+        /* --- ESTILOS RESPONSIVOS PARA MÓVIL --- */
+        @media (max-width: 768px) {
+            .formset-header { display: none; }
+            .formset-row { display: block; border: 1px solid #555; border-radius: 8px; margin-bottom: 20px; padding: 15px; }
+            .form-item { margin-bottom: 15px; }
+            .form-item label { display: block; font-weight: bold; color: #ccc; margin-bottom: 5px; font-size: 0.9em; }
         }
-
-        .form-item textarea {
-            height: 40px;
-            resize: vertical;
-        }
-        
-        .form-item input[type="checkbox"] {
-            transform: scale(1.5);
-            margin-top: 10px;
-        }
-</style>
+    </style>
 {% endblock %}

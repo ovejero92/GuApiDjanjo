@@ -5,17 +5,15 @@
     <p>Define tus horarios de trabajo para cada día y bloquea fechas por vacaciones o eventos especiales.</p>
     
     {% if no_hay_servicio %}
-        <div class="dashboard-section">
-            <p>Aún no tienes un servicio configurado. Por favor, contacta al administrador.</p>
-        </div>
+        <div class="dashboard-section"><p>Aún no tienes un servicio configurado.</p></div>
     {% else %}
         <!-- FORMULARIO DE HORARIO SEMANAL -->
         <div class="dashboard-section">
             <h2>Configuración de Horario Semanal para: <strong>{{ servicio.nombre }}</strong></h2>
             <form method="post">
                 {% csrf_token %}
-                {{ formset.management_form }} {# Campo oculto necesario para el formset #}
-
+                {{ formset.management_form }}
+                
                 <table class="schedule-table">
                     <thead>
                         <tr>
@@ -24,79 +22,46 @@
                             <th>Apertura</th>
                             <th>Cierre</th>
                             {% if formset.can_delete %}<th>Eliminar</th>{% endif %}
-                     </tr>
+                        </tr>
                     </thead>
                     <tbody>
                         {% for form in formset %}
                             <tr>
-                                {# El campo oculto 'id' es crucial para que Django sepa qué objeto actualizar #}
-                                {{ form.id }} 
-                
-                                <td>
-                                    {# Si el objeto ya existe (tiene un 'instance.pk'), mostramos el nombre del día como texto. #}
+                                {{ form.id }}
+                                <td data-label="Día">
                                     {% if form.instance.pk %}
                                         <strong>{{ form.instance.get_dia_semana_display }}</strong>
-                        {# También incluimos el campo dia_semana pero oculto, para que no se pierda el valor #}
                                         <div style="display:none;">{{ form.dia_semana }}</div>
                                     {% else %}
-                                        {# Si es un formulario nuevo (extra), mostramos el desplegable para elegir el día. #}
                                         {{ form.dia_semana }}
-                                        {% if form.dia_semana.errors %}<div class="form-error">{{ form.dia_semana.errors }}</div>{% endif %}
                                     {% endif %}
                                 </td>
-                                <td>{{ form.activo }}</td>
-                                <td>
-                                    {{ form.horario_apertura }}
-                                    {% if form.horario_apertura.errors %}<div class="form-error">{{ form.horario_apertura.errors }}</div>{% endif %}
-                                </td>
-                                <td>
-                                    {{ form.horario_cierre }}
-                                    {% if form.horario_cierre.errors %}<div class="form-error">{{ form.horario_cierre.errors }}</div>{% endif %}
-                                </td>
-                                {% if formset.can_delete %}
-                                <td>
-                                    {# Checkbox para marcar y eliminar la fila al guardar #}
-                                    {{ form.DELETE }}
-                                </td>
-                                {% endif %}
+                                <td data-label="Abierto">{{ form.activo }}</td>
+                                <td data-label="Apertura">{{ form.horario_apertura }}</td>
+                                <td data-label="Cierre">{{ form.horario_cierre }}</td>
+                                {% if formset.can_delete %}<td data-label="Eliminar">{% if form.instance.pk %}{{ form.DELETE }}{% endif %}</td>{% endif %}
                             </tr>
                         {% endfor %}
                     </tbody>
                 </table>
-                <button type="submit" class="btn-submit" style="margin-top: 20px;">Guardar Horarios</button>
+                <button type="submit" name="guardar_horarios" class="btn-submit" style="margin-top: 20px;">Guardar Horarios</button>
             </form>
         </div>
 
-         <!-- SECCIÓN DE BLOQUEO DE FECHAS -->
+        <!-- SECCIÓN DE BLOQUEO DE FECHAS -->
         <div class="dashboard-section">
             <h2>Bloquear Fechas o Periodos</h2>
-            <p>Añade días completos (ej. vacaciones) o franjas horarias (ej. cita médica) en las que no estarás disponible.</p>
-            
-            <!-- Formulario para crear un nuevo bloqueo -->
             <form method="post" class="bloqueo-form">
                 {% csrf_token %}
                 {{ bloqueo_form.as_p }}
                 <button type="submit" name="crear_bloqueo" class="btn-submit">Crear Bloqueo</button>
             </form>
             <hr style="margin: 30px 0; border-color: #555;">
-
-            <!-- Lista de bloqueos existentes -->
             <h3>Próximos Bloqueos</h3>
             {% if bloqueos %}
                 <ul class="lista-bloqueos">
                     {% for bloqueo in bloqueos %}
-                        <li>
-                            <span>
-                                <strong>{{ bloqueo.fecha|date:"d/m/Y" }}:</strong> 
-                                {% if bloqueo.hora_inicio %}
-                                    de {{ bloqueo.hora_inicio|time:"H:i" }} a {{ bloqueo.hora_fin|time:"H:i" }}
-                                {% else %}
-                                    Día completo
-                                {% endif %}
-                                ({{ bloqueo.motivo|default:"Sin motivo" }})
-                            </span>
-                            <!-- Próximamente: Botón para eliminar el bloqueo -->
-                        </li>
+                        <li>...</li>
                     {% endfor %}
                 </ul>
             {% else %}
@@ -106,36 +71,23 @@
     {% endif %}
 
     <style>
-    .schedule-table {
-        width: 100%;
-        margin-top: 20px;
-        border-collapse: collapse;
-    }
-    .schedule-table th, .schedule-table td {
-        padding: 12px;
-        border: 1px solid #444;
-        text-align: center;
-    }
-    .schedule-table th {
-        background-color: #3a3a3a;
-    }
-    .schedule-table input[type="time"], .schedule-table input[type="checkbox"] {
-        background-color: #555;
-        color: white;
-        border: 1px solid #777;
-        padding: 5px;
-        border-radius: 4px;
-    }
-    .btn-submit {
-        background-color: #007bff; color: white; padding: 10px 15px;
-        border: none; border-radius: 5px; cursor: pointer;
-    }
-    .bloqueo-form p { display: inline-block; margin-right: 15px; }
-    .lista-bloqueos { list-style: none; padding-left: 0; }
-    .lista-bloqueos li { background-color: #444; padding: 10px; border-radius: 4px; margin-bottom: 8px; }
-    .btn-submit { /* Estilo general */
-        background-color: #007bff; color: white; padding: 10px 15px;
-        border: none; border-radius: 5px; cursor: pointer;
-    }
+        .schedule-table { width: 100%; margin-top: 20px; border-collapse: collapse; }
+        .schedule-table th, .schedule-table td { padding: 12px; border: 1px solid #444; text-align: center; }
+        .schedule-table th { background-color: #3a3a3a; }
+        .schedule-table input, .schedule-table select { background-color: #555; color: white; border: 1px solid #777; padding: 5px; border-radius: 4px; }
+        .btn-submit { background-color: #007bff; color: white; padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; }
+        .bloqueo-form p { margin-bottom: 15px; }
+        .lista-bloqueos { list-style: none; padding-left: 0; }
+        .lista-bloqueos li { background-color: #444; padding: 10px; border-radius: 4px; margin-bottom: 8px; }
+
+        /* --- ESTILOS RESPONSIVOS PARA MÓVIL --- */
+        @media (max-width: 768px) {
+            .schedule-table thead { display: none; }
+            .schedule-table, .schedule-table tbody, .schedule-table tr, .schedule-table td { display: block; }
+            .schedule-table tr { border: 1px solid #555; border-radius: 8px; margin-bottom: 15px; padding: 10px; }
+            .schedule-table td { display: flex; justify-content: space-between; align-items: center; text-align: right; padding: 10px 5px; border: none; border-bottom: 1px solid #4a4a4a; }
+            .schedule-table tr td:last-child { border-bottom: none; }
+            .schedule-table td::before { content: attr(data-label); font-weight: bold; color: #ccc; text-align: left; }
+        }
     </style>
 {% endblock %}
