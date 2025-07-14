@@ -26,6 +26,7 @@ urlpatterns = [
     path('mis-favoritos/', views.mis_favoritos, name='mis_favoritos'),
     path('servicio/toggle-favorito/<int:servicio_id>/', views.toggle_favorito, name='toggle_favorito'),
     path('activate/<slug:uidb64>/<slug:token>/', views.activate, name='activate'),
+    path('dashboard/catalogo/', views.dashboard_catalogo, name='dashboard_catalogo'),
     
      # ========== INICIO DE LA MODIFICACIÓN: URLs para gestionar turnos ==========
     path('turno/confirmar/<int:turno_id>/', views.confirmar_turno, name='confirmar_turno'),

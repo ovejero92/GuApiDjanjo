@@ -2,7 +2,51 @@
 {% load static %}
 
 {% block content %}
+
+<!-- ================================================================ -->
+<!-- ========== ESTILOS DINÁMICOS Y BANNER DEL SERVICIO ========== -->
+<!-- ================================================================ -->
+<style>
+    /* Usamos variables CSS para aplicar los colores personalizados */
+    :root {
+        --color-primario-servicio: {{ servicio.color_primario|default:'#007bff' }};
+        --color-fondo-servicio: {{ servicio.color_fondo|default:'#333' }};
+    }
+    
+    .banner-servicio {
+        width: 100%;
+        height: 300px;
+        background-image: url('{% if servicio.imagen_banner %}{{ servicio.imagen_banner.url }}{% else %}{% static "image/default-banner.png" %}{% endif %}');
+        background-size: cover;
+        background-position: center;
+        margin-bottom: 20px;
+    }
+
+    /* Aplicamos el color de fondo personalizado a los contenedores */
+    .turno-form-container, .reseñas-container {
+        background-color: var(--color-fondo-servicio);
+    }
+    
+    /* Aplicamos el color primario a los botones */
+    .slot-button, .btn-submit {
+        background-color: var(--color-primario-servicio);
+    }
+
+    /* Mantenemos los estilos de selección y deshabilitado consistentes */
+    .slot-button.selected { background-color: #28a745 !important; }
+    .btn-submit.is-disabled { background-color: #555 !important; }
+</style>
+
+{% if servicio.imagen_banner %}
+<div class="banner-servicio" style="background-image: url('{{ servicio.imagen_banner.url }}');">
+</div>
+{% endif %}
+
+<!-- ================================================================ -->
+<!-- ========== CONTENIDO PRINCIPAL DE LA PÁGINA ========== -->
+<!-- ================================================================ -->
 <div class="container">
+    <!-- Contenedor del Formulario de Turnos -->
     <div class="turno-form-container">
         <h1>Solicitar turno para: {{ servicio.nombre }}</h1>
         <p>{{ servicio.descripcion }}</p>
@@ -10,99 +54,200 @@
 
         <form method="post" id="turnoForm">
             {% csrf_token %}
+            {% if form.non_field_errors %}<div class="form-error">{{ form.non_field_errors }}</div>{% endif %}
             
-            {% if form.non_field_errors %}
-                <div class="form-error">{{ form.non_field_errors }}</div>
-            {% endif %}
-            
+            <!-- ========== INICIO DE LA MODIFICACIÓN: SELECCIÓN DE SUB-SERVICIOS ========== -->
             <div class="form-group">
-                <label for="id_fecha">1. Selecciona una fecha:</label>
+                <label>1. Elige los servicios que deseas:</label>
+                <div id="subservicios-list">
+                    {% for subservicio in servicio.sub_servicios.all %}
+                        <div class="subservicio-item">
+                            <input type="checkbox" name="sub_servicios_solicitados" value="{{ subservicio.id }}"
+                                   id="sub_{{ subservicio.id }}" class="subservicio-checkbox"
+                                   data-duracion="{{ subservicio.duracion }}" data-precio="{{ subservicio.precio }}">
+                            <label for="sub_{{ subservicio.id }}">
+                                <strong>{{ subservicio.nombre }}</strong> ({{ subservicio.duracion }} min) - ${{ subservicio.precio|floatformat:2 }}
+                            </label>
+                        </div>
+                    {% empty %}
+                        <p>Este negocio aún no ha cargado su catálogo de servicios.</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div id="resumen-turno" style="display: none;">
+                <p><strong>Duración Total:</strong> <span id="duracion-total">0</span> minutos</p>
+                <p><strong>Precio Total Estimado:</strong> $<span id="precio-total">0.00</span></p>
+            </div>
+            <!-- ========== FIN DE LA MODIFICACIÓN ========== -->
+            
+            <div class="form-group" id="fecha-group" style="display: none;">
+                <label for="id_fecha">2. Selecciona una fecha:</label>
                 {{ form.fecha }}
                 {% if form.fecha.errors %}<div class="form-error">{{ form.fecha.errors }}</div>{% endif %}
             </div>
 
-            <div class="form-group">
-                <label>2. Elige un horario disponible:</label>
+            <div class="form-group" id="slots-group" style="display: none;">
+                <label>3. Elige un horario disponible:</label>
                 <div id="slotsContainer" class="slots-container">
-                    <p id="slots-placeholder">Selecciona una fecha para ver los horarios...</p>
+                    <p id="slots-placeholder">Selecciona uno o más servicios y luego una fecha.</p>
                 </div>
                 {% if form.hora.errors %}<div class="form-error">{{ form.hora.errors }}</div>{% endif %}
             </div>
             
             {{ form.hora.as_hidden }}
-
-            <!-- EL BOTÓN AHORA EMPIEZA CON LA CLASE 'is-disabled' Y SIN EL ATRIBUTO 'disabled' -->
             <button type="submit" class="btn-submit is-disabled">Solicitar Turno</button>
         </form>
     </div>
-
-    <!-- SECCIÓN DE RESEÑAS (sin cambios) -->
+    <!-- Contenedor de Reseñas -->
     <div class="reseñas-container">
-        <!-- ... (todo tu código de reseñas se queda igual) ... -->
+        <h2>Opiniones de Nuestros Clientes</h2>
+        {% if calificacion_promedio %}
+            <div class="resumen-calificacion">
+                <span class="promedio-numero">{{ calificacion_promedio|floatformat:1 }}</span>
+                <span class="promedio-estrellas">
+                    {% for i in "12345" %}{% if calificacion_promedio >= i|add:"0" %}<i class="fas fa-star"></i>{% else %}<i class="far fa-star"></i>{% endif %}{% endfor %}
+                </span>
+                <span class="total-reseñas"> (basado en {{ reseñas|length }} reseñas)</span>
+            </div>
+        {% endif %}
+        <div class="lista-reseñas">
+        {% for reseña in reseñas %}
+            <div class="reseña-card">
+                <div class="reseña-header">
+                    <span class="reseña-usuario">{{ reseña.usuario.username }}</span>
+                    <span class="reseña-fecha">{{ reseña.fecha_creacion|date:"d/m/Y" }}</span>
+                </div>
+                <div class="reseña-calificacion">
+                    {% for i in "12345" %}{% if reseña.calificacion >= i|add:"0" %}<i class="fas fa-star"></i>{% endif %}{% endfor %}
+                </div>
+                <p class="reseña-comentario">{{ reseña.comentario|linebreaksbr }}</p>
+            </div>
+        {% empty %}
+            <p>Este servicio aún no tiene reseñas. ¡Sé el primero en dejar una!</p>
+        {% endfor %}
+        </div>
     </div>
 </div>
 
 <!-- ================================================================ -->
-<!-- ========== ESTILOS COMPLETOS Y CORREGIDOS PARA LA PÁGINA ========== -->
+<!-- ========== FOOTER PERSONALIZADO DEL SERVICIO ========== -->
+<!-- ================================================================ -->
+{% if servicio.footer_personalizado %}
+<footer class="footer-personalizado">
+    <div class="container">
+        {# El filtro 'safe' permite que el propietario use HTML simple si quiere #}
+        {{ servicio.footer_personalizado|safe }}
+    </div>
+</footer>
+{% endif %}
+
+<!-- ================================================================ -->
+<!-- ========== ESTILOS ESTÁTICOS Y SCRIPTS DE LA PÁGINA ========== -->
 <!-- ================================================================ -->
 <style>
-    /* Estilos del formulario y layout */
-    .turno-form-container { background-color: #333; padding: 30px; border-radius: 8px; max-width: 600px; margin: 40px auto; }
+    /* Estilos estáticos que definen el layout original */
+    .turno-form-container, .reseñas-container {
+        padding: 30px;
+        border-radius: 8px;
+        max-width: 600px;
+        margin: 40px auto;
+    }
+    .reseñas-container {
+        max-width: 800px;
+    }
     .form-group { margin-bottom: 20px; }
-    .slots-container { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; padding: 10px; background-color: #2a2a2a; border-radius: 5px; min-height: 50px; }
+    .slots-container { display: flex;justify-content: center ; flex-wrap: wrap; gap: 10px; margin-top: 10px; padding: 10px; background-color: #2a2a2a; border-radius: 5px; min-height: 50px; }
+    .slot-button { color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; transition: background-color 0.2s; }
     .form-error { color: #ff6b6b; background-color: #5d1a1a; padding: 10px; border-radius: 5px; margin-top: 5px; }
+    .btn-submit { color: white; padding: 10px 15px; width: 100%; border: none; border-radius: 5px; cursor: pointer; transition: background-color 0.2s, opacity 0.2s; opacity: 1; }
+    .btn-submit.is-disabled { cursor: not-allowed; opacity: 0.6; pointer-events: none; }
+    
+    /* Estilos para la sección de reseñas */
+    .resumen-calificacion { text-align: center; margin-bottom: 30px; }
+    .promedio-numero { font-size: 3em; font-weight: bold; }
+    .promedio-estrellas { font-size: 1.5em; color: #ffc107; margin: 0 10px; }
+    .reseña-card { border-bottom: 1px solid #555; padding: 20px 0; }
+    .reseña-card:last-child { border-bottom: none; }
+    .reseña-header { display: flex; justify-content: space-between; margin-bottom: 5px; }
+    .reseña-usuario { font-weight: bold; }
+    .reseña-fecha { font-size: 0.9em; color: #999; }
+    .reseña-calificacion { color: #ffc107; margin-bottom: 10px; }
 
-    /* Estilos de los botones de slot */
-    .slot-button { background-color: #007bff; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; transition: background-color 0.2s; }
-    .slot-button.selected { background-color: #28a745; font-weight: bold; }
+    /* Estilos para el footer personalizado */
+    .footer-personalizado {
+        background-color: var(--color-fondo-servicio, #1c1c1c); /* Usa el color de fondo del servicio, o uno por defecto */
+        color: #ccc;
+        padding: 40px 0;
+        margin-top: 50px;
+        border-top: 2px solid var(--color-primario-servicio, #444); /* Usa el color primario para el borde */
+    }
+    .footer-personalizado .container {
+        max-width: 1200px;
+        margin: auto;
+        padding: 0 20px;
+    }
 
-    /* Estilos del botón de envío (LA PARTE CLAVE) */
-    .btn-submit {
-        /* Estilo base, para cuando está HABILITADO */
-        background-color: #007bff;
-        color: white;
-        padding: 10px 15px;
-        width: 100%;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
-        transition: background-color 0.2s, opacity 0.2s;
-        opacity: 1;
-    }
-    .btn-submit.is-disabled {
-        /* Estilo que SOBREESCRIBE el base cuando está DESHABILITADO */
-        background-color: #555;
-        cursor: not-allowed;
-        opacity: 0.6;
-        pointer-events: none; /* Crucial: Evita cualquier clic */
-    }
-.reseñas-container { background-color: #333; padding: 30px; border-radius: 8px; max-width: 800px; margin: 40px auto; }
-.resumen-calificacion { text-align: center; margin-bottom: 30px; }
-.promedio-numero { font-size: 3em; font-weight: bold; }
-.promedio-estrellas { font-size: 1.5em; color: #ffc107; margin: 0 10px; }
-.reseña-card { border-bottom: 1px solid #555; padding: 20px 0; }
-.reseña-card:last-child { border-bottom: none; }
-.reseña-header { display: flex; justify-content: space-between; margin-bottom: 5px; }
-.reseña-usuario { font-weight: bold; }
-.reseña-fecha { font-size: 0.9em; color: #999; }
-.reseña-calificacion { color: #ffc107; margin-bottom: 10px; }
+     /* ========== NUEVOS ESTILOS PARA SUB-SERVICIOS ========== */
+    .subservicio-item { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; background-color: #444; padding: 12px; border-radius: 5px; cursor: pointer; transition: background-color 0.2s;}
+    .subservicio-item:hover { background-color: #555; }
+    .subservicio-item.selected { font-weight: bold; }
+    .subservicio-item input[type="checkbox"] { display: none; } /* Ocultamos el checkbox feo */
+    .subservicio-item label { cursor: pointer; width: 100%; } /* Hacemos que toda la etiqueta sea clickeable */
+    #resumen-turno { background: #2a2a2a; padding: 15px; border-radius: 5px; margin-top: 15px; border-left: 4px solid aqua; }
 </style>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // --- Selección de Elementos ---
+    const subserviciosItems = document.querySelectorAll('.subservicio-item');
+    const duracionTotalDisplay = document.getElementById('duracion-total');
+    const precioTotalDisplay = document.getElementById('precio-total');
+    const resumenDiv = document.getElementById('resumen-turno');
+    const fechaGroup = document.getElementById('fecha-group');
+    const slotsGroup = document.getElementById('slots-group');
     const fechaInput = document.getElementById('id_fecha');
     const horaInput = document.getElementById('id_hora');
     const slotsContainer = document.getElementById('slotsContainer');
-    const submitButton = document.querySelector('button.btn-submit'); // Seleccionamos por su clase
+    const submitButton = document.querySelector('button.btn-submit');
 
+    let duracionTotalCalculada = 0;
     let selectedSlotButton = null;
 
-    async function cargarSlots(fecha) {
+    // --- Funciones Principales ---
+    function actualizarResumenYPasos() {
+        let duracionTotal = 0;
+        let precioTotal = 0.0;
+        
+        document.querySelectorAll('.subservicio-checkbox:checked').forEach(cb => {
+            duracionTotal += parseInt(cb.dataset.duracion, 10);
+            precioTotal += parseFloat(cb.dataset.precio);
+        });
+
+        duracionTotalCalculada = duracionTotal;
+        duracionTotalDisplay.textContent = duracionTotal;
+        precioTotalDisplay.textContent = precioTotal.toFixed(2);
+
+        if (duracionTotal > 0) {
+            resumenDiv.style.display = 'block';
+            fechaGroup.style.display = 'block';
+            if (fechaInput.value) {
+                cargarSlots(fechaInput.value, duracionTotalCalculada);
+            }
+        } else {
+            resumenDiv.style.display = 'none';
+            fechaGroup.style.display = 'none';
+            slotsGroup.style.display = 'none';
+            submitButton.classList.add('is-disabled');
+        }
+    }
+
+    async function cargarSlots(fecha, duracion) {
+        slotsGroup.style.display = 'block';
         slotsContainer.innerHTML = '<p>Cargando horarios...</p>';
-        // Siempre deshabilitamos el botón al cargar nuevos slots
         submitButton.classList.add('is-disabled');
 
         try {
-            const url = `/api/slots-disponibles/{{ servicio.id }}/?fecha=${fecha}`;
+            const url = `/api/slots-disponibles/{{ servicio.id }}/?fecha=${fecha}&duracion=${duracion}`;
             const response = await fetch(url);
             const data = await response.json();
             
@@ -116,45 +261,41 @@ document.addEventListener('DOMContentLoaded', function() {
                     button.dataset.hora = slot;
                     
                     button.addEventListener('click', function() {
-                        if (selectedSlotButton) {
-                            selectedSlotButton.classList.remove('selected');
-                        }
+                        if (selectedSlotButton) { selectedSlotButton.classList.remove('selected'); }
                         this.classList.add('selected');
                         selectedSlotButton = this;
-
                         horaInput.value = this.dataset.hora;
-                        
-                        // ¡LA CORRECCIÓN! Quitamos la clase para habilitarlo
                         submitButton.classList.remove('is-disabled');
                     });
-                    
                     slotsContainer.appendChild(button);
                 });
             } else {
-                slotsContainer.innerHTML = '<p>No hay horarios disponibles para este día.</p>';
+                slotsContainer.innerHTML = '<p>No hay horarios disponibles para esta combinación.</p>';
             }
         } catch (error) {
-            console.error('Error al cargar los slots:', error);
             slotsContainer.innerHTML = '<p style="color:red;">Error al cargar horarios.</p>';
         }
     }
 
-    // Evento para cuando el usuario cambia la fecha
-    fechaInput.addEventListener('change', function() {
-        // Al cambiar de fecha, siempre volvemos a deshabilitar el botón
-        submitButton.classList.add('is-disabled');
-        cargarSlots(this.value);
+    // --- Event Listeners ---
+    subserviciosItems.forEach(item => {
+        item.addEventListener('click', function(e) {
+            const checkbox = this.querySelector('.subservicio-checkbox');
+            // Si el clic no fue en el checkbox mismo, invertimos su estado
+            if (e.target !== checkbox) {
+                checkbox.checked = !checkbox.checked;
+            }
+            // Añadir/quitar clase para feedback visual
+            this.classList.toggle('selected', checkbox.checked);
+            actualizarResumenYPasos();
+        });
     });
 
-    // Cargar slots para la fecha inicial al cargar la página
-    if (fechaInput.value) {
-        cargarSlots(fechaInput.value);
-    }
-    
-    // Capa extra de seguridad: prevenir el envío si el botón está deshabilitado
-    document.getElementById('turnoForm').addEventListener('submit', function(e) {
-        if (submitButton.classList.contains('is-disabled')) {
-            e.preventDefault(); // Detiene el envío del formulario
+    fechaInput.addEventListener('change', function() {
+        submitButton.classList.add('is-disabled');
+        if (this.value && duracionTotalCalculada > 0) {
+            slotsGroup.style.display = 'block';
+            cargarSlots(this.value, duracionTotalCalculada);
         }
     });
 });

@@ -3,20 +3,20 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth import login
 from django.contrib import messages
 from django.forms import inlineformset_factory
-from .models import Servicio, Turno, HorarioLaboral
-from .forms import BloqueoForm, TurnoForm, UserUpdateForm, IngresoTurnoForm, ReseñaForm, CustomSignupForm, CustomSocialSignupForm
+from .models import Servicio, Turno, HorarioLaboral, SubServicio
+from .forms import BloqueoForm, TurnoForm, UserUpdateForm, IngresoTurnoForm, ReseñaForm, ServicioPersonalizacionForm, ServicioUpdateForm
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from django.http import JsonResponse
 from datetime import datetime, timedelta
 from django.db.models import Count, Sum,Avg
-from django.db.models.functions import TruncDay, TruncWeek, TruncMonth
+from django.db.models.functions import TruncDay
 from django.utils.http import urlsafe_base64_decode
 from django.utils.encoding import force_str
 from django.contrib.auth.tokens import default_token_generator
 from django.contrib.auth.models import User
 import json
-
+from django.db.models import Q
 # ========== INICIO DE LA MODIFICACIÓN ==========
 # Importaciones necesarias para la nueva vista de Login
 from django.contrib.auth.views import LoginView
@@ -53,16 +53,26 @@ def servicio_detail(request, servicio_id):
     servicio = get_object_or_404(Servicio, id=servicio_id)
     
     if request.method == 'POST':
-        form = TurnoForm(request.POST, servicio=servicio)
+        # Al procesar el POST, le pasamos los datos del request.
+        # El formulario se encargará de validar todo.
+        form = TurnoForm(request.POST, servicio_id=servicio.id)
         if form.is_valid():
+            # El método save() del formulario ahora hace todo el trabajo.
             turno = form.save(commit=False)
-            turno.cliente = request.user
-            turno.save() # La validación compleja ya está en el form.clean()
-            messages.success(request, f"¡Turno solicitado con éxito para el {form.cleaned_data.get('fecha').strftime('%d/%m')} a las {form.cleaned_data.get('hora').strftime('%H:%M')}!")
+            turno.cliente = request.user # Asignamos el cliente logueado
+            turno.save()
+            form.save_m2m() # ¡Importante para guardar los sub-servicios!
+
+            messages.success(request, "¡Turno solicitado con éxito!")
             return redirect('index')
     else:
-        form = TurnoForm(servicio=servicio, initial={'fecha': timezone.localdate()})
+        # Al mostrar la página por primera vez (GET)...
+        # ========== INICIO DE LA CORRECCIÓN ==========
+        # Ya no pasamos 'servicio=servicio', sino 'servicio_id=servicio.id'
+        form = TurnoForm(servicio_id=servicio.id, initial={'fecha': timezone.localdate()})
+        # ========== FIN DE LA CORRECCIÓN ==========
 
+    # La lógica para reseñas y calificación promedio se queda igual.
     reseñas = servicio.reseñas.all()
     calificacion_promedio = servicio.reseñas.aggregate(Avg('calificacion'))['calificacion__avg']
     
@@ -76,18 +86,29 @@ def servicio_detail(request, servicio_id):
     
 @login_required
 def dashboard_turnos(request):
-    # Buscamos los servicios que pertenecen al usuario logueado
-    servicios_del_propietario = Servicio.objects.filter(propietario=request.user)
+    servicios_del_propietario = request.user.servicios_propios.all()
+    turnos = Turno.objects.filter(servicio__in=servicios_del_propietario)
+
+    # Obtenemos la fecha y hora actuales, conscientes de la zona horaria
+    ahora = timezone.now()
+    hoy = ahora.date()
+    hora_actual = ahora.time()
+
+    # --- LÓGICA DE FILTRADO MEJORADA ---
+    # Pasados (Historial): Turnos de días anteriores O turnos de hoy cuya hora ya pasó.
+    turnos_pasados = turnos.filter(
+        Q(fecha__lt=hoy) | Q(fecha=hoy, hora__lt=hora_actual)
+    ).order_by('-fecha', '-hora')
+
+    # Próximos: Turnos de días futuros O turnos de hoy cuya hora aún no ha pasado.
+    turnos_proximos = turnos.filter(
+        Q(fecha__gt=hoy) | Q(fecha=hoy, hora__gte=hora_actual)
+    )
     
-    # Obtenemos todos los turnos de todos sus servicios
-    turnos = Turno.objects.filter(servicio__in=servicios_del_propietario).order_by('fecha', 'hora')
-
-    # Filtramos turnos para mostrar_
-    hoy = timezone.localdate()
-    turnos_pendientes = turnos.filter(fecha__gte=hoy, estado='pendiente').order_by('fecha', 'hora')
-    turnos_confirmados = turnos.filter(fecha__gte=hoy, estado='confirmado').order_by('fecha', 'hora')
-    turnos_pasados = turnos.filter(fecha__lt=hoy).order_by('-fecha', '-hora')
-
+    # Pendientes y Confirmados se filtran a partir de la lista de Próximos
+    turnos_pendientes = turnos_proximos.filter(estado='pendiente').order_by('fecha', 'hora')
+    turnos_confirmados = turnos_proximos.filter(estado='confirmado').order_by('fecha', 'hora')
+    
     context = {
         'servicios': servicios_del_propietario,
         'turnos_pendientes': turnos_pendientes,
@@ -238,20 +259,87 @@ def dashboard_metricas(request):
 
 @login_required
 def dashboard_servicios(request):
-    return render(request, 'dashboard_servicios.html')
+    # Por ahora, asumimos un solo servicio
+    servicio = request.user.servicios_propios.first()
+    if not servicio:
+        # Manejar el caso de que no tenga servicios
+        return render(request, 'dashboard_servicios.html', {'no_hay_servicio': True})
+
+    if request.method == 'POST':
+        # Nota: para manejar subida de archivos, el form en el HTML necesita enctype
+        form = ServicioPersonalizacionForm(request.POST, request.FILES, instance=servicio)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "¡La apariencia de tu página ha sido actualizada!")
+            return redirect('dashboard_servicios')
+    else:
+        form = ServicioPersonalizacionForm(instance=servicio)
+
+    context = {
+        'form': form,
+        'servicio': servicio
+    }
+    return render(request, 'dashboard_servicios.html', context)
+
+@login_required
+def dashboard_catalogo(request):
+    servicio = request.user.servicios_propios.first()
+    if not servicio:
+        return render(request, 'dashboard_catalogo.html', {'no_hay_servicio': True})
+
+    # Formulario para editar los detalles del negocio principal
+    update_form = ServicioUpdateForm(instance=servicio)
+    
+    # FormSet para gestionar los sub-servicios (el catálogo)
+    SubServicioFormSet = inlineformset_factory(
+        Servicio, SubServicio,
+        fields=('nombre', 'descripcion', 'duracion', 'precio'),
+        extra=1, can_delete=True
+    )
+    formset = SubServicioFormSet(instance=servicio, prefix='subservicios')
+
+    if request.method == 'POST':
+        # Verificamos qué formulario se envió
+        if 'guardar_detalles' in request.POST:
+            update_form = ServicioUpdateForm(request.POST, instance=servicio)
+            if update_form.is_valid():
+                update_form.save()
+                messages.success(request, "¡Los detalles de tu negocio han sido actualizados!")
+                return redirect('dashboard_catalogo')
+        
+        elif 'guardar_catalogo' in request.POST:
+            formset = SubServicioFormSet(request.POST, instance=servicio, prefix='subservicios')
+            if formset.is_valid():
+                formset.save()
+                messages.success(request, "¡Catálogo de servicios actualizado!")
+                return redirect('dashboard_catalogo')
+
+    context = {
+        'update_form': update_form,
+        'formset': formset,
+        'servicio': servicio,
+    }
+    return render(request, 'dashboard_catalogo.html', context)
 
 @login_required
 def mis_turnos(request):
-    turnos = request.user.turnos_solicitados.order_by('fecha', 'hora')
+    turnos_del_cliente = request.user.turnos_solicitados.all()
     
-    hoy = timezone.localdate()
-    turnos_futuros = turnos.filter(fecha__gte=hoy)
-    turnos_pasados = turnos.filter(fecha__lt=hoy)
+    ahora = timezone.now()
+    hoy = ahora.date()
+    hora_actual = ahora.time()
+
+    # --- LÓGICA DE FILTRADO MEJORADA (Idéntica a la del propietario) ---
+    turnos_futuros = turnos_del_cliente.filter(
+        Q(fecha__gt=hoy) | Q(fecha=hoy, hora__gte=hora_actual)
+    ).order_by('fecha', 'hora')
+
+    turnos_pasados = turnos_del_cliente.filter(
+        Q(fecha__lt=hoy) | Q(fecha=hoy, hora__lt=hora_actual)
+    ).order_by('-fecha', '-hora')
     
-    turnos.filter(
-        cliente=request.user,
-        visto_por_cliente=False
-    ).update(visto_por_cliente=True)
+    # Marcamos notificaciones como vistas (esto se queda igual)
+    turnos_del_cliente.filter(visto_por_cliente=False).update(visto_por_cliente=True)
     
     context = {
         'turnos_futuros': turnos_futuros,
@@ -286,10 +374,8 @@ def cancelar_turno(request, turno_id):
 
 @login_required
 def finalizar_turno(request, turno_id):
-    # Misma seguridad: solo el propietario puede acceder.
     turno = get_object_or_404(Turno, id=turno_id, servicio__propietario=request.user)
     
-    # Nos aseguramos de que no se pueda finalizar un turno que ya está 'cancelado' o 'completado'.
     if turno.estado in ['completado', 'cancelado']:
         messages.warning(request, "Este turno ya ha sido procesado.")
         return redirect('dashboard_turnos')
@@ -297,28 +383,29 @@ def finalizar_turno(request, turno_id):
     if request.method == 'POST':
         form = IngresoTurnoForm(request.POST, instance=turno)
         if form.is_valid():
-            # Guardamos la instancia del turno con el nuevo ingreso_real
             instancia_turno = form.save(commit=False)
-            
-            # ¡AQUÍ ESTÁ LA MAGIA!
-            # En el mismo guardado, cambiamos el estado a 'completado'.
             instancia_turno.estado = 'completado'
-            
-            # Ahora sí, guardamos todo en la base de datos.
             instancia_turno.save()
-            
             messages.success(request, f"¡Turno de {turno.cliente.username} finalizado con éxito!")
             return redirect('dashboard_turnos')
     else:
-        # Al cargar la página por primera vez (GET), pre-llenamos el campo
-        # de ingreso con el precio estándar del servicio para comodidad del propietario.
-        form = IngresoTurnoForm(instance=turno, initial={'ingreso_real': turno.servicio.precio_estandar})
+        # ========== INICIO DE LA CORRECCIÓN ==========
+        
+        # Calculamos el precio sugerido sumando los precios de los sub-servicios solicitados.
+        # .aggregate(Sum('precio')) devuelve un diccionario como {'precio__sum': 150.00}
+        precio_sugerido_dict = turno.sub_servicios_solicitados.aggregate(total=Sum('precio'))
+        precio_sugerido = precio_sugerido_dict['total'] or 0.00
+
+        # Usamos este valor calculado como el valor inicial del formulario.
+        # Si el turno ya tiene un ingreso_real guardado, se usará ese en su lugar.
+        form = IngresoTurnoForm(instance=turno, initial={'ingreso_real': precio_sugerido})
+        
+        # ========== FIN DE LA CORRECCIÓN ==========
 
     context = {
         'form': form,
         'turno': turno
     }
-    # Reutilizaremos la plantilla 'registrar_ingreso.html', pero ahora la llamaremos 'finalizar_turno.html'
     return render(request, 'finalizar_turno.html', context)
 
 @login_required
@@ -344,83 +431,72 @@ def obtener_notificaciones(request):
 @login_required
 def obtener_slots_disponibles(request, servicio_id):
     """
-    Calcula y devuelve los huecos de tiempo disponibles para un servicio y una fecha específicos,
-    considerando horarios laborales, turnos existentes y días de bloqueo.
+    Calcula y devuelve los huecos de tiempo disponibles.
+    Ahora acepta un parámetro 'duracion' para ser flexible.
     """
     fecha_str = request.GET.get('fecha')
-    
-    if not fecha_str:
-        return JsonResponse({'error': 'Falta el parámetro de fecha.'}, status=400)
+    duracion_str = request.GET.get('duracion')
+
+    # Validación de parámetros de entrada
+    if not fecha_str or not duracion_str:
+        return JsonResponse({'error': 'Faltan parámetros de fecha o duración.'}, status=400)
 
     try:
         fecha = datetime.strptime(fecha_str, '%Y-%m-%d').date()
         servicio = get_object_or_404(Servicio, id=servicio_id)
+        duracion_requerida = int(duracion_str)
+        if duracion_requerida <= 0: # No permitir duraciones de 0 o negativas
+            return JsonResponse({'error': 'Duración inválida.'}, status=400)
     except (ValueError, TypeError):
-        return JsonResponse({'error': 'Formato de fecha o servicio inválido.'}, status=400)
+        return JsonResponse({'error': 'Parámetros inválidos.'}, status=400)
 
-    # --- INICIO DE LA LÓGICA DE CÁLCULO DE SLOTS ---
+    # Lógica de cálculo de slots
     slots_disponibles = []
     
-    # 1. Obtener horario laboral para el día de la semana seleccionado
-    dia_semana = fecha.weekday()  # Lunes=0, Domingo=6
     try:
-        horario_laboral = servicio.horarios.get(dia_semana=dia_semana, activo=True)
+        horario_laboral = servicio.horarios.get(dia_semana=fecha.weekday(), activo=True)
     except HorarioLaboral.DoesNotExist:
-        # Si el negocio no trabaja ese día, devolvemos una lista vacía.
-        return JsonResponse({'slots': []})
+        return JsonResponse({'slots': []}) # Día no laborable
 
-    # 2. Obtener todos los turnos y bloqueos para ese día
     turnos_del_dia = list(Turno.objects.filter(servicio=servicio, fecha=fecha, estado__in=['pendiente', 'confirmado']))
     bloqueos_del_dia = servicio.dias_no_disponibles.filter(fecha=fecha)
 
-    # 3. Iterar por el día en intervalos según la duración del servicio
-    duracion_servicio = timedelta(minutes=servicio.duracion)
-    
-    # Combinamos la fecha con la hora para poder operar con datetimes
+    duracion_td = timedelta(minutes=duracion_requerida)
     hora_actual_dt = datetime.combine(fecha, horario_laboral.horario_apertura)
     hora_cierre_dt = datetime.combine(fecha, horario_laboral.horario_cierre)
-    
-    # Bucle para generar y validar cada posible slot
-    while hora_actual_dt + duracion_servicio <= hora_cierre_dt:
+
+    while hora_actual_dt + duracion_td <= hora_cierre_dt:
         slot_inicio = hora_actual_dt.time()
-        slot_fin = (hora_actual_dt + duracion_servicio).time()
+        slot_fin = (hora_actual_dt + duracion_td).time()
         
         slot_esta_disponible = True
 
-        # VALIDACIÓN A: No generar slots en el pasado
+        # Validar que el slot no sea en el pasado
         if fecha == timezone.localdate() and slot_inicio < timezone.localtime().time():
             slot_esta_disponible = False
 
-        # VALIDACIÓN B: Comprobar si se superpone con un turno existente
+        # Validar contra bloqueos
+        if slot_esta_disponible:
+            for bloqueo in bloqueos_del_dia:
+                if bloqueo.hora_inicio is None or (slot_inicio < bloqueo.hora_fin and slot_fin > bloqueo.hora_inicio):
+                    slot_esta_disponible = False
+                    break
+        
+        # Validar contra otros turnos
         if slot_esta_disponible:
             for turno in turnos_del_dia:
                 turno_inicio_existente = turno.hora
-                # Asumimos que la duración del turno existente es la del servicio actual
-                duracion_existente = timedelta(minutes=servicio.duracion)
+                duracion_existente = timedelta(minutes=turno.duracion_total)
                 turno_fin_existente = (datetime.combine(fecha, turno_inicio_existente) + duracion_existente).time()
-                
-                # Lógica de superposición de rangos
-                if max(slot_inicio, turno_inicio_existente) < min(slot_fin, turno_fin_existente):
-                    slot_esta_disponible = False
-                    break
-
-        # VALIDACIÓN C: Comprobar si se superpone con un bloqueo
-        if slot_esta_disponible:
-            for bloqueo in bloqueos_del_dia:
-                if bloqueo.hora_inicio is None:  # Bloqueo de día completo
-                    slot_esta_disponible = False
-                    break
-                # Bloqueo de franja horaria
-                if max(slot_inicio, bloqueo.hora_inicio) < min(slot_fin, bloqueo.hora_fin):
+                if slot_inicio < turno_fin_existente and slot_fin > turno_inicio_existente:
                     slot_esta_disponible = False
                     break
         
-        # Si el slot pasó todas las validaciones, se añade a la lista
         if slot_esta_disponible:
             slots_disponibles.append(slot_inicio.strftime('%H:%M'))
         
-        # Avanzamos al siguiente posible slot
-        hora_actual_dt += duracion_servicio
+        # Avanzar al siguiente posible slot (ej: cada 15 minutos)
+        hora_actual_dt += timedelta(minutes=15)
 
     return JsonResponse({'slots': slots_disponibles})
 

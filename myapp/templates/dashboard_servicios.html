@@ -1,11 +1,113 @@
 {% extends 'layouts/dashboard_base.html' %}
-
 {% block dashboard_content %}
-    <h1>Mis Servicios</h1>
-    <p>Edita la información de los servicios que ofreces.</p>
-    
-    <div class="dashboard-section">
-        <h2>Lista de Servicios</h2>
-        <p><strong>Próximamente:</strong> Una lista de tus servicios con botones para editar nombre, descripción, precio y la **duración de los turnos**.</p>
+    <h1>Mis Servicios y Apariencia</h1>
+    <p>Edita la información de tu servicio y personaliza cómo lo ven tus clientes.</p>
+
+    <div class="dashboard-grid">
+        <!-- Columna del Formulario -->
+        <div class="dashboard-section form-section">
+            <h2>Personalizar Apariencia</h2>
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                
+                <div class="form-group">
+                    <label for="{{ form.color_primario.id_for_label }}">Color Primario (botones, enlaces):</label>
+                    {{ form.color_primario }}
+                    <small>{{ form.color_primario.help_text }}</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="{{ form.color_fondo.id_for_label }}">Color de Fondo (tarjetas):</label>
+                    {{ form.color_fondo }}
+                    <small>{{ form.color_fondo.help_text }}</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.imagen_banner.id_for_label }}">Imagen de Banner:</label>
+                    {{ form.imagen_banner }}
+                    {% if servicio.imagen_banner %}
+                        <small>Banner actual: <a href="{{ servicio.imagen_banner.url }}" target="_blank">ver imagen</a></small>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.footer_personalizado.id_for_label }}">Footer Personalizado:</label>
+                    {{ form.footer_personalizado }}
+                    <small>{{ form.footer_personalizado.help_text }}</small>
+                </div>
+
+                <button type="submit" class="btn-submit">Guardar Cambios</button>
+            </form>
+        </div>
+
+        <!-- Columna de la Previsualización -->
+        <div class="dashboard-section preview-section">
+            <h2>Previsualización</h2>
+            <div class="preview-container">
+                <div class="preview-banner" id="previewBanner"></div>
+                <div class="preview-card" id="previewCard">
+                    <h3>Tu Título de Ejemplo</h3>
+                    <p>Un texto de ejemplo para que veas cómo queda.</p>
+                    <button class="preview-button" id="previewButton">Botón de Ejemplo</button>
+                </div>
+            </div>
+        </div>
     </div>
+
+    <!-- Estilos para el formulario y la previsualización -->
+    <style>
+        .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .form-group input[type="color"],
+        .form-group input[type="file"],
+        .form-group textarea { width: 100%; padding: 8px; box-sizing: border-box; }
+        .form-group textarea { min-height: 120px; }
+        .form-group small { color: #999; font-size: 0.8em; }
+        .btn-submit { background-color: #007bff; color: white; padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; }
+
+        /* Estilos de la previsualización */
+        .preview-container { border: 2px dashed #555; border-radius: 8px; padding: 15px; }
+        .preview-banner { height: 150px; background-color: #555; background-size: cover; background-position: center; border-radius: 5px; margin-bottom: 15px; }
+        .preview-card { border-radius: 5px; padding: 20px; text-align: center; }
+        .preview-button { color: white; padding: 10px 15px; border: none; border-radius: 5px; }
+    </style>
+
+    <!-- Script para la previsualización en tiempo real -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const colorPrimarioInput = document.getElementById('{{ form.color_primario.id_for_label }}');
+            const colorFondoInput = document.getElementById('{{ form.color_fondo.id_for_label }}');
+            const bannerInput = document.getElementById('{{ form.imagen_banner.id_for_label }}');
+            
+            const previewButton = document.getElementById('previewButton');
+            const previewCard = document.getElementById('previewCard');
+            const previewBanner = document.getElementById('previewBanner');
+
+            function updatePreview() {
+                // Actualizar colores
+                previewButton.style.backgroundColor = colorPrimarioInput.value;
+                previewCard.style.backgroundColor = colorFondoInput.value;
+
+                // Actualizar banner
+                if (bannerInput.files && bannerInput.files[0]) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        previewBanner.style.backgroundImage = `url('${e.target.result}')`;
+                    }
+                    reader.readAsDataURL(bannerInput.files[0]);
+                } else if ("{{ servicio.imagen_banner.url|escapejs }}") {
+                     previewBanner.style.backgroundImage = `url('{{ servicio.imagen_banner.url|escapejs }}')`;
+                }
+            }
+            
+            // Actualizar al cargar la página
+            updatePreview();
+
+            // Añadir listeners para actualizar en tiempo real
+            colorPrimarioInput.addEventListener('input', updatePreview);
+            colorFondoInput.addEventListener('input', updatePreview);
+            bannerInput.addEventListener('change', updatePreview);
+        });
+    </script>
 {% endblock %}

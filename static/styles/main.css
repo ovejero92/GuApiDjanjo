@@ -276,8 +276,17 @@ form button {
 }
 .hidden { display: none; }
 /* FIN FOOTER */
+.user-initial {
+  display: none;
+}
 /* MEDIA QUERIES: RESPONSIVE */
 @media (max-width: 768px) {
+    .user-fullname {
+    display: none;
+  }
+  .user-initial {
+    display: inline;
+  }
     .nav-content {
         display: flex;
         align-items: flex-start;

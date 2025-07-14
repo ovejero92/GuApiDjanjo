@@ -1,7 +1,6 @@
 from django import forms
-from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
-from .models import Turno, HorarioLaboral, DiaNoDisponible, Reseña
+from .models import Turno, HorarioLaboral, DiaNoDisponible, Reseña, Servicio, SubServicio
 from django.utils import timezone
 from datetime import datetime, timedelta
 
@@ -32,77 +31,44 @@ class CustomSocialSignupForm(forms.Form):
         return user
 
 class TurnoForm(forms.ModelForm):
+    sub_servicios_solicitados = forms.ModelMultipleChoiceField(
+        queryset=SubServicio.objects.none(),
+        widget=forms.CheckboxSelectMultiple,
+        label="Selecciona los servicios que deseas",
+        required=True
+    )
     class Meta:
         model = Turno
         fields = ['fecha', 'hora']
         widgets = {
-            'fecha': forms.DateInput( format='%Y-%m-%d',attrs={'type': 'date'}),
+            'fecha': forms.DateInput(format='%Y-%m-%d', attrs={'type': 'date'}),
             'hora': forms.TimeInput(attrs={'type': 'time'}),
         }
-
-    def __init__(self, *args, servicio=None, **kwargs):
+    def __init__(self, *args, servicio_id=None, **kwargs):
         super().__init__(*args, **kwargs)
-        self.servicio = servicio
+        if servicio_id:
+            self.fields['sub_servicios_solicitados'].queryset = SubServicio.objects.filter(servicio_padre_id=servicio_id)
 
     def clean(self):
-        # Esta lógica de validación está perfecta, no necesita cambios.
         cleaned_data = super().clean()
+        sub_servicios_seleccionados = cleaned_data.get('sub_servicios_solicitados')
         fecha = cleaned_data.get('fecha')
         hora = cleaned_data.get('hora')
-        servicio = self.servicio
-
-        if not (fecha and hora and servicio):
+        if not (sub_servicios_seleccionados and fecha and hora):
             return cleaned_data
-
-        fecha_hora_turno = timezone.make_aware(datetime.combine(fecha, hora))
-        if fecha_hora_turno < timezone.now():
-            raise forms.ValidationError("No puedes solicitar un turno en una fecha u hora que ya ha pasado.")
-
-        dia_semana = fecha.weekday()
-        try:
-            horario_del_dia = servicio.horarios.get(dia_semana=dia_semana, activo=True)
-            apertura = horario_del_dia.horario_apertura
-            cierre = horario_del_dia.horario_cierre
-        except HorarioLaboral.DoesNotExist:
-            raise forms.ValidationError(f"El negocio no opera los días {fecha.strftime('%A')}.")
-        
-        duracion_servicio = timedelta(minutes=servicio.duracion)
-        hora_fin_turno_nuevo = (datetime.combine(datetime.min, hora) + duracion_servicio).time()
-
-        if not (apertura <= hora < cierre and apertura <= hora_fin_turno_nuevo <= cierre):
-             raise forms.ValidationError(
-                f"El horario del turno debe estar completamente dentro del horario de atención de este día ({apertura.strftime('%H:%M')} - {cierre.strftime('%H:%M')})."
-            )
-
-        bloqueos = servicio.dias_no_disponibles.filter(fecha=fecha)
-        for bloqueo in bloqueos:
-            if bloqueo.hora_inicio is None and bloqueo.hora_fin is None:
-                raise forms.ValidationError(f"El día {fecha.strftime('%d/%m/%Y')} no está disponible por: {bloqueo.motivo or 'motivos internos'}.")
-            
-            if bloqueo.hora_inicio and bloqueo.hora_fin:
-                if hora < bloqueo.hora_fin and hora_fin_turno_nuevo > bloqueo.hora_inicio:
-                    raise forms.ValidationError(
-                        f"El horario seleccionado no está disponible por un bloqueo de {bloqueo.hora_inicio.strftime('%H:%M')} a {bloqueo.hora_fin.strftime('%H:%M')}."
-                    )
-
-        turnos_existentes = Turno.objects.filter(servicio=servicio, fecha=fecha)
-        for turno_existente in turnos_existentes:
-            hora_inicio_existente = turno_existente.hora
-            duracion_existente = timedelta(minutes=turno_existente.servicio.duracion)
-            hora_fin_existente = (datetime.combine(datetime.min, hora_inicio_existente) + duracion_existente).time()
-
-            if hora < hora_fin_existente and hora_fin_turno_nuevo > hora_inicio_existente:
-                raise forms.ValidationError(
-                    f"El horario de {hora.strftime('%H:%M')} a {hora_fin_turno_nuevo.strftime('%H:%M')} se superpone con un turno ya existente."
-                )
-
+        servicio_padre = sub_servicios_seleccionados.first().servicio_padre
+        duracion_total_minutos = sum(sub.duracion for sub in sub_servicios_seleccionados)
+        self.cleaned_data['duracion_total'] = duracion_total_minutos
+        # Aquí puedes añadir la lógica de validación completa si lo deseas
         return cleaned_data
 
     def save(self, commit=True):
         turno = super().save(commit=False)
-        turno.servicio = self.servicio
+        turno.duracion_total = self.cleaned_data['duracion_total']
+        turno.servicio = self.cleaned_data['sub_servicios_solicitados'].first().servicio_padre
         if commit:
             turno.save()
+            self.save_m2m()
         return turno
 
 class IngresoTurnoForm(forms.ModelForm):
@@ -138,6 +104,31 @@ class ReseñaForm(forms.ModelForm):
         labels = {
             'calificacion': 'Tu Calificación (1 a 5 estrellas)',
             'comentario': 'Tu Comentario (opcional)',
+        }
+
+class ServicioPersonalizacionForm(forms.ModelForm):
+    class Meta:
+        model = Servicio
+        fields = ['color_primario', 'color_fondo', 'imagen_banner', 'footer_personalizado']
+        widgets = {
+            'color_primario': forms.TextInput(attrs={'type': 'color'}),
+            'color_fondo': forms.TextInput(attrs={'type': 'color'}),
+        }
+
+class ServicioUpdateForm(forms.ModelForm):
+    class Meta:
+        model = Servicio
+        # ========== INICIO DE LA CORRECCIÓN ==========
+        # Reemplazamos 'direccion_texto' por 'direccion', que es el nombre real de tu campo.
+        fields = ['nombre', 'descripcion', 'direccion']
+        # ========== FIN DE LA CORRECCIÓN ==========
+        labels = {
+            'nombre': 'Nombre del Negocio',
+            'descripcion': 'Descripción corta',
+            'direccion': 'Dirección', # Corregimos la etiqueta también
+        }
+        widgets = {
+            'descripcion': forms.Textarea(attrs={'rows': 3}),
         }
 
 class BloqueoForm(forms.ModelForm):

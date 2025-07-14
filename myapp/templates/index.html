@@ -17,7 +17,6 @@
         <h2>{{ servicio.nombre }}</h2>
         <p>{{ servicio.descripcion }}</p>
         <p>Dirección: {{ servicio.direccion }}</p>
-        <p>Precio estadar:${{ servicio.precio_estandar }} </p>
         <button><a href="{% url 'servicio_detail' servicio.id %}">Solicitar turno</a></button>
     </div>
     {% endfor %}

@@ -20,8 +20,10 @@
                 <a href="{% url 'mis_favoritos' %}">Mis Favoritos</a>
                 <a href="{% url 'mis_turnos' %}">Mis Turnos  <span id="notificacion-circulo" class="notificacion-circulo hidden"></span></a>
                     <div class="user-menu">
-                        <button id="userButton" class="user-button">{{ user.first_name|default:user.username|title }}</button>
-                        <div id="userDropdown" class="user-dropdown hidden">
+<button id="userButton" class="user-button">
+  <span class="user-fullname">{{ user.first_name|default:user.username|title }}</span>
+  <span class="user-initial">{{ user.first_name|default:user.username|first|upper }}</span>
+</button>                        <div id="userDropdown" class="user-dropdown hidden">
                             <a href="{% url 'editar_perfil' %}">Editar perfil</a>
                             <a href="{% url 'account_change_password' %}">Cambiar contraseña</a>
                             {% if user.servicios_propios.exists %}

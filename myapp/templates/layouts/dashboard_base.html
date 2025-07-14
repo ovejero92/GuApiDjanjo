@@ -17,8 +17,11 @@
                     <li class="{% if request.resolver_match.url_name == 'dashboard_metricas' %}active{% endif %}">
                         <a href="{% url 'dashboard_metricas' %}"><i class="fas fa-chart-line"></i> <span>Métricas y Reportes</span></a>
                     </li>
+                    <li class="{% if request.resolver_match.url_name == 'dashboard_catalogo' %}active{% endif %}">
+                        <a href="{% url 'dashboard_catalogo' %}"><i class="fas fa-book-open"></i> <span>Catálogo de Servicios</span></a>
+                    </li>
                     <li class="{% if request.resolver_match.url_name == 'dashboard_servicios' %}active{% endif %}">
-                        <a href="{% url 'dashboard_servicios' %}"><i class="fas fa-cut"></i> <span>Mis Servicios</span></a>
+                        <a href="{% url 'dashboard_servicios' %}"><i class="fas fa-cut"></i> <span>Apariencia</span></a>
                     </li>
                     <li class="{% if request.resolver_match.url_name == 'editar_perfil' %}active{% endif %}">
                         <a href="{% url 'editar_perfil' %}"><i class="fas fa-user-cog"></i> <span>Configuración</span></a>

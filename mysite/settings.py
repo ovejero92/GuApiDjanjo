@@ -120,6 +120,15 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
 # ==============================================================================
+# CONFIGURACIÓN DE ARCHIVOS MULTIMEDIA (MEDIA FILES)
+# ==============================================================================
+# URL pública para acceder a los archivos subidos por los usuarios
+MEDIA_URL = '/media/'
+
+# Carpeta en el servidor donde se guardarán físicamente los archivos subidos
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+# ==============================================================================
 # CONFIGURACIÓN DE EMAIL (SEPARADA PARA LOCAL Y PRODUCCIÓN)
 # ==============================================================================
 if DEBUG:
