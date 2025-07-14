@@ -7,6 +7,35 @@
     <title>Turnos Online</title>
     <link rel="stylesheet" href="{% static 'styles/main.css' %}">
     <link rel="shortcut icon" href="{% static 'image/phonebook_notebook_14401.ico' %}" type="image/x-icon">
+      <style>
+        .notificacion-circulo {
+            background-color: #e63946; color: white; border-radius: 50%;
+            padding: 2px 6px; font-size: 12px; font-weight: bold;
+            vertical-align: top; margin-left: 5px;
+        }
+        .hidden { display: none; }
+
+        /* --- LÓGICA PARA MOSTRAR NOMBRE/INICIAL --- */
+        /* Por defecto (móvil), ocultamos el nombre completo */
+        .user-fullname {
+            display: none;
+        }
+        .user-initial {
+            display: inline-block; /* La inicial se muestra */
+        }
+
+        /* En pantallas más grandes (tablets y escritorio)... */
+        @media (min-width: 768px) {
+            /* Mostramos el nombre completo */
+            .user-fullname {
+                display: inline-block;
+            }
+            /* Y ocultamos la inicial */
+            .user-initial {
+                display: none;
+            }
+        }
+    </style>
 </head>
 <body>
     <nav class="navbar">
@@ -20,10 +49,12 @@
                 <a href="{% url 'mis_favoritos' %}">Mis Favoritos</a>
                 <a href="{% url 'mis_turnos' %}">Mis Turnos  <span id="notificacion-circulo" class="notificacion-circulo hidden"></span></a>
                     <div class="user-menu">
-<button id="userButton" class="user-button">
-  <span class="user-fullname">{{ user.first_name|default:user.username|title }}</span>
-  <span class="user-initial">{{ user.first_name|default:user.username|first|upper }}</span>
-</button>                        <div id="userDropdown" class="user-dropdown hidden">
+                        <!-- HTML ESTRUCTURADO PARA EL BOTÓN -->
+                        <button id="userButton" class="user-button">
+                            <span class="user-fullname">{{ user.first_name|default:user.username|title }}</span>
+                            <span class="user-initial">{{ user.first_name.0|default:user.username.0|upper }}</span>
+                        </button>
+                        <div id="userDropdown" class="user-dropdown hidden">
                             <a href="{% url 'editar_perfil' %}">Editar perfil</a>
                             <a href="{% url 'account_change_password' %}">Cambiar contraseña</a>
                             {% if user.servicios_propios.exists %}
@@ -46,6 +77,7 @@
     <main class="container">
         {% block content %}{% endblock %}
     </main>
+
 
     <footer class="footer">
         <div class="footer-content">
@@ -124,25 +156,6 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 {% endif %}
-
-<!-- Y un poco de CSS para el círculo. Puedes ponerlo en main.css -->
-<style>
-.notificacion-circulo {
-    background-color: #e63946; /* Un rojo llamativo */
-    color: white;
-    border-radius: 50%;
-    padding: 2px 6px;
-    font-size: 12px;
-    font-weight: bold;
-    vertical-align: top; /* Alinea el círculo con la parte superior del texto */
-    margin-left: 5px;
-}
-.hidden {
-    display: none;
-}
-</style>
-
-
 
 <script src="https://kit.fontawesome.com/76e20a326e.js" crossorigin="anonymous"></script>
 </body>
