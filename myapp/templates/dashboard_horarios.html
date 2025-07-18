@@ -61,7 +61,17 @@
             {% if bloqueos %}
                 <ul class="lista-bloqueos">
                     {% for bloqueo in bloqueos %}
-                        <li>...</li>
+                        <li>
+                            <span>
+                                <strong>{{ bloqueo.fecha|date:"d/m/Y" }}:</strong> 
+                                {% if bloqueo.hora_inicio %}
+                                    de {{ bloqueo.hora_inicio|time:"H:i" }} a {{ bloqueo.hora_fin|time:"H:i" }}
+                                {% else %}
+                                    Día completo
+                                {% endif %}
+                                ({{ bloqueo.motivo|default:"Sin motivo" }})
+                            </span>
+                        </li>
                     {% endfor %}
                 </ul>
             {% else %}

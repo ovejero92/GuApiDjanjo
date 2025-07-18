@@ -1,118 +1,124 @@
 {% extends 'layouts/dashboard_base.html' %}
 
 {% block dashboard_content %}
-    <h1>Gestión de Turnos</h1>
-    <p>Confirma o cancela las solicitudes de turnos pendientes y revisa tu agenda.</p>
+    
+    {% if no_hay_servicio %}
+        <div class="dashboard-section">
+            <h2>Bienvenido</h2>
+            <p>Aún no tienes un servicio configurado. Por favor, contacta al administrador para empezar.</p>
+        </div>
+    {% else %}
+        <h1>Gestión de Turnos</h1>
+        <p>Confirma o cancela las solicitudes de turnos pendientes y revisa tu agenda.</p>
 
-    <!-- SECCIÓN DE TURNOS PENDIENTES DE CONFIRMACIÓN -->
-    <div class="dashboard-section">
-        <h2>Turnos Pendientes de Confirmación</h2>
-        {% if turnos_pendientes %}
-            <table class="turnos-table responsive-table">
-                <thead>
-                    <tr>
-                        <th>Cliente</th>
-                        <th>Servicio</th>
-                        <th>Fecha y Hora</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for turno in turnos_pendientes %}
-                    <tr>
-                        <td data-label="Cliente"><span class="data-value">{{ turno.cliente.username }}</span></td>
-                        <td data-label="Servicio"><span class="data-value">{{ turno.servicio.nombre }}</span></td>
-                        <td data-label="Fecha y Hora"><span class="data-value">{{ turno.fecha|date:"d/m/Y" }} - {{ turno.hora|time:"H:i" }}</span></td>
-                        <td data-label="Acciones">
-                            <div class="action-buttons">
-                                <form action="{% url 'confirmar_turno' turno.id %}" method="post">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn-confirmar">Confirmar</button>
-                                </form>
-                                <form action="{% url 'cancelar_turno' turno.id %}" method="post">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn-cancelar">Cancelar</button>
-                                </form>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        {% else %}
-            <p>No tienes turnos pendientes de confirmación.</p>
-        {% endif %}
-    </div>
+        <!-- SECCIÓN DE TURNOS PENDIENTES -->
+        <div class="dashboard-section">
+            <h2>Turnos Pendientes de Confirmación</h2>
+            {% if turnos_pendientes %}
+                <div class="table-responsive-wrapper">
+                    <table class="turnos-table responsive-table">
+                        <thead>
+                            <tr>
+                                <th>Cliente</th>
+                                <th>Servicios Solicitados</th>
+                                <th>Fecha y Hora</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for turno in turnos_pendientes %}
+                            <tr>
+                                <td data-label="Cliente"><span class="data-value">{{ turno.cliente.first_name|default:turno.cliente.username }}</span></td>
+                                <td data-label="Servicios">
+                                    <span class="data-value">
+                                        {% for sub in turno.sub_servicios_solicitados.all %}
+                                            {{ sub.nombre }}{% if not forloop.last %}, {% endif %}
+                                        {% endfor %}
+                                    </span>
+                                </td>
+                                <td data-label="Fecha y Hora"><span class="data-value">{{ turno.fecha|date:"d/m/Y" }} - {{ turno.hora|time:"H:i" }}</span></td>
+                                <td data-label="Acciones">
+                                    <div class="action-buttons">
+                                        <form action="{% url 'confirmar_turno' turno.id %}" method="post" style="display:inline;"><input type="hidden" name="servicio_id" value="{{ servicio_activo.id }}">{% csrf_token %}<button type="submit" class="btn-confirmar">Confirmar</button></form>
+                                        <form action="{% url 'cancelar_turno' turno.id %}" method="post" style="display:inline;"><input type="hidden" name="servicio_id" value="{{ servicio_activo.id }}">{% csrf_token %}<button type="submit" class="btn-cancelar">Cancelar</button></form>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p>No tienes turnos pendientes de confirmación.</p>
+            {% endif %}
+        </div>
 
-    <!-- SECCIÓN DE PRÓXIMOS TURNOS CONFIRMADOS -->
-    <div class="dashboard-section">
-        <h2>Próximos Turnos Confirmados</h2>
-        {% if turnos_confirmados %}
-            <table class="turnos-table responsive-table">
-                 <thead>
-                    <tr>
-                        <th>Cliente</th>
-                        <th>Servicio</th>
-                        <th>Fecha y Hora</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for turno in turnos_confirmados %}
-                    <tr>
-                        <td data-label="Cliente"><span class="data-value">{{ turno.cliente.username }}</span></td>
-                        <td data-label="Servicio"><span class="data-value">{{ turno.servicio.nombre }}</span></td>
-                        <td data-label="Fecha y Hora"><span class="data-value">{{ turno.fecha|date:"d/m/Y" }} - {{ turno.hora|time:"H:i" }}</span></td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        {% else %}
-            <p>No hay próximos turnos confirmados.</p>
-        {% endif %}
-    </div>
+        <!-- SECCIÓN DE PRÓXIMOS TURNOS CONFIRMADOS -->
+        <div class="dashboard-section">
+            <h2>Próximos Turnos Confirmados</h2>
+            {% if turnos_confirmados %}
+                <div class="table-responsive-wrapper">
+                    <table class="turnos-table responsive-table">
+                        <thead>
+                            <tr>
+                                <th>Cliente</th>
+                                <th>Servicios Solicitados</th>
+                                <th>Fecha y Hora</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for turno in turnos_confirmados %}
+                            <tr>
+                                <td data-label="Cliente"><span class="data-value">{{ turno.cliente.first_name|default:turno.cliente.username }}</span></td>
+                                <td data-label="Servicios"><span class="data-value">{% for sub in turno.sub_servicios_solicitados.all %}{{ sub.nombre }}{% if not forloop.last %}, {% endif %}{% endfor %}</span></td>
+                                <td data-label="Fecha y Hora"><span class="data-value">{{ turno.fecha|date:"d/m/Y" }} - {{ turno.hora|time:"H:i" }}</span></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p>No hay próximos turnos confirmados.</p>
+            {% endif %}
+        </div>
 
-    <!-- SECCIÓN DE HISTORIAL DE TURNOS PASADOS -->
-    <div class="dashboard-section">
-        <h2>Historial de Turnos Pasados</h2>
-        {% if turnos_pasados %}
-            <table class="turnos-table responsive-table">
-                 <thead>
-                    <tr>
-                        <th>Cliente</th>
-                        <th>Fecha y Hora</th>
-                        <th>Estado</th>
-                        <th>Ingreso</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for turno in turnos_pasados %}
-                    <tr>
-                        <td data-label="Cliente"><span class="data-value">{{ turno.cliente.username }}</span></td>
-                        <td data-label="Fecha y Hora"><span class="data-value">{{ turno.fecha|date:"d/m/Y" }} - {{ turno.hora|time:"H:i" }}</span></td>
-                        <td data-label="Estado"><span class="data-value">{{ turno.get_estado_display }}</span></td>
-                        <td data-label="Ingreso"><span class="data-value">{% if turno.ingreso_real %}${{ turno.ingreso_real|floatformat:2 }}{% else %}-{% endif %}</span></td>
-                        <td data-label="Acciones">
-                            {# Solo mostramos el botón si el turno AÚN NO ha sido procesado (ni completado ni cancelado) #}
-                            {% if turno.estado != 'completado' and turno.estado != 'cancelado' %}
-                                <a href="{% url 'finalizar_turno' turno.id %}" class="btn-completar">
-                                    Finalizar Turno
-                                </a>
-                            {# Si ya está completado, permitimos editar el ingreso #}
-                            {% elif turno.estado == 'completado' %}
-                                 <a href="{% url 'finalizar_turno' turno.id %}" class="btn-editar-ingreso">
-                                    Editar Ingreso
-                                </a>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        {% else %}
-            <p>No hay historial de turnos.</p>
-        {% endif %}
-    </div>
-
-    <!-- NOTA: Los estilos de los botones .btn-completar y .btn-editar-ingreso deben estar en tu plantilla base o en tu CSS principal -->
+        <!-- SECCIÓN DE HISTORIAL DE TURNOS PASADOS -->
+        <div class="dashboard-section">
+            <h2>Historial de Turnos Pasados</h2>
+            {% if turnos_pasados %}
+                <div class="table-responsive-wrapper">
+                    <table class="turnos-table responsive-table">
+                        <thead>
+                            <tr>
+                                <th>Cliente</th>
+                                <th>Fecha y Hora</th>
+                                <th>Estado</th>
+                                <th>Ingreso</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for turno in turnos_pasados %}
+                            <tr>
+                                <td data-label="Cliente"><span class="data-value">{{ turno.cliente.first_name|default:turno.cliente.username }}</span></td>
+                                <td data-label="Fecha y Hora"><span class="data-value">{{ turno.fecha|date:"d/m/Y" }} - {{ turno.hora|time:"H:i" }}</span></td>
+                                <td data-label="Estado"><span class="data-value">{{ turno.get_estado_display }}</span></td>
+                                <td data-label="Ingreso"><span class="data-value">{% if turno.ingreso_real %}${{ turno.ingreso_real|floatformat:2 }}{% else %}-{% endif %}</span></td>
+                                <td data-label="Acciones">
+                                    {% if turno.estado != 'completado' and turno.estado != 'cancelado' %}
+                                        <a href="{% url 'finalizar_turno' turno.id %}" class="btn-completar">Finalizar Turno</a>
+                                    {% elif turno.estado == 'completado' %}
+                                        <a href="{% url 'finalizar_turno' turno.id %}" class="btn-editar-ingreso">Editar Ingreso</a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p>No hay historial de turnos.</p>
+            {% endif %}
+        </div>
+    {% endif %}
 {% endblock %}

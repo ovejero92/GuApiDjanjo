@@ -1,24 +1,78 @@
 {% extends 'layouts/navbar.html' %}
+{% load static %}
+
 {% block content %}
-<h1>Servicios disponibles</h1>
-<div class="contenedor-servicios">
-    {% for servicio in servicios %}
-    <div class="card-servicio">
-        {% if user.is_authenticated %}
-        <a href="{% url 'toggle_favorito' servicio.id %}" class="favorito-btn">
-            {# Comprobamos si el servicio está en los favoritos del usuario logueado #}
-            {% if servicio in user.servicios_favoritos.all %}
-                <i class="fas fa-heart"></i> <!-- Corazón lleno -->
-            {% else %}
-                <i class="far fa-heart"></i> <!-- Corazón vacío -->
-            {% endif %}
-        </a>
-        {% endif %}
-        <h2>{{ servicio.nombre }}</h2>
-        <p>{{ servicio.descripcion }}</p>
-        <p>Dirección: {{ servicio.direccion }}</p>
-        <button><a href="{% url 'servicio_detail' servicio.id %}">Solicitar turno</a></button>
+{# Si el usuario NO está autenticado, mostramos la Landing Page #}
+{% if not user.is_authenticated %}
+    <div class="landing-page">
+        <!-- Sección Hero -->
+        <section class="hero-section text-center">
+            <h1>La Forma Más Simple de Gestionar Tus Turnos</h1>
+            <p class="subtitle">Encuentra y reserva citas en tus servicios locales favoritos, o potencia tu negocio con nuestra plataforma de gestión inteligente.</p>
+            <a href="{% url 'account_signup' %}" class="btn-cta">Empieza Ahora - ¡Es Gratis!</a>
+        </section>
+
+        <!-- Sección "Para Negocios" -->
+        <section class="landing-section">
+            <h2>Potencia Tu Negocio</h2>
+            <p>Deja de perder tiempo con llamadas y mensajes. Ofrece a tus clientes una agenda online 24/7 y dedica tu tiempo a lo que realmente importa. <a href="{% url 'about' %}">Descubre más...</a></p>
+        </section>
+
+        <!-- Sección "Para Clientes" -->
+        <section class="landing-section">
+            <h2>Encuentra Tu Próximo Turno</h2>
+            <p>Explora peluquerías, barberías, spas y más. Compara, elige y reserva en segundos.</p>
+            <!-- Mostramos algunos servicios como ejemplo -->
+            <div class="contenedor-servicios">
+                {% for servicio in servicios|slice:":3" %} {# Muestra solo los 3 primeros #}
+                    <div class="card-servicio">
+                        <h3>{{ servicio.nombre }}</h3>
+                        <p>{{ servicio.descripcion|truncatewords:10 }}</p>
+                        <a href="{% url 'servicio_detail' servicio.id %}" class="btn-solicitar">Ver Servicios</a>
+                    </div>
+                {% endfor %}
+            </div>
+        </section>
     </div>
+
+{# Si el usuario SÍ está autenticado, mostramos el listado de siempre #}
+{% else %}
+    <h1>Servicios Disponibles</h1>
+    <div class="category-filters">
+    <a href="{% url 'index' %}" class="{% if not categoria_activa %}active{% endif %}">Todos</a>
+    {% for cat in categorias %}
+        <a href="?categoria={{ cat.slug }}" class="{% if categoria_activa == cat.slug %}active{% endif %}">
+            {{ cat.nombre }}
+        </a>
     {% endfor %}
-</div>
+    </div>
+    <div class="contenedor-servicios">
+        {% for servicio in servicios %}
+            <div class="card-servicio">
+                {% if user.is_authenticated %}
+                <a href="{% url 'toggle_favorito' servicio.id %}" class="favorito-btn">
+                    {% if servicio in user.servicios_favoritos.all %}<i class="fas fa-heart"></i>{% else %}<i class="far fa-heart"></i>{% endif %}
+                </a>
+                {% endif %}
+                <h2>{{ servicio.nombre }}</h2>
+                <p>{{ servicio.descripcion|truncatewords:15 }}</p>
+                <a href="{% url 'servicio_detail' servicio.id %}" class="btn-solicitar">Ver y Reservar</a>
+            </div>
+        {% endfor %}
+    </div>
+{% endif %}
+
+<style>
+.landing-section { padding: 40px 20px; text-align: center; }
+.hero-section { padding: 80px 20px; background-color: #2a2a2a; }
+.category-filters { text-align: center; margin-bottom: 30px; }
+.category-filters a {
+    display: inline-block; padding: 8px 15px; margin: 5px;
+    background-color: #444; color: #ccc; text-decoration: none;
+    border-radius: 20px; transition: all 0.2s;
+}
+.category-filters a:hover, .category-filters a.active {
+    background-color: #007bff; color: white; transform: scale(1.05);
+}
+</style>
 {% endblock %}

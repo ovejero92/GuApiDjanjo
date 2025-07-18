@@ -14,68 +14,31 @@ def validar_tamaño_maximo_img(value):
     if value.size > limite:
         raise ValidationError('¡El archivo es demasiado grande! El tamaño máximo es de 2 MB.')
 
-# --- MODELO SERVICIO (NEGOCIO PRINCIPAL) ---
-# Hemos eliminado los campos de precio y duración, ya que ahora estarán en los SubServicios.
+class Categoria(models.Model):
+    nombre = models.CharField(max_length=100, unique=True)
+    slug = models.SlugField(max_length=100, unique=True, help_text="Versión amigable para URL, ej: peluquerias")
+    
+    class Meta:
+        verbose_name_plural = "Categorías"
+
+    def __str__(self):
+        return self.nombre
+
 class Servicio(models.Model):
     propietario = models.ForeignKey(User, on_delete=models.CASCADE, related_name='servicios_propios')
+    categoria = models.ForeignKey(Categoria, on_delete=models.SET_NULL, null=True, blank=True, related_name='servicios')
     nombre = models.CharField(max_length=100)
     descripcion = models.TextField(default="Sin descripción")
     direccion = models.CharField(max_length=200, default="Sin dirección")
     favoritos = models.ManyToManyField(User, related_name='servicios_favoritos', blank=True)
-    color_primario = models.CharField(max_length=7, default='#007bff', help_text="Color principal (ej: #007bff)")
-    color_fondo = models.CharField(max_length=7, default='#333333', help_text="Color de fondo de las tarjetas (ej: #333333)")
-    imagen_banner = models.ImageField(
-        upload_to='banners/', null=True, blank=True,
-        help_text="Imagen grande para la cabecera (máx 2MB)",
-        validators=[validar_tamaño_maximo_img]
-    )
-    footer_personalizado = models.TextField(blank=True, help_text="Texto o HTML simple para el footer de tu página.")
+    color_primario = models.CharField(max_length=7, default='#007bff', help_text="Color principal")
+    color_fondo = models.CharField(max_length=7, default='#333333', help_text="Color de fondo")
+    imagen_banner = models.ImageField(upload_to='banners/', null=True, blank=True, help_text="Banner (máx 2MB)", validators=[validar_tamaño_maximo_img])
+    footer_personalizado = models.TextField(blank=True, help_text="Texto o HTML simple para el footer")
+    configuracion_inicial_completa = models.BooleanField(default=False)
     
     def __str__(self):
         return self.nombre
-    
-    def save(self, *args, **kwargs):
-        # La bandera para evitar la recursión
-        is_new = self._state.adding
-        
-        # Guardamos la primera vez para tener un objeto en la BD
-        if is_new:
-            super().save(*args, **kwargs)
-
-        # Si hay una imagen de banner y no estamos ya optimizando
-        if self.imagen_banner and not hasattr(self, '_processing_image'):
-            self._processing_image = True # Marcamos que estamos procesando
-
-            try:
-                img = Image.open(self.imagen_banner)
-                
-                # Redimensionar si es necesario
-                if img.width > 1920 or img.height > 1080:
-                    img.thumbnail((1920, 1080))
-
-                # Preparar para guardar en memoria
-                output_io = BytesIO()
-                if img.mode in ("RGBA", "P"):
-                    img = img.convert("RGB")
-                
-                img.save(output_io, format='JPEG', quality=85)
-                output_io.seek(0)
-                
-                # Cambiar el nombre del archivo a .jpg
-                file_name = f"{os.path.splitext(self.imagen_banner.name)[0]}.jpg"
-
-                self.imagen_banner.save(file_name, InMemoryUploadedFile(
-                    output_io, 'ImageField', file_name,
-                    'image/jpeg', sys.getsizeof(output_io), None
-                ), save=False) # 'save=False' es CRUCIAL para evitar recursión
-
-            except Exception as e:
-                print(f"Error al procesar la imagen del servicio {self.id}: {e}")
-
-            del self._processing_image # Quitamos la bandera
-
-        # Guardamos el modelo completo al final
-        super().save(*args, **kwargs)
 
 class SubServicio(models.Model):
     # Vinculado al negocio principal

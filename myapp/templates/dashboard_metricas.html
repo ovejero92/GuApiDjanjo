@@ -2,10 +2,8 @@
 {% load static %}
 
 {% block dashboard_content %}
-    <!-- ================================================================ -->
-    <!-- ==========        HTML DE LA PÁGINA DE MÉTRICAS         ========== -->
-    <!-- ================================================================ -->
-    <div class="metricas-header">
+<div id="seccion-metricas">
+    <div class="metricas-header" >
         <h1>Métricas y Reportes</h1>
         <div class="periodo-filtro">
             <a href="?periodo=7d" class="btn-filtro {% if periodo_seleccionado == '7d' %}active{% endif %}">7 Días</a>
@@ -41,7 +39,7 @@
             {% if data_servicios != '[]' %}<canvas id="serviciosPopularesChart"></canvas>{% else %}<p>No hay datos suficientes para mostrar este gráfico.</p>{% endif %}
         </div>
     </div>
-
+</div>
     <!-- ================================================================ -->
     <!-- ==========      DATOS Y SCRIPTS SOLO PARA MÉTRICAS      ========== -->
     <!-- ================================================================ -->
@@ -50,47 +48,7 @@
     {{ labels_servicios|json_script:"labels-servicios-data" }}
     {{ data_servicios|json_script:"data-servicios-data" }}
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script>
-        // GUARDIÁN: Asegurarse de que el código se ejecuta después de que todo esté cargado
-        document.addEventListener('DOMContentLoaded', function() {
-            // Buscamos los canvas aquí, dentro de esta página específica
-            const canvasIngresos = document.getElementById('ingresosPorDiaChart');
-            const canvasServicios = document.getElementById('serviciosPopularesChart');
-
-            // Leemos los datos desde las etiquetas <script> que generó Django
-            const labelsIngresos = JSON.parse(document.getElementById('labels-ingresos-data').textContent);
-            const dataIngresos = JSON.parse(document.getElementById('data-ingresos-data').textContent);
-            const labelsServicios = JSON.parse(document.getElementById('labels-servicios-data').textContent);
-            const dataServicios = JSON.parse(document.getElementById('data-servicios-data').textContent);
-        
-            // Creamos el gráfico de Ingresos solo si el canvas existe
-            if (canvasIngresos) {
-                new Chart(canvasIngresos.getContext('2d'), {
-                    type: 'line',
-                    data: { labels: labelsIngresos, datasets: [{
-                        label: 'Ingresos ($)', data: dataIngresos,
-                        borderColor: 'aqua', backgroundColor: 'rgba(0, 255, 255, 0.2)',
-                        fill: true, tension: 0.1
-                    }]},
-                    options: { scales: { y: { beginAtZero: true } } }
-                });
-            }
-
-            // Creamos el gráfico de Servicios solo si el canvas existe y hay datos
-            if (canvasServicios && dataServicios.length > 0) {
-                new Chart(canvasServicios.getContext('2d'), {
-                    type: 'doughnut',
-                    data: { labels: labelsServicios, datasets: [{
-                        label: 'Nº de Turnos', data: dataServicios,
-                        backgroundColor: ['rgba(0, 123, 255, 0.7)', 'rgba(40, 167, 69, 0.7)', 'rgba(255, 193, 7, 0.7)', 'rgba(220, 53, 69, 0.7)', 'rgba(111, 66, 193, 0.7)']
-                    }]}
-                });
-            }
-        });
-    </script>
-    
-   <style>
+    <style>
     /* --- Estructura Principal del Encabezado --- */
     .metricas-header {
         display: flex;
@@ -175,5 +133,73 @@
             grid-template-columns: 2fr 1fr; /* Los gráficos se ponen uno al lado del otro */
         }
     }
-</style>
+    </style>
+    {% endblock %}
+    {% block tour_steps %}
+    <script>
+    // Añadimos los pasos específicos para la página de métricas
+    if (paginaActual === 'dashboard_metricas') {
+        tour.addStep({
+            id: 'metricas_1',
+            title: 'Tus Métricas',
+            text: 'Esta sección te ayuda a entender el rendimiento de tu negocio. ¡Recuerda finalizar los turnos para que los datos aparezcan aquí!',
+            attachTo: { element: '#seccion-metricas', on: 'top' },
+            buttons: [{ text: 'Entendido', action: tour.next }]
+        });
+        tour.addStep({
+            id: 'metricas_2',
+            title: 'Indicadores Clave',
+            text: 'Aquí tienes un resumen rápido de tus ingresos, total de turnos y el valor promedio de cada uno.',
+            attachTo: { element: '#tarjetas-kpi', on: 'bottom' },
+            buttons: [{ text: 'Siguiente', action: tour.next }]
+        });
+        tour.addStep({
+            id: 'metricas_3',
+            title: 'Gráficos de Rendimiento',
+            text: 'Visualiza la evolución de tus ingresos y descubre cuáles de tus servicios son los más populares entre tus clientes.',
+            attachTo: { element: '#zona-graficos', on: 'bottom' },
+            buttons: [{ text: 'Finalizar', action: tour.complete }]
+        });
+    }
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // GUARDIÁN: Asegurarse de que el código se ejecuta después de que todo esté cargado
+        document.addEventListener('DOMContentLoaded', function() {
+            // Buscamos los canvas aquí, dentro de esta página específica
+            const canvasIngresos = document.getElementById('ingresosPorDiaChart');
+            const canvasServicios = document.getElementById('serviciosPopularesChart');
+
+            // Leemos los datos desde las etiquetas <script> que generó Django
+            const labelsIngresos = JSON.parse(document.getElementById('labels-ingresos-data').textContent);
+            const dataIngresos = JSON.parse(document.getElementById('data-ingresos-data').textContent);
+            const labelsServicios = JSON.parse(document.getElementById('labels-servicios-data').textContent);
+            const dataServicios = JSON.parse(document.getElementById('data-servicios-data').textContent);
+        
+            // Creamos el gráfico de Ingresos solo si el canvas existe
+            if (canvasIngresos) {
+                new Chart(canvasIngresos.getContext('2d'), {
+                    type: 'line',
+                    data: { labels: labelsIngresos, datasets: [{
+                        label: 'Ingresos ($)', data: dataIngresos,
+                        borderColor: 'aqua', backgroundColor: 'rgba(0, 255, 255, 0.2)',
+                        fill: true, tension: 0.1
+                    }]},
+                    options: { scales: { y: { beginAtZero: true } } }
+                });
+            }
+
+            // Creamos el gráfico de Servicios solo si el canvas existe y hay datos
+            if (canvasServicios && dataServicios.length > 0) {
+                new Chart(canvasServicios.getContext('2d'), {
+                    type: 'doughnut',
+                    data: { labels: labelsServicios, datasets: [{
+                        label: 'Nº de Turnos', data: dataServicios,
+                        backgroundColor: ['rgba(0, 123, 255, 0.7)', 'rgba(40, 167, 69, 0.7)', 'rgba(255, 193, 7, 0.7)', 'rgba(220, 53, 69, 0.7)', 'rgba(111, 66, 193, 0.7)']
+                    }]}
+                });
+            }
+        });
+    </script>
 {% endblock %}

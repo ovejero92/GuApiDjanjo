@@ -6,7 +6,7 @@
     {% if no_hay_servicio %}
         <div class="dashboard-section"><p>Aún no tienes un servicio asignado.</p></div>
     {% else %}
-        <div class="dashboard-grid">
+        <div class="dashboard-grid" id="zona-apariencia">
             <!-- Columna del Formulario de Apariencia -->
             <div class="dashboard-section form-section">
                 <h2>Personalizar Apariencia</h2>
@@ -61,6 +61,21 @@
         .preview-card { border-radius: 5px; padding: 20px; text-align: center; }
         .preview-button { color: white; padding: 10px 15px; border: none; border-radius: 5px; }
     </style>
+    {% endblock %}
+
+    {% block tour_steps %}
+    <script>
+    if (paginaActual === 'dashboard_servicios') {
+        tour.addStep({
+            id: 'apariencia_1',
+            title: 'Personaliza tu Marca',
+            text: 'Usa estos controles para cambiar los colores y subir una imagen de banner. Los cambios se verán reflejados en la página que ven tus clientes.',
+            attachTo: { element: '#zona-apariencia', on: 'bottom' },
+            buttons: [{ text: '¡Entendido!', action: tour.complete }]
+        });
+    }
+    </script>
+    
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const form = document.querySelector('.form-section form');

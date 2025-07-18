@@ -2,7 +2,7 @@
 {% load static %}
 
 {% block content %}
-<div class="dashboard-wrapper">
+<div class="dashboard-wrapper" data-onboarding-completo="{{ onboarding_completo|yesno:'True,False' }}">
     <div class="dashboard-layout">
         <!-- MENÚ LATERAL (SIDEBAR) -->
         <aside class="dashboard-sidebar" id="dashboardSidebar">
@@ -34,12 +34,27 @@
         </aside>
 
         <!-- ÁREA DE CONTENIDO PRINCIPAL -->
-        <main class="dashboard-content">
+         <main class="dashboard-content">
+            {% if user.servicios_propios.count > 1 and servicio_activo %}
+                <div class="servicio-selector">
+                    <form method="get">
+                        <label for="servicio_id">Gestionando Negocio:</label>
+                        <select name="servicio_id" id="servicio_id" onchange="this.form.submit()">
+                            {% for s in user.servicios_propios.all %}
+                                <option value="{{ s.id }}" {% if s.id == servicio_activo.id %}selected{% endif %}>{{ s.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </form>
+                </div>
+            {% endif %}
             {% block dashboard_content %}{% endblock %}
         </main>
     </div>
 </div>
+{% endblock %}
 
+
+{% block scripts_extra %}
 <style>
     /* --- Contenedor Principal y Layout --- */
     /* Quitamos el padding del .container de la navbar para usar todo el ancho */
@@ -144,7 +159,9 @@
     .turnos-table tbody tr { border-bottom: 1px solid #4a4a4a; }
     .turnos-table tbody tr:last-child { border-bottom: none; }
     .turnos-table td::before { display: none; }
-    
+    .servicio-selector { margin-bottom: 20px; background: #333; padding: 15px; border-radius: 8px; }
+    .servicio-selector label { font-weight: bold; margin-right: 10px; }
+    .servicio-selector select { background: #444; color: white; border: 1px solid #666; padding: 5px; border-radius: 4px; }
     /* ================================================================ */
     /* ==========            ESTILOS RESPONSIVOS             ========== */
     /* ================================================================ */
@@ -179,6 +196,9 @@
         }
     }
 </style>
+<!-- Librerías para el Tour Interactivo (Shepherd.js) -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/shepherd.js@10.0.1/dist/css/shepherd.css"/>
+<script src="https://cdn.jsdelivr.net/npm/shepherd.js@10.0.1/dist/js/shepherd.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const sidebar = document.getElementById('dashboardSidebar');
@@ -199,6 +219,95 @@ document.addEventListener('DOMContentLoaded', function() {
                 toggleBtn.title = "Ocultar menú";
             }
         });
+    }
+
+     // --- LÓGICA DEL TOUR DE BIENVENIDA (CORREGIDA) ---
+    const dashboardContainer = document.querySelector('.dashboard-wrapper');
+    if (!dashboardContainer) return; // Salir si no estamos en una página de dashboard
+
+    const onboardingCompleto = dashboardContainer.dataset.onboardingCompleto === 'True';
+
+    // Solo si el onboarding NO está completo, definimos y ejecutamos todo lo del tour
+    if (!onboardingCompleto) {
+        
+        // 1. Definimos la función de marcado PRIMERO
+        function marcarYFinalizarTour() {
+            const csrfTokenInput = document.querySelector('form[action*="logout"] [name="csrfmiddlewaretoken"]');
+            if (!csrfTokenInput) {
+                console.error("No se pudo encontrar el token CSRF para marcar el onboarding.");
+                return;
+            }
+            
+            fetch("{% url 'marcar_onboarding_completo' %}", {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfTokenInput.value,
+                    'Content-Type': 'application/json'
+                },
+            }).then(response => {
+                if (response.ok) {
+                    console.log('Onboarding marcado como completo. No volverá a aparecer.');
+                    // Opcional: recargar la página para que el data-attribute cambie al instante
+                    // window.location.reload(); 
+                } else {
+                    console.error("Falló la petición para marcar el onboarding.");
+                }
+            });
+        }
+
+        // 2. Creamos la instancia del tour
+        const tour = new Shepherd.Tour({
+            useModalOverlay: true,
+            defaultStepOptions: {
+                classes: 'shepherd-custom-theme',
+                scrollTo: true,
+                cancelIcon: { enabled: true },
+            }
+        });
+
+        // 3. Añadimos los pasos del tour
+        tour.addStep({
+            title: '¡Bienvenido a tu Dashboard!',
+            text: 'Este es tu centro de control. Te daremos una rápida guía para que configures todo.',
+            buttons: [{ text: '¡Vamos!', action: tour.next }]
+        });
+
+        tour.addStep({
+            title: 'Horarios y Bloqueos',
+            text: '<strong>¡Este es el paso más importante!</strong> Aquí debes definir tus días y horas de trabajo para que los clientes puedan reservar.',
+            attachTo: { element: 'a[href*="horarios"]', on: 'right' },
+            buttons: [
+                { text: 'Omitir por ahora', classes: 'shepherd-button-secondary', action: tour.next },
+                { 
+                    text: 'Configurar ahora', 
+                    action: function() {
+                        // Al hacer clic, PRIMERO marcamos como completo y LUEGO redirigimos.
+                        marcarYFinalizarTour();
+                        window.location.href = "{% url 'dashboard_horarios' %}";
+                    }
+                }
+            ]
+        });
+
+        tour.addStep({
+            title: 'Catálogo de Servicios',
+            text: 'Aquí puedes crear y editar la lista de servicios que ofreces (ej: "Corte de Pelo"), cada uno con su precio y duración.',
+            attachTo: { element: 'a[href*="catalogo"]', on: 'right' },
+            buttons: [{ text: 'Siguiente', action: tour.next }]
+        });
+        
+        tour.addStep({
+            title: '¡Todo Listo!',
+            text: 'Ya conoces lo esencial. Explora las demás secciones cuando quieras. ¡Mucho éxito!',
+            buttons: [{ text: 'Finalizar Tour', action: tour.complete }]
+        });
+
+        // 4. Asignamos los eventos al final, ahora la función ya está definida
+        tour.on('complete', marcarYFinalizarTour);
+        tour.on('cancel', marcarYFinalizarTour);
+
+        // 5. Iniciamos el tour
+        tour.start();
     }
 });
 </script>

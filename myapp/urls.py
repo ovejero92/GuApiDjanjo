@@ -27,8 +27,10 @@ urlpatterns = [
     path('servicio/toggle-favorito/<int:servicio_id>/', views.toggle_favorito, name='toggle_favorito'),
     path('activate/<slug:uidb64>/<slug:token>/', views.activate, name='activate'),
     path('dashboard/catalogo/', views.dashboard_catalogo, name='dashboard_catalogo'),
-    
-     # ========== INICIO DE LA MODIFICACIÓN: URLs para gestionar turnos ==========
+    path('terminos-y-condiciones/', views.terminos_y_condiciones, name='terminos'),
+    path('politica-de-privacidad/', views.politica_de_privacidad, name='privacidad'),
+    path('onboarding/marcar-completo/', views.marcar_onboarding_completo, name='marcar_onboarding_completo'),
+    # ========== INICIO DE LA MODIFICACIÓN: URLs para gestionar turnos ==========
     path('turno/confirmar/<int:turno_id>/', views.confirmar_turno, name='confirmar_turno'),
     path('turno/cancelar/<int:turno_id>/', views.cancelar_turno, name='cancelar_turno'),
     path('turno/finalizar/<int:turno_id>/', views.finalizar_turno, name='finalizar_turno'),

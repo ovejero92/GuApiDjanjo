@@ -2,7 +2,12 @@ from django import forms
 from django.contrib.auth.models import User
 from .models import Turno, HorarioLaboral, DiaNoDisponible, Reseña, Servicio, SubServicio
 from django.utils import timezone
+from django.core.files.uploadedfile import InMemoryUploadedFile
 from datetime import datetime, timedelta
+from PIL import Image
+import sys
+from io import BytesIO
+import os
 
 class CustomSignupForm(forms.Form):
     first_name = forms.CharField(max_length=30, label="Tu Nombre", required=True)
@@ -115,20 +120,55 @@ class ServicioPersonalizacionForm(forms.ModelForm):
             'color_fondo': forms.TextInput(attrs={'type': 'color'}),
         }
 
+    def clean_imagen_banner(self):
+        imagen = self.cleaned_data.get('imagen_banner', False) # 'False' como valor por defecto si no hay imagen
+        
+        # Si no se subió una imagen nueva (el campo está vacío), devolvemos el valor actual.
+        if not imagen:
+            return self.instance.imagen_banner
+
+        try:
+            img = Image.open(imagen)
+            
+            # Redimensionar
+            if img.width > 1920 or img.height > 1080:
+                img.thumbnail((1920, 1080))
+            
+            # Preparar para guardar en memoria
+            output_io = BytesIO()
+            if img.mode in ("RGBA", "P"):
+                img = img.convert("RGB")
+            
+            img.save(output_io, format='JPEG', quality=85)
+            output_io.seek(0)
+
+            # Crear un nuevo nombre de archivo
+            file_name = f"{os.path.splitext(imagen.name)[0]}.jpg"
+            
+            # Devolvemos el nuevo archivo procesado en memoria
+            return InMemoryUploadedFile(
+                output_io, 'ImageField', file_name,
+                'image/jpeg', sys.getsizeof(output_io), None
+            )
+        except Exception as e:
+            raise forms.ValidationError(f"No se pudo procesar la imagen: {e}")
+
 class ServicioUpdateForm(forms.ModelForm):
     class Meta:
         model = Servicio
         # ========== INICIO DE LA CORRECCIÓN ==========
         # Reemplazamos 'direccion_texto' por 'direccion', que es el nombre real de tu campo.
-        fields = ['nombre', 'descripcion', 'direccion']
+        fields = ['nombre', 'descripcion', 'direccion', 'categoria']
         # ========== FIN DE LA CORRECCIÓN ==========
         labels = {
             'nombre': 'Nombre del Negocio',
             'descripcion': 'Descripción corta',
-            'direccion': 'Dirección', # Corregimos la etiqueta también
+            'direccion': 'Dirección',
+            'categoria': 'Categoría de tu Negocio',
         }
         widgets = {
             'descripcion': forms.Textarea(attrs={'rows': 3}),
+            'categoria': forms.Select(attrs={'class': 'form-control'}),
         }
 
 class BloqueoForm(forms.ModelForm):

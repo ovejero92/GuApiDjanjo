@@ -3,7 +3,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth import login
 from django.contrib import messages
 from django.forms import inlineformset_factory
-from .models import Servicio, Turno, HorarioLaboral, SubServicio
+from .models import Servicio, Turno, HorarioLaboral, SubServicio, Categoria
 from .forms import BloqueoForm, TurnoForm, UserUpdateForm, IngresoTurnoForm, ReseñaForm, ServicioPersonalizacionForm, ServicioUpdateForm
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
@@ -17,6 +17,7 @@ from django.contrib.auth.tokens import default_token_generator
 from django.contrib.auth.models import User
 import json
 from django.db.models import Q
+from django.core.serializers import serialize
 # ========== INICIO DE LA MODIFICACIÓN ==========
 # Importaciones necesarias para la nueva vista de Login
 from django.contrib.auth.views import LoginView
@@ -24,12 +25,31 @@ from django.urls import reverse_lazy
 # ========== FIN DE LA MODIFICACIÓN ==========
 
 def index(request):
-    servicios = Servicio.objects.all()
-    return render(request, 'index.html', {'servicios': servicios})
+    categorias = Categoria.objects.all()
+    categoria_seleccionada_slug = request.GET.get('categoria')
+
+    if categoria_seleccionada_slug:
+        # Filtramos los servicios por el slug de la categoría
+        servicios = Servicio.objects.filter(categoria__slug=categoria_seleccionada_slug)
+    else:
+        # Si no hay filtro, mostramos todos
+        servicios = Servicio.objects.all()
+
+    context = {
+        'servicios': servicios,
+        'categorias': categorias,
+        'categoria_activa': categoria_seleccionada_slug
+    }
+    return render(request, 'index.html', context)
 
 def about(request):
     return render(request, 'about.html')
 
+def terminos_y_condiciones(request):
+    return render(request, 'terminos.html')
+
+def politica_de_privacidad(request):
+    return render(request, 'privacidad.html')
 
 # --- AÑADE ESTA NUEVA VISTA PARA LA ACTIVACIÓN ---
 def activate(request, uidb64, token):
@@ -47,6 +67,23 @@ def activate(request, uidb64, token):
         return redirect('index')
     else:
         return render(request, 'registration/activacion_invalida.html')
+
+# --- VISTAS DEL DASHBOARD DEL PROPIETARIO (MODIFICADAS) ---
+def get_servicio_activo(request):
+    servicios_propietario = request.user.servicios_propios.all()
+    if not servicios_propietario.exists():
+        return None
+    
+    servicio_id_seleccionado = request.GET.get('servicio_id')
+    if servicio_id_seleccionado:
+        try:
+            # Usamos get() que es más estricto que get_object_or_404 aquí
+            servicio_activo = servicios_propietario.get(id=servicio_id_seleccionado)
+        except Servicio.DoesNotExist:
+            servicio_activo = servicios_propietario.first()
+    else:
+        servicio_activo = servicios_propietario.first()
+    return servicio_activo
 
 @login_required
 def servicio_detail(request, servicio_id):
@@ -86,8 +123,13 @@ def servicio_detail(request, servicio_id):
     
 @login_required
 def dashboard_turnos(request):
-    servicios_del_propietario = request.user.servicios_propios.all()
-    turnos = Turno.objects.filter(servicio__in=servicios_del_propietario)
+    servicio_activo = get_servicio_activo(request)
+    if not servicio_activo:
+        return render(request, 'dashboard_turnos.html', {'no_hay_servicio': True})
+    
+    turnos = Turno.objects.filter(
+        servicio=servicio_activo
+    ).select_related('cliente').prefetch_related('sub_servicios_solicitados')
 
     # Obtenemos la fecha y hora actuales, conscientes de la zona horaria
     ahora = timezone.now()
@@ -110,7 +152,8 @@ def dashboard_turnos(request):
     turnos_confirmados = turnos_proximos.filter(estado='confirmado').order_by('fecha', 'hora')
     
     context = {
-        'servicios': servicios_del_propietario,
+        'servicio_activo': servicio_activo,
+        'onboarding_completo': servicio_activo.configuracion_inicial_completa,
         'turnos_pendientes': turnos_pendientes,
         'turnos_confirmados': turnos_confirmados,
         'turnos_pasados': turnos_pasados
@@ -118,17 +161,69 @@ def dashboard_turnos(request):
     return render(request, 'dashboard_turnos.html', context)
 
 @login_required
-def dashboard_horarios(request):
-    # Asumimos por ahora que el propietario tiene UN SOLO servicio.
-    # En el futuro, si un propietario puede tener varios, aquí habría un selector.
-    try:
+def marcar_tour_visto(request):
+    if request.method == 'POST':
         servicio = request.user.servicios_propios.first()
-    except AttributeError:
-        # Manejo por si el usuario no tiene servicios (aunque no debería llegar aquí)
-        servicio = None
+        if servicio:
+            servicio.tour_completo = True
+            servicio.save()
+            return JsonResponse({'status': 'ok'})
+    return JsonResponse({'status': 'error'}, status=400)
 
+# --- FUNCIÓN AUXILIAR PARA OBTENER EL SERVICIO ACTIVO ---
+def get_servicio_activo(request):
+    servicios_propietario = request.user.servicios_propios.all()
+    if not servicios_propietario.exists():
+        return None
+    servicio_id_seleccionado = request.GET.get('servicio_id')
+    if servicio_id_seleccionado:
+        try:
+            return servicios_propietario.get(id=servicio_id_seleccionado)
+        except Servicio.DoesNotExist:
+            return servicios_propietario.first()
+    return servicios_propietario.first()
+
+@login_required
+def marcar_onboarding_completo(request):
+    if request.method == 'POST':
+        servicio = request.user.servicios_propios.first()
+        if servicio:
+            servicio.configuracion_inicial_completa = True
+            servicio.save()
+            return JsonResponse({'status': 'ok'})
+    return JsonResponse({'status': 'error'}, status=400)
+
+@login_required
+def onboarding_propietario(request):
+    servicio = request.user.servicios_propios.first()
     if not servicio:
-        # Si no tiene servicios, no podemos mostrarle nada para configurar.
+        return redirect('index') # O a una página de "error"
+
+    if servicio.configuracion_inicial_completa:
+        return redirect('dashboard_turnos')
+
+    UpdateForm = ServicioUpdateForm(prefix='detalles', instance=servicio)
+    SubServicioFormSet = inlineformset_factory(Servicio, SubServicio, fields=('nombre', 'duracion', 'precio'), extra=1, can_delete=False)
+    formset = SubServicioFormSet(prefix='catalogo', instance=servicio)
+
+    if request.method == 'POST':
+        update_form = ServicioUpdateForm(request.POST, prefix='detalles', instance=servicio)
+        formset = SubServicioFormSet(request.POST, prefix='catalogo', instance=servicio)
+        if update_form.is_valid() and formset.is_valid():
+            update_form.save()
+            formset.save()
+            servicio.configuracion_inicial_completa = True
+            servicio.save()
+            messages.success(request, "¡Felicidades! Has completado la configuración inicial. Ahora, define tus horarios.")
+            return redirect('dashboard_horarios')
+    
+    context = {'update_form': update_form, 'formset': formset}
+    return render(request, 'onboarding.html', context)
+
+@login_required
+def dashboard_horarios(request):
+    servicio_activo = get_servicio_activo(request)
+    if not servicio_activo:
         return render(request, 'dashboard_horarios.html', {'no_hay_servicio': True})
 
     # --- LÓGICA DEL FORMULARIO DE HORARIOS SEMANALES ---
@@ -149,13 +244,13 @@ def dashboard_horarios(request):
     )
     # --- Lógica de Bloqueos (Formulario simple y lista) ---
     # Creamos dos formularios distintos para no confundir el POST
-    horario_formset = HorarioFormSet(prefix='horarios', instance=servicio)
+    horario_formset = HorarioFormSet(prefix='horarios', instance=servicio_activo)
     bloqueo_form = BloqueoForm(prefix='bloqueo')
     
     if request.method == 'POST':
         # Verificamos qué formulario se envió
         if 'guardar_horarios' in request.POST:
-            horario_formset = HorarioFormSet(request.POST, prefix='horarios', instance=servicio)
+            horario_formset = HorarioFormSet(request.POST, prefix='horarios', instance=servicio_activo)
             if horario_formset.is_valid():
                 horario_formset.save()
                 messages.success(request, "¡Horarios actualizados correctamente!")
@@ -165,16 +260,17 @@ def dashboard_horarios(request):
             bloqueo_form = BloqueoForm(request.POST, prefix='bloqueo')
             if bloqueo_form.is_valid():
                 nuevo_bloqueo = bloqueo_form.save(commit=False)
-                nuevo_bloqueo.servicio = servicio
+                nuevo_bloqueo.servicio = servicio_activo
                 nuevo_bloqueo.save()
                 messages.success(request, "¡Nuevo bloqueo creado exitosamente!")
                 return redirect('dashboard_horarios')
 
     # Obtenemos la lista de bloqueos existentes para mostrarlos
-    bloqueos_existentes = servicio.dias_no_disponibles.filter(fecha__gte=timezone.localdate()).order_by('fecha')
+    bloqueos_existentes = servicio_activo.dias_no_disponibles.filter(fecha__gte=timezone.localdate()).order_by('fecha')
 
     context = {
-        'servicio': servicio,
+        'servicio_activo': servicio_activo,
+        'onboarding_completo': servicio_activo.configuracion_inicial_completa,
         'formset': horario_formset,
         'bloqueo_form': bloqueo_form,
         'bloqueos': bloqueos_existentes,
@@ -184,6 +280,7 @@ def dashboard_horarios(request):
 @login_required
 def dashboard_metricas(request):
     # Obtener los servicios del propietario logueado
+    servicio_activo = get_servicio_activo(request)
     servicios_propietario = request.user.servicios_propios.all()
 
     # --- LÓGICA DE FILTRADO POR FECHAS ---
@@ -241,11 +338,11 @@ def dashboard_metricas(request):
     data_servicios = [s['cantidad'] for s in servicios_populares]
 
     context = {
+        'servicio_activo': servicio_activo,
         'ingresos_totales': agregados['ingresos_totales'] or 0,
         'turnos_totales': agregados['turnos_totales'] or 0,
         'ingreso_promedio': agregados['ingreso_promedio'] or 0,
-        
-        # Datos para los gráficos, convertidos a JSON para JavaScript
+        'onboarding_completo': servicio_activo.configuracion_inicial_completa,
         'labels_ingresos': json.dumps(labels_ingresos),
         'data_ingresos': json.dumps(data_ingresos),
         'labels_servicios': json.dumps(labels_servicios),
@@ -260,6 +357,7 @@ def dashboard_metricas(request):
 @login_required
 def dashboard_servicios(request):
     # Por ahora, asumimos un solo servicio
+    servicio_activo = get_servicio_activo(request)
     servicio = request.user.servicios_propios.first()
     if not servicio:
         # Manejar el caso de que no tenga servicios
@@ -277,12 +375,14 @@ def dashboard_servicios(request):
 
     context = {
         'form': form,
-        'servicio': servicio
+        'servicio_activo': servicio_activo,
+        'onboarding_completo': servicio_activo.configuracion_inicial_completa,
     }
     return render(request, 'dashboard_servicios.html', context)
 
 @login_required
 def dashboard_catalogo(request):
+    servicio_activo = get_servicio_activo(request)
     servicio = request.user.servicios_propios.first()
     if not servicio:
         return render(request, 'dashboard_catalogo.html', {'no_hay_servicio': True})
@@ -316,8 +416,9 @@ def dashboard_catalogo(request):
 
     context = {
         'update_form': update_form,
+        'servicio_activo': servicio_activo,
         'formset': formset,
-        'servicio': servicio,
+        'tour_completo': servicio_activo.tour_completo if servicio_activo else True,
     }
     return render(request, 'dashboard_catalogo.html', context)
 
@@ -435,9 +536,9 @@ def obtener_slots_disponibles(request, servicio_id):
     Ahora acepta un parámetro 'duracion' para ser flexible.
     """
     fecha_str = request.GET.get('fecha')
-    duracion_str = request.GET.get('duracion')
+    duracion_str = request.GET.get('duracion') # Recibimos la duración total calculada
 
-    # Validación de parámetros de entrada
+    # Validación de que los parámetros necesarios llegaron
     if not fecha_str or not duracion_str:
         return JsonResponse({'error': 'Faltan parámetros de fecha o duración.'}, status=400)
 
@@ -445,7 +546,7 @@ def obtener_slots_disponibles(request, servicio_id):
         fecha = datetime.strptime(fecha_str, '%Y-%m-%d').date()
         servicio = get_object_or_404(Servicio, id=servicio_id)
         duracion_requerida = int(duracion_str)
-        if duracion_requerida <= 0: # No permitir duraciones de 0 o negativas
+        if duracion_requerida <= 0:
             return JsonResponse({'error': 'Duración inválida.'}, status=400)
     except (ValueError, TypeError):
         return JsonResponse({'error': 'Parámetros inválidos.'}, status=400)
@@ -458,10 +559,13 @@ def obtener_slots_disponibles(request, servicio_id):
     except HorarioLaboral.DoesNotExist:
         return JsonResponse({'slots': []}) # Día no laborable
 
-    turnos_del_dia = list(Turno.objects.filter(servicio=servicio, fecha=fecha, estado__in=['pendiente', 'confirmado']))
+    # Usamos la FK 'servicio' del modelo Turno para filtrar
+    turnos_del_dia = Turno.objects.filter(servicio=servicio, fecha=fecha, estado__in=['pendiente', 'confirmado'])
     bloqueos_del_dia = servicio.dias_no_disponibles.filter(fecha=fecha)
 
+    # ¡CORRECCIÓN CLAVE! Usamos la duración que nos llega por parámetro
     duracion_td = timedelta(minutes=duracion_requerida)
+    
     hora_actual_dt = datetime.combine(fecha, horario_laboral.horario_apertura)
     hora_cierre_dt = datetime.combine(fecha, horario_laboral.horario_cierre)
 
@@ -471,31 +575,27 @@ def obtener_slots_disponibles(request, servicio_id):
         
         slot_esta_disponible = True
 
-        # Validar que el slot no sea en el pasado
         if fecha == timezone.localdate() and slot_inicio < timezone.localtime().time():
             slot_esta_disponible = False
 
-        # Validar contra bloqueos
         if slot_esta_disponible:
             for bloqueo in bloqueos_del_dia:
                 if bloqueo.hora_inicio is None or (slot_inicio < bloqueo.hora_fin and slot_fin > bloqueo.hora_inicio):
                     slot_esta_disponible = False
                     break
         
-        # Validar contra otros turnos
         if slot_esta_disponible:
             for turno in turnos_del_dia:
-                turno_inicio_existente = turno.hora
                 duracion_existente = timedelta(minutes=turno.duracion_total)
-                turno_fin_existente = (datetime.combine(fecha, turno_inicio_existente) + duracion_existente).time()
-                if slot_inicio < turno_fin_existente and slot_fin > turno_inicio_existente:
+                turno_fin_existente = (datetime.combine(fecha, turno.hora) + duracion_existente).time()
+                if slot_inicio < turno_fin_existente and slot_fin > turno.hora:
                     slot_esta_disponible = False
                     break
         
         if slot_esta_disponible:
             slots_disponibles.append(slot_inicio.strftime('%H:%M'))
         
-        # Avanzar al siguiente posible slot (ej: cada 15 minutos)
+        # Avanzamos en intervalos de 15 minutos para buscar más huecos. Puedes ajustar este valor.
         hora_actual_dt += timedelta(minutes=15)
 
     return JsonResponse({'slots': slots_disponibles})
