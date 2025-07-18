@@ -281,8 +281,8 @@ def dashboard_horarios(request):
 def dashboard_metricas(request):
     # Obtener los servicios del propietario logueado
     servicio_activo = get_servicio_activo(request)
-    servicios_propietario = request.user.servicios_propios.all()
-
+    if not servicio_activo:
+        return render(request, 'dashboard_metricas.html', {'no_hay_servicio': True})
     # --- LÓGICA DE FILTRADO POR FECHAS ---
     # Por defecto, mostramos los últimos 30 días
     periodo = request.GET.get('periodo', '30d')
@@ -355,28 +355,24 @@ def dashboard_metricas(request):
     return render(request, 'dashboard_metricas.html', context)
 
 @login_required
-def dashboard_servicios(request):
-    # Por ahora, asumimos un solo servicio
+def dashboard_servicios(request): # Apariencia
     servicio_activo = get_servicio_activo(request)
-    servicio = request.user.servicios_propios.first()
-    if not servicio:
-        # Manejar el caso de que no tenga servicios
+    if not servicio_activo:
         return render(request, 'dashboard_servicios.html', {'no_hay_servicio': True})
 
     if request.method == 'POST':
-        # Nota: para manejar subida de archivos, el form en el HTML necesita enctype
-        form = ServicioPersonalizacionForm(request.POST, request.FILES, instance=servicio)
+        form = ServicioPersonalizacionForm(request.POST, request.FILES, instance=servicio_activo)
         if form.is_valid():
             form.save()
-            messages.success(request, "¡La apariencia de tu página ha sido actualizada!")
+            messages.success(request, "¡La apariencia ha sido actualizada!")
             return redirect('dashboard_servicios')
     else:
-        form = ServicioPersonalizacionForm(instance=servicio)
-
+        form = ServicioPersonalizacionForm(instance=servicio_activo)
+    
     context = {
-        'form': form,
         'servicio_activo': servicio_activo,
         'onboarding_completo': servicio_activo.configuracion_inicial_completa,
+        'form': form
     }
     return render(request, 'dashboard_servicios.html', context)
 
@@ -396,32 +392,25 @@ def dashboard_catalogo(request):
         extra=1, can_delete=True
     )
 
-    # Procesamiento del formulario POST
-    if request.method == 'POST':
-        # Instanciamos ambos formularios con los datos del POST para repoblar si hay error
-        update_form = ServicioUpdateForm(request.POST, instance=servicio_activo)
-        formset = SubServicioFormSet(request.POST, instance=servicio_activo, prefix='subservicios')
+    formset = SubServicioFormSet(instance=servicio_activo, prefix='subservicios')
 
-        # Verificamos qué botón se presionó para saber qué formulario procesar
+    if request.method == 'POST':
         if 'guardar_detalles' in request.POST:
+            update_form = ServicioUpdateForm(request.POST, instance=servicio_activo)
             if update_form.is_valid():
                 update_form.save()
-                messages.success(request, "¡Los detalles de tu negocio han sido actualizados!")
+                messages.success(request, "¡Detalles del negocio actualizados!")
                 return redirect('dashboard_catalogo')
-        
         elif 'guardar_catalogo' in request.POST:
+            formset = SubServicioFormSet(request.POST, instance=servicio_activo, prefix='subservicios')
             if formset.is_valid():
                 formset.save()
                 messages.success(request, "¡Catálogo de servicios actualizado!")
                 return redirect('dashboard_catalogo')
-    else:
-        # Si es una petición GET, creamos formularios limpios ligados a la instancia
-        update_form = ServicioUpdateForm(instance=servicio_activo)
-        formset = SubServicioFormSet(instance=servicio_activo, prefix='subservicios')
 
     context = {
         'servicio_activo': servicio_activo,
-        'onboarding_completo': servicio_activo.tour_completo if servicio_activo else True,
+        'onboarding_completo': servicio_activo.configuracion_inicial_completa,
         'update_form': update_form,
         'formset': formset,
     }

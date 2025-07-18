@@ -227,8 +227,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const onboardingCompleto = dashboardContainer.dataset.onboardingCompleto === 'True';
 
+    // Si el tour ya se vio, no hacer nada.
+    if (onboardingCompleto) {
+        return;
+    }
     // Solo si el onboarding NO está completo, definimos y ejecutamos todo lo del tour
-    if (!onboardingCompleto) {
+   
         
         // 1. Definimos la función de marcado PRIMERO
         function marcarYFinalizarTour() {
@@ -309,6 +313,6 @@ document.addEventListener('DOMContentLoaded', function() {
         // 5. Iniciamos el tour
         tour.start();
     }
-});
+);
 </script>
 {% endblock %}
