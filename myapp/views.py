@@ -395,21 +395,28 @@ def dashboard_catalogo(request):
         extra=1, can_delete=True
     )
 
-    formset = SubServicioFormSet(instance=servicio_activo, prefix='subservicios')
-
+    # Procesamiento del formulario POST
     if request.method == 'POST':
+        # Instanciamos ambos formularios con los datos del POST
+        update_form = ServicioUpdateForm(request.POST, instance=servicio_activo)
+        formset = SubServicioFormSet(request.POST, instance=servicio_activo, prefix='subservicios')
+
+        # Verificamos qué botón se presionó para saber qué formulario procesar
         if 'guardar_detalles' in request.POST:
-            update_form = ServicioUpdateForm(request.POST, instance=servicio_activo)
             if update_form.is_valid():
                 update_form.save()
-                messages.success(request, "¡Detalles del negocio actualizados!")
+                messages.success(request, "¡Los detalles de tu negocio han sido actualizados!")
                 return redirect('dashboard_catalogo')
+        
         elif 'guardar_catalogo' in request.POST:
-            formset = SubServicioFormSet(request.POST, instance=servicio_activo, prefix='subservicios')
             if formset.is_valid():
                 formset.save()
                 messages.success(request, "¡Catálogo de servicios actualizado!")
                 return redirect('dashboard_catalogo')
+    else:
+        # Si es una petición GET, creamos formularios limpios ligados a la instancia
+        update_form = ServicioUpdateForm(instance=servicio_activo)
+        formset = SubServicioFormSet(instance=servicio_activo, prefix='subservicios')
 
     context = {
         'servicio_activo': servicio_activo,
