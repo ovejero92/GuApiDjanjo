@@ -46,12 +46,12 @@ body {
 }
 
 .user-dropdown a:hover{
-    background:#606060;
+    background: #f0f0f0;
     color: #ba2424;
 }
 /* Estilos para el botón de logout para que parezca un enlace del dropdown */
 .logout-button {
-    background: red;
+    background: #d9534f;
     border: none;
     padding: 10px; /* Igual que los 'a' del dropdown */
     margin: 0;
@@ -65,7 +65,7 @@ body {
 }
 
 .logout-button:hover {
-    background: #ba2424; /* Igual que el hover de los 'a' */
+    background: #c9302c; /* Igual que el hover de los 'a' */
 }
 .container {
     max-width: 1200px;
@@ -145,7 +145,9 @@ form button {
 .user-menu {
     position: relative;
 }
-
+.user-button:focus, .logout-button:focus, .btn-solicitar:focus {
+    outline: 2px solid aqua;
+}
 .user-button {
     background: #606060;
     color: white;
@@ -179,9 +181,6 @@ form button {
     color: black;
 }
 
-.user-dropdown a:hover {
-    background: #f0f0f0;
-}
 
 .hidden {
     display: none;
@@ -274,12 +273,17 @@ form button {
     vertical-align: top;
     margin-left: 5px;
 }
-.hidden { display: none; }
 /* FIN FOOTER */
 .user-initial {
   display: none;
 }
 /* MEDIA QUERIES: RESPONSIVE */
+@media (max-width: 992px) {
+    .card-servicio {
+        width: 45%;
+    }
+}
+
 @media (max-width: 768px) {
     .user-fullname {
     display: none;
