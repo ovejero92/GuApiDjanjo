@@ -398,16 +398,15 @@ def dashboard_catalogo(request):
 
     # Procesamiento del formulario POST
     if request.method == 'POST':
-        # Instanciamos los formularios con los datos del POST
+        # Instanciamos ambos formularios con los datos del POST para repoblar si hay error
         update_form = ServicioUpdateForm(request.POST, instance=servicio_activo)
         formset = SubServicioFormSet(request.POST, instance=servicio_activo, prefix='subservicios')
 
-        # Verificamos qué botón se presionó para saber qué formulario validar
+        # Verificamos qué botón se presionó para saber qué formulario procesar
         if 'guardar_detalles' in request.POST:
             if update_form.is_valid():
                 update_form.save()
                 messages.success(request, "¡Los detalles de tu negocio han sido actualizados!")
-                # Redirigimos para evitar reenvío del formulario
                 return redirect('dashboard_catalogo')
         
         elif 'guardar_catalogo' in request.POST:
@@ -416,13 +415,13 @@ def dashboard_catalogo(request):
                 messages.success(request, "¡Catálogo de servicios actualizado!")
                 return redirect('dashboard_catalogo')
     else:
-        # Si es una petición GET, creamos formularios vacíos ligados a la instancia
+        # Si es una petición GET, creamos formularios limpios ligados a la instancia
         update_form = ServicioUpdateForm(instance=servicio_activo)
         formset = SubServicioFormSet(instance=servicio_activo, prefix='subservicios')
 
     context = {
         'servicio_activo': servicio_activo,
-        'onboarding_completo': servicio_activo.tour_completo,
+        'onboarding_completo': servicio_activo.tour_completo if servicio_activo else True,
         'update_form': update_form,
         'formset': formset,
     }
