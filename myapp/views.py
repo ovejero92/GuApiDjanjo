@@ -283,6 +283,9 @@ def dashboard_metricas(request):
     servicio_activo = get_servicio_activo(request)
     if not servicio_activo:
         return render(request, 'dashboard_metricas.html', {'no_hay_servicio': True})
+    
+    servicios_propietario = request.user.servicios_propios.all()
+
     # --- LÓGICA DE FILTRADO POR FECHAS ---
     # Por defecto, mostramos los últimos 30 días
     periodo = request.GET.get('periodo', '30d')
