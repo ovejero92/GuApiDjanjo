@@ -62,20 +62,10 @@
         .preview-button { color: white; padding: 10px 15px; border: none; border-radius: 5px; }
     </style>
     {% endblock %}
-
-    {% block tour_steps %}
-    <script>
-    if (paginaActual === 'dashboard_servicios') {
-        tour.addStep({
-            id: 'apariencia_1',
-            title: 'Personaliza tu Marca',
-            text: 'Usa estos controles para cambiar los colores y subir una imagen de banner. Los cambios se verán reflejados en la página que ven tus clientes.',
-            attachTo: { element: '#zona-apariencia', on: 'bottom' },
-            buttons: [{ text: '¡Entendido!', action: tour.complete }]
-        });
-    }
-    </script>
     
+
+{% block scripts_extra %}
+    {{ block.super }}
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const form = document.querySelector('.form-section form');

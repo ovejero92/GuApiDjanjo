@@ -1,5 +1,4 @@
 {% extends 'layouts/dashboard_base.html' %}
-{% load static %}
 
 {% block dashboard_content %}
 <div id="seccion-metricas">
@@ -135,34 +134,9 @@
     }
     </style>
     {% endblock %}
-    {% block tour_steps %}
-    <script>
-    // Añadimos los pasos específicos para la página de métricas
-    if (paginaActual === 'dashboard_metricas') {
-        tour.addStep({
-            id: 'metricas_1',
-            title: 'Tus Métricas',
-            text: 'Esta sección te ayuda a entender el rendimiento de tu negocio. ¡Recuerda finalizar los turnos para que los datos aparezcan aquí!',
-            attachTo: { element: '#seccion-metricas', on: 'top' },
-            buttons: [{ text: 'Entendido', action: tour.next }]
-        });
-        tour.addStep({
-            id: 'metricas_2',
-            title: 'Indicadores Clave',
-            text: 'Aquí tienes un resumen rápido de tus ingresos, total de turnos y el valor promedio de cada uno.',
-            attachTo: { element: '#tarjetas-kpi', on: 'bottom' },
-            buttons: [{ text: 'Siguiente', action: tour.next }]
-        });
-        tour.addStep({
-            id: 'metricas_3',
-            title: 'Gráficos de Rendimiento',
-            text: 'Visualiza la evolución de tus ingresos y descubre cuáles de tus servicios son los más populares entre tus clientes.',
-            attachTo: { element: '#zona-graficos', on: 'bottom' },
-            buttons: [{ text: 'Finalizar', action: tour.complete }]
-        });
-    }
-    </script>
 
+    {% block scripts_extra %}
+    {{ block.super }}
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         // GUARDIÁN: Asegurarse de que el código se ejecuta después de que todo esté cargado
