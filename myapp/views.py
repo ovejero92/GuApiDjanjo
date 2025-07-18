@@ -382,43 +382,49 @@ def dashboard_servicios(request):
 
 @login_required
 def dashboard_catalogo(request):
+    # Usamos la función auxiliar para obtener el servicio que se está gestionando
     servicio_activo = get_servicio_activo(request)
-    servicio = request.user.servicios_propios.first()
-    if not servicio:
+
+    # Si el propietario no tiene ningún servicio, mostramos una página informativa
+    if not servicio_activo:
         return render(request, 'dashboard_catalogo.html', {'no_hay_servicio': True})
 
-    # Formulario para editar los detalles del negocio principal
-    update_form = ServicioUpdateForm(instance=servicio)
-    
-    # FormSet para gestionar los sub-servicios (el catálogo)
+    # Creamos el FormSet para el catálogo de sub-servicios
     SubServicioFormSet = inlineformset_factory(
         Servicio, SubServicio,
         fields=('nombre', 'descripcion', 'duracion', 'precio'),
         extra=1, can_delete=True
     )
-    formset = SubServicioFormSet(instance=servicio, prefix='subservicios')
 
+    # Procesamiento del formulario POST
     if request.method == 'POST':
-        # Verificamos qué formulario se envió
+        # Instanciamos los formularios con los datos del POST
+        update_form = ServicioUpdateForm(request.POST, instance=servicio_activo)
+        formset = SubServicioFormSet(request.POST, instance=servicio_activo, prefix='subservicios')
+
+        # Verificamos qué botón se presionó para saber qué formulario validar
         if 'guardar_detalles' in request.POST:
-            update_form = ServicioUpdateForm(request.POST, instance=servicio)
             if update_form.is_valid():
                 update_form.save()
                 messages.success(request, "¡Los detalles de tu negocio han sido actualizados!")
+                # Redirigimos para evitar reenvío del formulario
                 return redirect('dashboard_catalogo')
         
         elif 'guardar_catalogo' in request.POST:
-            formset = SubServicioFormSet(request.POST, instance=servicio, prefix='subservicios')
             if formset.is_valid():
                 formset.save()
                 messages.success(request, "¡Catálogo de servicios actualizado!")
                 return redirect('dashboard_catalogo')
+    else:
+        # Si es una petición GET, creamos formularios vacíos ligados a la instancia
+        update_form = ServicioUpdateForm(instance=servicio_activo)
+        formset = SubServicioFormSet(instance=servicio_activo, prefix='subservicios')
 
     context = {
-        'update_form': update_form,
         'servicio_activo': servicio_activo,
+        'onboarding_completo': servicio_activo.tour_completo,
+        'update_form': update_form,
         'formset': formset,
-        'tour_completo': servicio_activo.tour_completo if servicio_activo else True,
     }
     return render(request, 'dashboard_catalogo.html', context)
 

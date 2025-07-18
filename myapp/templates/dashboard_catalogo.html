@@ -1,55 +1,63 @@
 {% extends 'layouts/dashboard_base.html' %}
+
 {% block dashboard_content %}
-    <h1>Gestión de Negocio y Catálogo</h1>
-    <p>Edita los detalles generales de tu negocio y gestiona la lista de servicios que ofreces.</p>
+    
+    {% if no_hay_servicio %}
+        <div class="dashboard-section">
+            <h2>Catálogo de Servicios</h2>
+            <p>Aún no tienes un servicio asignado. Por favor, contacta al administrador para empezar.</p>
+        </div>
+    {% else %}
+        <h1>Gestión de Negocio y Catálogo</h1>
+        <p>Edita los detalles generales de tu negocio y gestiona la lista de servicios que ofreces.</p>
 
-    <!-- SECCIÓN PARA EDITAR DETALLES DEL NEGOCIO -->
-    <div class="dashboard-section">
-        <h2>Detalles del Negocio</h2>
-        <form method="post">
-            {% csrf_token %}
-            {{ update_form.as_p }}
-            <button type="submit" name="guardar_detalles" class="btn-submit">Guardar Detalles del Negocio</button>
-        </form>
-    </div>
+        <!-- SECCIÓN PARA EDITAR DETALLES DEL NEGOCIO -->
+        <div class="dashboard-section" id="seccion-detalles-negocio">
+            <h2>Detalles del Negocio</h2>
+            <form method="post">
+                {% csrf_token %}
+                {{ update_form.as_p }}
+                <button type="submit" name="guardar_detalles" class="btn-submit">Guardar Detalles del Negocio</button>
+            </form>
+        </div>
 
-    <!-- SECCIÓN PARA GESTIONAR EL CATÁLOGO -->
-    <div class="dashboard-section">
-        <h2>Catálogo de Servicios</h2>
-        <form method="post">
-            {% csrf_token %}
-            {{ formset.management_form }}
-            <div class="formset-container">
-                <div class="formset-header">
-                    <div class="header-item nombre-col">Nombre</div>
-                    <div class="header-item descripcion-col">Descripción</div>
-                    <div class="header-item duracion-col">Duración (min)</div>
-                    <div class="header-item precio-col">Precio ($)</div>
-                    <div class="header-item eliminar-col">Eliminar</div>
+        <!-- SECCIÓN PARA GESTIONAR EL CATÁLOGO -->
+        <div class="dashboard-section" id="seccion-catalogo">
+            <h2>Catálogo de Servicios</h2>
+            <p>Añade, edita o elimina los diferentes servicios. Cada uno puede tener su propio precio y duración.</p>
+            <form method="post">
+                {% csrf_token %}
+                {{ formset.management_form }}
+                <div class="formset-container">
+                    <div class="formset-header">
+                        <div class="header-item nombre-col">Nombre</div>
+                        <div class="header-item descripcion-col">Descripción</div>
+                        <div class="header-item duracion-col">Duración (min)</div>
+                        <div class="header-item precio-col">Precio ($)</div>
+                        <div class="header-item eliminar-col">Eliminar</div>
+                    </div>
+                    {% for form in formset %}
+                    <div class="formset-row">
+                        {{ form.id }}
+                        <div class="form-item nombre-col"><label>Nombre del Servicio</label>{{ form.nombre }}</div>
+                        <div class="form-item descripcion-col"><label>Descripción</label>{{ form.descripcion }}</div>
+                        <div class="form-item duracion-col"><label>Duración (min)</label>{{ form.duracion }}</div>
+                        <div class="form-item precio-col"><label>Precio ($)</label>{{ form.precio }}</div>
+                        <div class="form-item eliminar-col"><label>Eliminar</label>{% if form.instance.pk %}{{ form.DELETE }}{% endif %}</div>
+                    </div>
+                    {% endfor %}
                 </div>
-                {% for form in formset %}
-                <div class="formset-row">
-                    {{ form.id }}
-                    <div class="form-item nombre-col"><label>Nombre del Servicio</label>{{ form.nombre }}</div>
-                    <div class="form-item descripcion-col"><label>Descripción</label>{{ form.descripcion }}</div>
-                    <div class="form-item duracion-col"><label>Duración (min)</label>{{ form.duracion }}</div>
-                    <div class="form-item precio-col"><label>Precio ($)</label>{{ form.precio }}</div>
-                    <div class="form-item eliminar-col"><label>Eliminar</label>{% if form.instance.pk %}{{ form.DELETE }}{% endif %}</div>
-                </div>
-                {% endfor %}
-            </div>
-            <button type="submit" name="guardar_catalogo" class="btn-submit" style="margin-top: 20px;">Guardar Catálogo</button>
-        </form>
-    </div>
+                <button type="submit" name="guardar_catalogo" class="btn-submit" style="margin-top: 20px;">Guardar Catálogo</button>
+            </form>
+        </div>
+    {% endif %}
     
     <style>
         .btn-submit { background-color: #007bff; color: white; padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; }
         .formset-container { width: 100%; margin-top: 20px; }
-
-        /* --- ESTILOS PARA ESCRITORIO --- */
         .formset-header { display: flex; gap: 15px; padding: 0 5px 10px; font-weight: bold; color: #ccc; text-transform: uppercase; font-size: 0.8em; border-bottom: 2px solid #666; }
         .formset-row { display: flex; align-items: flex-start; gap: 15px; border-bottom: 1px solid #555; padding: 15px 0; }
-        .form-item label { display: none; } /* Ocultamos los labels en escritorio */
+        .form-item label { display: none; }
         .header-item, .form-item { padding: 0 5px; }
         .nombre-col { flex: 1 1 20%; }
         .descripcion-col { flex: 1 1 35%; }
@@ -59,8 +67,6 @@
         .form-item input, .form-item textarea { width: 100%; background-color: #444; color: white; border: 1px solid #666; border-radius: 4px; padding: 10px; box-sizing: border-box; }
         .form-item textarea { min-height: 50px; resize: vertical; }
         .form-item input[type="checkbox"] { transform: scale(1.5); margin-top: 10px; }
-
-        /* --- ESTILOS RESPONSIVOS PARA MÓVIL --- */
         @media (max-width: 768px) {
             .formset-header { display: none; }
             .formset-row { display: block; border: 1px solid #555; border-radius: 8px; margin-bottom: 20px; padding: 15px; }

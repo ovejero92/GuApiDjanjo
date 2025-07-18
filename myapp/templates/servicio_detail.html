@@ -225,7 +225,42 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     async function cargarSlots(fecha, duracion) {
-        // ... (la función cargarSlots se queda igual que en la respuesta anterior)
+       slotsContainer.innerHTML = '<p>Buscando horarios...</p>';
+        submitButton.classList.add('is-disabled');
+        selectedSlotButton = null;
+        horaInput.value = '';
+
+        try {
+            const url = `/api/slots-disponibles/{{ servicio.id }}/?fecha=${fecha}&duracion=${duracion}`;
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('Respuesta del servidor no fue OK');
+            const data = await response.json();
+            
+            slotsContainer.innerHTML = '';
+            if (data.slots && data.slots.length > 0) {
+                data.slots.forEach(slot => {
+                    const button = document.createElement('button');
+                    button.type = 'button';
+                    button.className = 'slot-button';
+                    button.textContent = slot;
+                    button.dataset.hora = slot;
+                    
+                    button.addEventListener('click', function() {
+                        if (selectedSlotButton) { selectedSlotButton.classList.remove('selected'); }
+                        this.classList.add('selected');
+                        selectedSlotButton = this;
+                        horaInput.value = this.dataset.hora;
+                        submitButton.classList.remove('is-disabled');
+                    });
+                    slotsContainer.appendChild(button);
+                });
+            } else {
+                slotsContainer.innerHTML = '<p>No hay horarios disponibles para esta combinación.</p>';
+            }
+        } catch (error) {
+            console.error("Error al cargar slots:", error);
+            slotsContainer.innerHTML = '<p style="color:red;">Error al cargar horarios. Intenta de nuevo.</p>';
+        }
     }
 
     subserviciosItems.forEach(item => {
@@ -241,6 +276,7 @@ document.addEventListener('DOMContentLoaded', function() {
             cargarSlots(this.value, duracionTotalCalculada);
         }
     });
+    actualizarResumenYPasos();
 });
 </script>
 {% endblock %}
