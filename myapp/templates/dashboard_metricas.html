@@ -1,9 +1,13 @@
 {% extends 'layouts/dashboard_base.html' %}
+{% load static %}
 
 {% block dashboard_content %}
 <div id="seccion-metricas">
     <div class="metricas-header" >
-        <h1>Métricas y Reportes</h1>
+        <div style="display: flex; align-items: center; gap: 15px;">
+                <h1>Métricas y Reportes</h1>
+                <button id="ayudaMetricasBtn" class="help-button" title="Ver guía de esta sección">?</button>
+            </div>
         <div class="periodo-filtro">
             <a href="?periodo=7d" class="btn-filtro {% if periodo_seleccionado == '7d' %}active{% endif %}">7 Días</a>
             <a href="?periodo=30d" class="btn-filtro {% if periodo_seleccionado == '30d' %}active{% endif %}">30 Días</a>
@@ -11,44 +15,80 @@
             <a href="?periodo=año_actual" class="btn-filtro {% if periodo_seleccionado == 'año_actual' %}active{% endif %}">Este Año</a>
         </div>
     </div>
+
+    <!-- Tarjetas de KPI (ahora muestran el total histórico) -->
     <h2 class="subtitulo-periodo">{{ titulo_periodo }}</h2>
-    <div class="metric-cards">
-        <div class="metric-card">
-            <h3>Ingresos Totales</h3>
-            <p class="metric-value">${{ ingresos_totales|floatformat:2 }}</p>
-        </div>
-        <div class="metric-card">
-            <h3>Turnos Completados</h3>
-            <p class="metric-value">{{ turnos_totales }}</p>
-        </div>
-        <div class="metric-card">
-            <h3>Ingreso Promedio / Turno</h3>
-            <p class="metric-value">
-                {% if turnos_totales > 0 %}${% widthratio ingresos_totales turnos_totales 1 as promedio %}{{ promedio|floatformat:2 }}{% else %}$0.00{% endif %}
-            </p>
-        </div>
+    <div class="metric-cards" id="tarjetas-kpi">
+        <div class="metric-card" id="IT"><h3>Ingresos Totales</h3><p class="metric-value">${{ ingresos_totales|floatformat:2 }}</p></div>
+        <div class="metric-card" id="TC"><h3>Turnos Completados</h3><p class="metric-value">{{ turnos_totales }}</p></div>
+        <div class="metric-card" id="IP"><h3>Ingreso Promedio / Turno</h3><p class="metric-value">${{ ingreso_promedio|floatformat:2 }}</p></div>
     </div>
-    <div class="charts-grid">
-        <div class="dashboard-section chart-container">
-            <h2>Ingresos por Día</h2>
-            <canvas id="ingresosPorDiaChart"></canvas>
+
+     <div class="charts-grid" id="zona-graficos">
+        <!-- GRÁFICO DINÁMICO DE INGRESOS -->
+        <div class="dashboard-section chart-container" id="GID">
+            <div class="chart-header">
+                <h2>Análisis de Ingresos</h2>
+                <div class="chart-controls">
+                    <button class="control-btn active" data-agrupar="dia">Día</button>
+                    <button class="control-btn" data-agrupar="mes">Mes</button>
+                    <button class="control-btn" data-agrupar="año">Año</button>
+                    <input type="date" id="filtro-dia" class="filtro-fecha">
+                    <input type="month" id="filtro-mes" class="filtro-fecha" style="display: none;">
+                    <input type="number" id="filtro-año" class="filtro-fecha" style="display: none;" min="2020" max="2050" step="1">
+                </div>
+            </div>
+            <canvas id="ingresosChart"></canvas>
         </div>
-        <div class="dashboard-section chart-container">
-            <h2>Servicios Populares (Top 5)</h2>
-            {% if data_servicios != '[]' %}<canvas id="serviciosPopularesChart"></canvas>{% else %}<p>No hay datos suficientes para mostrar este gráfico.</p>{% endif %}
+        <!-- GRÁFICO DE SERVICIOS POPULARES -->
+        <div class="dashboard-section chart-container" id="SP">
+            <h2>Servicios Populares (Total)</h2>
+            <canvas id="serviciosPopularesChart"></canvas>
         </div>
     </div>
 </div>
-    <!-- ================================================================ -->
-    <!-- ==========      DATOS Y SCRIPTS SOLO PARA MÉTRICAS      ========== -->
-    <!-- ================================================================ -->
-    {{ labels_ingresos|json_script:"labels-ingresos-data" }}
-    {{ data_ingresos|json_script:"data-ingresos-data" }}
-    {{ labels_servicios|json_script:"labels-servicios-data" }}
-    {{ data_servicios|json_script:"data-servicios-data" }}
+    
+{{ labels_servicios_json|json_script:"labels-servicios-data" }}
+{{ data_servicios_json|json_script:"data-servicios-data" }}
 
     <style>
     /* --- Estructura Principal del Encabezado --- */
+    .chart-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap; /* Para que se adapte en móvil */
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+    .chart-controls {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .control-btn {
+        background-color: #444;
+        color: #ccc;
+        border: 1px solid #666;
+        padding: 8px 15px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: bold;
+        transition: background-color 0.2s;
+    }
+    .control-btn.active, .control-btn:hover {
+        background-color: #007bff;
+        color: white;
+        border-color: #007bff;
+    }
+    .filtro-fecha {
+        background: #555;
+        color: #fff;
+        border: 1px solid #777;
+        border-radius: 4px;
+        padding: 8px;
+        color-scheme: dark; /* Ayuda a que el calendario se vea oscuro en navegadores compatibles */
+    }
     .metricas-header {
         display: flex;
         flex-direction: column; /* Apilado por defecto (mobile-first) */
@@ -138,40 +178,149 @@
     {% block scripts_extra %}
     {{ block.super }}
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script>
-        // GUARDIÁN: Asegurarse de que el código se ejecuta después de que todo esté cargado
-        document.addEventListener('DOMContentLoaded', function() {
-            // Buscamos los canvas aquí, dentro de esta página específica
-            const canvasIngresos = document.getElementById('ingresosPorDiaChart');
-            const canvasServicios = document.getElementById('serviciosPopularesChart');
 
-            // Leemos los datos desde las etiquetas <script> que generó Django
-            const labelsIngresos = JSON.parse(document.getElementById('labels-ingresos-data').textContent);
-            const dataIngresos = JSON.parse(document.getElementById('data-ingresos-data').textContent);
-            const labelsServicios = JSON.parse(document.getElementById('labels-servicios-data').textContent);
-            const dataServicios = JSON.parse(document.getElementById('data-servicios-data').textContent);
-        
-            // Creamos el gráfico de Ingresos solo si el canvas existe
-            if (canvasIngresos) {
-                new Chart(canvasIngresos.getContext('2d'), {
-                    type: 'line',
-                    data: { labels: labelsIngresos, datasets: [{
-                        label: 'Ingresos ($)', data: dataIngresos,
-                        borderColor: 'aqua', backgroundColor: 'rgba(0, 255, 255, 0.2)',
-                        fill: true, tension: 0.1
-                    }]},
-                    options: { scales: { y: { beginAtZero: true } } }
-                });
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+           // --- GRÁFICO DE SERVICIOS POPULARES (Estático) ---
+            try {
+                const labelsServicios = JSON.parse(document.getElementById('labels-servicios-data').textContent);
+                const dataServicios = JSON.parse(document.getElementById('data-servicios-data').textContent);
+                const canvasServicios = document.getElementById('serviciosPopularesChart');
+                if (canvasServicios && Array.isArray(labelsServicios) && Array.isArray(dataServicios) && dataServicios.length > 0) {
+                    new Chart(canvasServicios.getContext('2d'), {
+                        type: 'doughnut',
+                        data: {
+                            labels: labelsServicios,
+                            datasets: [{
+                                label: 'Nº de Turnos',
+                                data: dataServicios,
+                                backgroundColor: ['#007bff', '#28a745', '#ffc107', '#dc3545', '#6f42c1']
+                            }]
+                        }
+                    });
+                } else if (canvasServicios) {
+                    const ctx = canvasServicios.getContext('2d');
+                    ctx.textAlign = 'center'; ctx.font = '14px Segoe UI'; ctx.fillStyle = '#888';
+                    ctx.fillText('No hay datos de servicios populares.', canvasServicios.width / 2, canvasServicios.height / 2);
+                }
+            } catch (e) { console.error("Error en gráfico de servicios:", e); }
+
+
+            // --- GRÁFICO DE INGRESOS (Dinámico con AJAX) ---
+            const ctxIngresos = document.getElementById('ingresosChart').getContext('2d');
+            let ingresosChart = new Chart(ctxIngresos, {
+                type: 'line',
+                data: { labels: [], datasets: [{ label: 'Ingresos ($)', data: [], borderColor: 'aqua', backgroundColor: 'rgba(0, 255, 255, 0.2)', fill: true, tension: 0.1 }] },
+                options: { scales: { y: { beginAtZero: true } } }
+            });
+
+            const controles = document.querySelectorAll('.control-btn');
+            const filtrosFecha = document.querySelectorAll('.filtro-fecha');
+            const filtroDia = document.getElementById('filtro-dia');
+            const filtroMes = document.getElementById('filtro-mes');
+            const filtroAño = document.getElementById('filtro-año');
+            let agrupacionActual = 'dia';
+
+            async function actualizarGrafico() {
+                let params = new URLSearchParams({ agrupar_por: agrupacionActual });
+                if (agrupacionActual === 'dia') params.append('fecha', filtroDia.value);
+                if (agrupacionActual === 'mes') params.append('mes', filtroMes.value);
+                if (agrupacionActual === 'año') params.append('año', filtroAño.value);
+                
+                try {
+                    const response = await fetch(`{% url 'dashboard_metricas' %}?${params.toString()}`, {
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    });
+                    const data = await response.json();
+                    
+                    ingresosChart.data.labels = data.labels;
+                    ingresosChart.data.datasets[0].data = data.data;
+                    ingresosChart.update();
+                } catch (e) { console.error("Error al actualizar el gráfico:", e); }
             }
 
-            // Creamos el gráfico de Servicios solo si el canvas existe y hay datos
-            if (canvasServicios && dataServicios.length > 0) {
-                new Chart(canvasServicios.getContext('2d'), {
-                    type: 'doughnut',
-                    data: { labels: labelsServicios, datasets: [{
-                        label: 'Nº de Turnos', data: dataServicios,
-                        backgroundColor: ['rgba(0, 123, 255, 0.7)', 'rgba(40, 167, 69, 0.7)', 'rgba(255, 193, 7, 0.7)', 'rgba(220, 53, 69, 0.7)', 'rgba(111, 66, 193, 0.7)']
-                    }]}
+            controles.forEach(btn => btn.addEventListener('click', function() {
+                agrupacionActual = this.dataset.agrupar;
+                controles.forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                filtrosFecha.forEach(f => f.style.display = 'none');
+                document.getElementById(`filtro-${agrupacionActual}`).style.display = 'block';
+                actualizarGrafico();
+            }));
+            filtrosFecha.forEach(filtro => filtro.addEventListener('change', actualizarGrafico));
+            
+            const hoy = new Date();
+            const yyyy = hoy.getFullYear();
+            const mm = String(hoy.getMonth() + 1).padStart(2, '0');
+            const dd = String(hoy.getDate()).padStart(2, '0');
+            filtroDia.value = `${yyyy}-${mm}-${dd}`;
+            filtroMes.value = `${yyyy}-${mm}`;
+            filtroAño.value = yyyy;
+            
+            actualizarGrafico();
+
+            // --- INICIALIZAR TOUR DE AYUDA (LÓGICA AUTOCONTENIDA) ---
+            const botonAyuda = document.getElementById('ayudaMetricasBtn');
+            if (botonAyuda) {
+                botonAyuda.addEventListener('click', function() {
+                    
+                    // Si hay un tour activo (el de bienvenida), lo cerramos primero
+                    if (Shepherd.activeTour) {
+                        Shepherd.activeTour.cancel();
+                    }
+
+                    // Creamos una nueva instancia del tour aquí mismo
+                    const tourAyuda = new Shepherd.Tour({
+                        useModalOverlay: true,
+                        defaultStepOptions: {
+                            classes: 'shepherd-custom-theme',
+                            scrollTo: true,
+                            cancelIcon: { enabled: true },
+                        }
+                    });
+
+                    // Añadimos los pasos
+                    tourAyuda.addSteps([
+                        {
+                            title: 'Filtros de Período',
+                            text: 'Usa estos botones para ver tus estadísticas en diferentes rangos de tiempo.',
+                            attachTo: { element: '.periodo-filtro', on: 'bottom' },
+                            buttons: [{ text: 'Siguiente', action() { return this.next(); }}]
+                        },
+                        {
+                            title: 'Igresos totales',
+                            text: 'Aquí tienes ingresos totales de todos los turnos.',
+                            attachTo: { element: '#IT', on: 'right' },
+                            buttons: [{ text: 'Siguiente', action() { return this.next(); }}]
+                        },
+                        {
+                            title: 'Turnos completados',
+                            text: 'Aquí veras todos los turnos completados hasta la fecha',
+                            attachTo: { element: '#TC', on: 'left' },
+                            buttons: [{ text: 'Siguiente', action() { return this.next(); }}]
+                        },
+                        {
+                            title: 'Ingreso promedio',
+                            text: 'Esto sera un promedio en $ de todos los turnos completados',
+                            attachTo: { element: '#IP', on: 'left' },
+                            buttons: [{ text: 'Siguiente', action() { return this.next(); }}]
+                        },
+                        {
+                            title: 'Servicios populares',
+                            text: 'Aquí veras los servicios que mas turnos tienen',
+                            attachTo: { element: '#SP', on: 'left' },
+                            buttons: [{ text: 'Siguiente', action() { return this.next(); }}]
+                        },
+                        {
+                            title: 'Grafico ingresos por dia',
+                            text: 'Aca veras como va los graficos del dia',
+                            attachTo: { element: '#GID', on: 'top' },
+                            buttons: [{ text: 'Finalizar', action() { return this.complete(); }}]
+                        }
+                    ]);
+                    
+                    // Iniciamos el tour
+                    tourAyuda.start();
                 });
             }
         });

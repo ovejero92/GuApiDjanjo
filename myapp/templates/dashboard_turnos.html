@@ -30,11 +30,16 @@
                             <tr>
                                 <td data-label="Cliente"><span class="data-value">{{ turno.cliente.first_name|default:turno.cliente.username }}</span></td>
                                 <td data-label="Servicios">
-                                    <span class="data-value">
-                                        {% for sub in turno.sub_servicios_solicitados.all %}
-                                            {{ sub.nombre }}{% if not forloop.last %}, {% endif %}
+                                    <!-- Usamos un contenedor div para aplicar Flexbox y organizar las etiquetas -->
+                                    <div class="servicio-tag-container">
+                                        {% for ss in turno.sub_servicios_solicitados.all %}
+                                            <!-- Cada servicio será una etiqueta individual -->
+                                            <span class="servicio-tag">{{ ss.nombre }}</span>
+                                        {% empty %}
+                                            <!-- Mensaje si no hay servicios seleccionados -->
+                                            <span><em>Sin subservicios</em></span>
                                         {% endfor %}
-                                    </span>
+                                    </div>
                                 </td>
                                 <td data-label="Fecha y Hora"><span class="data-value">{{ turno.fecha|date:"d/m/Y" }} - {{ turno.hora|time:"H:i" }}</span></td>
                                 <td data-label="Acciones">
@@ -71,11 +76,13 @@
                             <tr>
                                 <td data-label="Cliente"><span class="data-value">{{ turno.cliente.first_name|default:turno.cliente.username }}</span></td>
                                 <td data-label="Servicios">
-                                    <span class="data-value">
+                                    <div class="servicio-tag-container">
                                         {% for sub in turno.sub_servicios_solicitados.all %}
-                                            {{ sub.nombre }}{% if not forloop.last %}, {% endif %}
+                                            <span class="servicio-tag">{{ sub.nombre }}</span>
+                                        {% empty %}
+                                            <span><em>Sin subservicios</em></span>
                                         {% endfor %}
-                                    </span>
+                                    </div>
                                 </td>
                                 <td data-label="Fecha y Hora"><span class="data-value">{{ turno.fecha|date:"d/m/Y" }} - {{ turno.hora|time:"H:i" }}</span></td>
                             </tr>
@@ -112,9 +119,9 @@
                                 <td data-label="Ingreso"><span class="data-value">{% if turno.ingreso_real %}${{ turno.ingreso_real|floatformat:2 }}{% else %}-{% endif %}</span></td>
                                 <td data-label="Acciones">
                                     {% if turno.estado != 'completado' and turno.estado != 'cancelado' %}
-                                        <a href="{% url 'finalizar_turno' turno.id %}" class="btn-completar">Finalizar Turno</a>
+                                        <a href="{% url 'finalizar_turno' turno.id %}" style="color: #033f63; background-color:#b5b682; padding: 4px 3px; text-decoration: none; border-radius: 4px;">Finalizar Turno</a>
                                     {% elif turno.estado == 'completado' %}
-                                        <a href="{% url 'finalizar_turno' turno.id %}" class="btn-editar-ingreso">Editar Ingreso</a>
+                                        <a href="{% url 'finalizar_turno' turno.id %}" style="color:#b5b682 ; background-color:#033f63; padding: 4px 3px; text-decoration: none; border-radius: 4px;">Editar Ingreso</a>
                                     {% endif %}
                                 </td>
                             </tr>

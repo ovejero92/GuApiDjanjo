@@ -1,25 +1,11 @@
 {% extends 'layouts/dashboard_base.html' %}
-
 {% block dashboard_content %}
     
-    {% if no_hay_servicio %}
-        <div class="dashboard-section">
-            <h2>Catálogo de Servicios</h2>
-            <p>Aún no tienes un servicio asignado. Por favor, contacta al administrador para empezar.</p>
-        </div>
+     {% if no_hay_servicio %}
+        <div class="dashboard-section"><p>Aún no tienes un servicio asignado.</p></div>
     {% else %}
-        <h1>Gestión de Negocio y Catálogo</h1>
-        <p>Edita los detalles generales de tu negocio y gestiona la lista de servicios que ofreces.</p>
-
-        <!-- SECCIÓN PARA EDITAR DETALLES DEL NEGOCIO -->
-        <div class="dashboard-section" id="seccion-detalles-negocio">
-            <h2>Detalles del Negocio</h2>
-            <form method="post">
-                {% csrf_token %}
-                {{ update_form.as_p }}
-                <button type="submit" name="guardar_detalles" class="btn-submit">Guardar Detalles del Negocio</button>
-            </form>
-        </div>
+        <h1>Catálogo de Servicios</h1>
+        <p>Añade, edita o elimina los diferentes servicios que ofreces a tus clientes. Cada uno puede tener su propio precio y duración.</p>
 
         <!-- SECCIÓN PARA GESTIONAR EL CATÁLOGO -->
         <div class="dashboard-section" id="seccion-catalogo">

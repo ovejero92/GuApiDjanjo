@@ -1,0 +1,22 @@
+{% extends 'layouts/dashboard_base.html' %}
+{% block dashboard_content %}
+    
+    {% if no_hay_servicio %}
+        <div class="dashboard-section"><p>Aún no tienes un servicio asignado.</p></div>
+    {% else %}
+        <h1>Detalles del Negocio</h1>
+        <p>Edita la información pública que verán tus clientes sobre tu negocio.</p>
+        
+        <div class="dashboard-section">
+            <form method="post">
+                {% csrf_token %}
+                {{ update_form.as_p }}
+                <button type="submit" name="guardar_detalles" class="btn-submit">Guardar Detalles del Negocio</button>
+            </form>
+        </div>
+    {% endif %}
+
+    <style>
+    
+    </style>
+{% endblock %}

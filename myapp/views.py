@@ -10,7 +10,7 @@ from django.utils import timezone
 from django.http import JsonResponse
 from datetime import datetime, timedelta
 from django.db.models import Count, Sum,Avg
-from django.db.models.functions import TruncDay
+from django.db.models.functions import TruncDay,TruncWeek, TruncMonth, TruncHour
 from django.utils.http import urlsafe_base64_decode
 from django.utils.encoding import force_str
 from django.contrib.auth.tokens import default_token_generator
@@ -95,11 +95,14 @@ def servicio_detail(request, servicio_id):
         form = TurnoForm(request.POST, servicio_id=servicio.id)
         if form.is_valid():
             # El método save() del formulario ahora hace todo el trabajo.
+            sub_servicios_ids = request.POST.getlist('sub_servicios_solicitados')
             turno = form.save(commit=False)
             turno.cliente = request.user # Asignamos el cliente logueado
             turno.save()
-            form.save_m2m() # ¡Importante para guardar los sub-servicios!
-
+            #form.save_m2m()  ¡Importante para guardar los sub-servicios!
+            if sub_servicios_ids:
+                turno.sub_servicios_solicitados.set(sub_servicios_ids)
+            
             messages.success(request, "¡Turno solicitado con éxito!")
             return redirect('index')
     else:
@@ -148,8 +151,8 @@ def dashboard_turnos(request):
     )
     
     # Pendientes y Confirmados se filtran a partir de la lista de Próximos
-    turnos_pendientes = turnos_proximos.filter(estado='pendiente').order_by('fecha', 'hora')
-    turnos_confirmados = turnos_proximos.filter(estado='confirmado').order_by('fecha', 'hora')
+    turnos_pendientes = turnos_proximos.filter(estado='pendiente').order_by('fecha', 'hora').prefetch_related('sub_servicios_solicitados')
+    turnos_confirmados = turnos_proximos.filter(estado='confirmado').order_by('fecha', 'hora').prefetch_related('sub_servicios_solicitados')
     
     context = {
         'servicio_activo': servicio_activo,
@@ -279,16 +282,36 @@ def dashboard_horarios(request):
 
 @login_required
 def dashboard_metricas(request):
-    # Obtener los servicios del propietario logueado
     servicio_activo = get_servicio_activo(request)
     if not servicio_activo:
         return render(request, 'dashboard_metricas.html', {'no_hay_servicio': True})
-    
-    servicios_propietario = request.user.servicios_propios.all()
 
-    # --- LÓGICA DE FILTRADO POR FECHAS ---
-    # Por defecto, mostramos los últimos 30 días
-    periodo = request.GET.get('periodo', '30d')
+    # --- LÓGICA DE API PARA EL GRÁFICO DE INGRESOS (AJAX) ---
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        agrupar_por = request.GET.get('agrupar_por', 'dia')
+        hoy = timezone.localdate()
+        qs = Turno.objects.filter(servicio=servicio_activo, estado='completado')
+        
+        if agrupar_por == 'dia':
+            fecha_str = request.GET.get('fecha', hoy.strftime('%Y-%m-%d'))
+            fecha = datetime.strptime(fecha_str, '%Y-%m-%d').date()
+            datos = qs.filter(fecha=fecha).annotate(periodo=TruncHour('hora')).values('periodo').annotate(total=Sum('ingreso_real')).order_by('periodo')
+            labels = [d['periodo'].strftime('%H:%M hs') for d in datos]
+        elif agrupar_por == 'mes':
+            mes_str = request.GET.get('mes', hoy.strftime('%Y-%m'))
+            mes = datetime.strptime(mes_str, '%Y-%m')
+            datos = qs.filter(fecha__year=mes.year, fecha__month=mes.month).annotate(periodo=TruncDay('fecha')).values('periodo').annotate(total=Sum('ingreso_real')).order_by('periodo')
+            labels = [d['periodo'].strftime('%d/%m') for d in datos]
+        else: # año
+            año_str = request.GET.get('año', str(hoy.year))
+            año = int(año_str)
+            datos = qs.filter(fecha__year=año).annotate(periodo=TruncMonth('fecha')).values('periodo').annotate(total=Sum('ingreso_real')).order_by('periodo')
+            labels = [d['periodo'].strftime('%b %Y') for d in datos]
+
+        data_puntos = [float(d['total']) if d['total'] else 0 for d in datos]
+        return JsonResponse({'labels': labels, 'data': data_puntos})
+
+    periodo = request.GET.get('periodo', '30d') # <-- Leemos el período para las tarjetas
     hoy = timezone.localdate()
     
     if periodo == '7d':
@@ -300,58 +323,42 @@ def dashboard_metricas(request):
     elif periodo == 'año_actual':
         fecha_inicio = hoy.replace(day=1, month=1)
         titulo_periodo = "Este Año"
-    else: # Por defecto y para '30d'
+    else:
         fecha_inicio = hoy - timedelta(days=29)
         titulo_periodo = "Últimos 30 días"
-    
-    # QuerySet base: todos los turnos completados del propietario en el rango de fechas
-    turnos_completados = Turno.objects.filter(
-        servicio__in=servicios_propietario,
+
+    # -- Cálculo de tarjetas de KPI --
+    turnos_completados_periodo = Turno.objects.filter(
+        servicio=servicio_activo, 
         estado='completado',
         fecha__gte=fecha_inicio,
         fecha__lte=hoy
     )
-
-    # --- CÁLCULO DE MÉTRICAS CLAVE (TARJETAS) ---
-    agregados = turnos_completados.aggregate(
+    agregados = turnos_completados_periodo.aggregate(
         ingresos_totales=Sum('ingreso_real'),
         turnos_totales=Count('id'),
         ingreso_promedio=Avg('ingreso_real')
     )
     
-    # --- DATOS PARA GRÁFICOS ---
-    # Gráfico 1: Ingresos por día
-    ingresos_por_dia = turnos_completados.annotate(
-        dia=TruncDay('fecha')
-    ).values('dia').annotate(
-        total=Sum('ingreso_real')
-    ).order_by('dia')
+    # -- Cálculo de servicios populares (sobre el total histórico) --
+    contador_servicios = {}
+    for turno in turnos_completados_periodo.prefetch_related('sub_servicios_solicitados'):
+        for sub_servicio in turno.sub_servicios_solicitados.all():
+            nombre = sub_servicio.nombre
+            contador_servicios[nombre] = contador_servicios.get(nombre, 0) + 1
     
-    labels_ingresos = [d['dia'].strftime('%d/%m') for d in ingresos_por_dia]
-    data_ingresos = [float(d['total']) for d in ingresos_por_dia]
-
-    # Gráfico 2: Servicios más populares en el período
-    servicios_populares = turnos_completados.values(
-        'servicio__nombre'
-    ).annotate(
-        cantidad=Count('id')
-    ).order_by('-cantidad')[:5] # Top 5
-
-    labels_servicios = [s['servicio__nombre'] for s in servicios_populares]
-    data_servicios = [s['cantidad'] for s in servicios_populares]
+    servicios_populares_ordenados = sorted(contador_servicios.items(), key=lambda item: item[1], reverse=True)[:5]
+    labels_servicios = [item[0] for item in servicios_populares_ordenados]
+    data_servicios = [item[1] for item in servicios_populares_ordenados]
 
     context = {
         'servicio_activo': servicio_activo,
+        'onboarding_completo': servicio_activo.configuracion_inicial_completa,
         'ingresos_totales': agregados['ingresos_totales'] or 0,
         'turnos_totales': agregados['turnos_totales'] or 0,
         'ingreso_promedio': agregados['ingreso_promedio'] or 0,
-        'onboarding_completo': servicio_activo.configuracion_inicial_completa,
-        'labels_ingresos': json.dumps(labels_ingresos),
-        'data_ingresos': json.dumps(data_ingresos),
-        'labels_servicios': json.dumps(labels_servicios),
-        'data_servicios': json.dumps(data_servicios),
-        
-        # Para el filtro de fechas
+        'labels_servicios_json': json.dumps(labels_servicios),
+        'data_servicios_json': json.dumps(data_servicios),
         'titulo_periodo': titulo_periodo,
         'periodo_seleccionado': periodo,
     }
@@ -397,34 +404,43 @@ def dashboard_catalogo(request):
 
     # Procesamiento del formulario POST
     if request.method == 'POST':
-        # Instanciamos ambos formularios con los datos del POST
-        update_form = ServicioUpdateForm(request.POST, instance=servicio_activo)
+        # Esta vista ahora SOLO maneja el formset del catálogo
         formset = SubServicioFormSet(request.POST, instance=servicio_activo, prefix='subservicios')
-
-        # Verificamos qué botón se presionó para saber qué formulario procesar
-        if 'guardar_detalles' in request.POST:
-            if update_form.is_valid():
-                update_form.save()
-                messages.success(request, "¡Los detalles de tu negocio han sido actualizados!")
-                return redirect('dashboard_catalogo')
-        
-        elif 'guardar_catalogo' in request.POST:
-            if formset.is_valid():
-                formset.save()
-                messages.success(request, "¡Catálogo de servicios actualizado!")
-                return redirect('dashboard_catalogo')
+        if formset.is_valid():
+            formset.save()
+            messages.success(request, "¡Catálogo de servicios actualizado!")
+            return redirect('dashboard_catalogo')
     else:
-        # Si es una petición GET, creamos formularios limpios ligados a la instancia
-        update_form = ServicioUpdateForm(instance=servicio_activo)
         formset = SubServicioFormSet(instance=servicio_activo, prefix='subservicios')
 
     context = {
         'servicio_activo': servicio_activo,
         'onboarding_completo': servicio_activo.configuracion_inicial_completa,
-        'update_form': update_form,
         'formset': formset,
     }
     return render(request, 'dashboard_catalogo.html', context)
+
+@login_required
+def dashboard_detalles_negocio(request):
+    servicio_activo = get_servicio_activo(request)
+    if not servicio_activo:
+        return render(request, 'dashboard_detalles_negocio.html', {'no_hay_servicio': True})
+
+    if request.method == 'POST':
+        form = ServicioUpdateForm(request.POST, instance=servicio_activo)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "¡Los detalles de tu negocio han sido actualizados!")
+            return redirect('dashboard_detalles_negocio')
+    else:
+        form = ServicioUpdateForm(instance=servicio_activo)
+
+    context = {
+        'servicio_activo': servicio_activo,
+        'onboarding_completo': servicio_activo.configuracion_inicial_completa,
+        'update_form': form,
+    }
+    return render(request, 'dashboard_detalles_negocio.html', context)
 
 @login_required
 def mis_turnos(request):
@@ -480,7 +496,8 @@ def cancelar_turno(request, turno_id):
 @login_required
 def finalizar_turno(request, turno_id):
     turno = get_object_or_404(Turno, id=turno_id, servicio__propietario=request.user)
-    
+    servicio_activo = turno.servicio
+
     if turno.estado in ['completado', 'cancelado']:
         messages.warning(request, "Este turno ya ha sido procesado.")
         return redirect('dashboard_turnos')
@@ -494,22 +511,16 @@ def finalizar_turno(request, turno_id):
             messages.success(request, f"¡Turno de {turno.cliente.username} finalizado con éxito!")
             return redirect('dashboard_turnos')
     else:
-        # ========== INICIO DE LA CORRECCIÓN ==========
-        
-        # Calculamos el precio sugerido sumando los precios de los sub-servicios solicitados.
-        # .aggregate(Sum('precio')) devuelve un diccionario como {'precio__sum': 150.00}
+        # Calculamos el precio sugerido
         precio_sugerido_dict = turno.sub_servicios_solicitados.aggregate(total=Sum('precio'))
-        precio_sugerido = precio_sugerido_dict['total'] or 0.00
-
-        # Usamos este valor calculado como el valor inicial del formulario.
-        # Si el turno ya tiene un ingreso_real guardado, se usará ese en su lugar.
+        precio_sugerido = precio_sugerido_dict.get('total') or 0.00
         form = IngresoTurnoForm(instance=turno, initial={'ingreso_real': precio_sugerido})
-        
-        # ========== FIN DE LA CORRECCIÓN ==========
 
     context = {
         'form': form,
-        'turno': turno
+        'turno': turno,
+        'servicio_activo': servicio_activo,
+        'onboarding_completo': servicio_activo.configuracion_inicial_completa,
     }
     return render(request, 'finalizar_turno.html', context)
 

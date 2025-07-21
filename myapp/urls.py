@@ -30,6 +30,7 @@ urlpatterns = [
     path('terminos-y-condiciones/', views.terminos_y_condiciones, name='terminos'),
     path('politica-de-privacidad/', views.politica_de_privacidad, name='privacidad'),
     path('onboarding/marcar-completo/', views.marcar_onboarding_completo, name='marcar_onboarding_completo'),
+    path('dashboard/detalles/', views.dashboard_detalles_negocio, name='dashboard_detalles_negocio'),
     # ========== INICIO DE LA MODIFICACIÓN: URLs para gestionar turnos ==========
     path('turno/confirmar/<int:turno_id>/', views.confirmar_turno, name='confirmar_turno'),
     path('turno/cancelar/<int:turno_id>/', views.cancelar_turno, name='cancelar_turno'),

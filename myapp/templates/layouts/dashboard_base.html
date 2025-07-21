@@ -23,8 +23,8 @@
                     <li class="{% if request.resolver_match.url_name == 'dashboard_servicios' %}active{% endif %}">
                         <a href="{% url 'dashboard_servicios' %}"><i class="fas fa-cut"></i> <span>Apariencia</span></a>
                     </li>
-                    <li class="{% if request.resolver_match.url_name == 'editar_perfil' %}active{% endif %}">
-                        <a href="{% url 'editar_perfil' %}"><i class="fas fa-user-cog"></i> <span>Configuración</span></a>
+                    <li class="{% if request.resolver_match.url_name == 'dashboard_detalles_negocio' %}active{% endif %}">
+                    <a href="{% url 'dashboard_detalles_negocio' %}"><i class="fas fa-store"></i> <span>Detalles del Negocio</span></a>
                     </li>
                 </ul>
             </nav>
@@ -58,6 +58,22 @@
 <style>
     /* --- Contenedor Principal y Layout --- */
     /* Quitamos el padding del .container de la navbar para usar todo el ancho */
+        .servicio-tag-container {
+        display: flex;
+        flex-wrap: wrap; /* Permite que las etiquetas pasen a la siguiente línea si no caben */
+        gap: 8px;      /* Espacio entre cada etiqueta */
+        align-items: center;
+    }
+    
+    .servicio-tag {
+        background-color: #033f63; /* El fondo azul que pediste */
+        color: #ffffff;           /* Letra blanca para un buen contraste */
+        padding: 5px 12px;         /* Espaciado interno para que no se vea apretado */
+        border-radius: 16px;       /* Bordes completamente redondeados para un look de "píldora" */
+        font-size: 0.9em;          /* Un tamaño de letra ligeramente más pequeño */
+        font-weight: 500;
+        line-height: 1.2;
+    }
     .container {
         padding: 0;
         max-width: 100%;
@@ -166,6 +182,11 @@
         background-color: #6c757d; color: white; border: none; border-radius: 50%;
         width: 30px; height: 30px; font-size: 1.1em; font-weight: bold;
         cursor: pointer; margin-left: 15px; vertical-align: middle;
+    }
+    .help-button-tour {
+        background-color: #6c757d; color: white; border: none; border-radius: 50%;
+        width: 30px; height: 30px; font-size: 1.1em; font-weight: bold;
+        cursor: pointer;  vertical-align: middle;
     }
     /* ================================================================ */
     /* ==========            ESTILOS RESPONSIVOS             ========== */
@@ -278,54 +299,54 @@ document.addEventListener('DOMContentLoaded', function() {
         // 3. Añadimos los pasos del tour
         tour.addStep({
             title: '¡Bienvenido a tu Dashboard!',
-            text: 'Este es tu centro de control. Te daremos una guía General de las secciones.',
+            text: 'Este es tu centro de control. Te daremos una guía general de las secciones.',
             buttons: [{ text: '¡Vamos!', action: tour.next }]
         });
 
         tour.addStep({
-            title:'⚠️Importante⚠️',
-            text:'En cada seccion vas a encontrar un boton al lado del titulo <button id="ayudaHorariosBtn" class="help-button" title="Ver guía de esta sección">?</button> para ver una guia del mismo',
+            title:'<strong>⚠️Importante⚠️</strong>',
+            text:'En cada sección vas a encontrar un boton al lado del título <button class="help-button-tour">?</button> para ver una guia del mismo',
             buttons:[{text:'Omitir tour',action:tour.cancel},{text:'Seguir Tour',action:tour.next}]
         });
 
         tour.addStep({
-            title:'Gestion de turnos',
-            text:'Aqui debes confirmar tus turnos y seguirlos una vez finalizado es importante opner el importe que obtuviste en dicho turno.',
+            title:'Gestion de Turnos',
+            text:'Aquí podes <strong>cancelar o confirmar tus turnos</strong>. Al finalizar un turno es importante ingresar el importe obtenido para que impacte en tus métricas.',
             attachTo:{element:'a[href*="{% url "dashboard_turnos" %}"]',on:posicionTooltip},
             buttons:[{text:'Siguiente',action:tour.next}]
         });
 
         tour.addStep({
             title: 'Horarios y Bloqueos',
-            text: '<strong>¡Este es el paso más importante!</strong> Aquí debes definir tus días y horas de trabajo para que los clientes puedan reservar.',
+            text: '<strong>¡Este es el paso más importante!</strong> Aquí debes definir tus días y horarios de trabajo para que los clientes puedan reservar sus turnos.',
             attachTo: { element: 'a[href*="horarios"]', on:posicionTooltip },
             buttons: [{ text: 'Siguiente', action: tour.next }]
         });
 
         tour.addStep({
             title:'Métricas y Reportes',
-            text:'Desde aquí podés acceder a las métricas y reportes de tu negocio.',
+            text:'En esta sección podés ver <strong>los números más importantes de tu negocio</strong>, como las ventas, servicios más vendidos y resultados generales.',
             attachTo:{element:'a[href$="dashboard/metricas/"]',on:posicionTooltip},
             buttons:[{text:'Siguiente',action:tour.next}]
         });
 
         tour.addStep({
             title: 'Catálogo de Servicios',
-            text: 'Aquí puedes crear y editar la lista de servicios que ofreces (ej: "Corte de Pelo"), cada uno con su precio y duración.',
+            text: 'Aquí podes <strong>crear y editar la lista de servicios</strong> que ofreces (Ej: "Corte de pelo"). Cada servicio requiere completar precio y duración.',
             attachTo: { element: 'a[href*="catalogo"]', on:posicionTooltip },
             buttons: [{ text: 'Siguiente', action: tour.next }]
         });
 
         tour.addStep({
             title:'Apariencia',
-            text:'En esta sección podés personalizar la apariencia de tu tienda, como los colores, logo y diseño.',
+            text:'En esta sección podés <strong>personalizar la apariencia de tu tienda</strong>, como los colores, logo y diseño.',
             attachTo:{element:'a[href*="{% url "dashboard_servicios" %}"]',on:posicionTooltip},
             buttons:[{ text: 'Siguiente', action: tour.next }]
         });
         
         tour.addStep({
-            title: '¡Todo Listo!',
-            text: 'Ya conoces lo esencial. Explora las demás secciones cuando quieras. ¡Mucho éxito!',
+            title: '¡Todo listo!',
+            text: 'Ya conoces lo esencial. Explora las demás secciones cuando quieras. ¡Muchos éxitos!',
             buttons: [{ text: 'Finalizar Tour', action:function() {
                         // Al hacer clic, PRIMERO marcamos como completo y LUEGO redirigimos.
                         marcarYFinalizarTour();

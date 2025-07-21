@@ -28,7 +28,7 @@
                             {% if formset.can_delete %}<th>Eliminar</th>{% endif %}
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="cuerpo">
                         {% for form in formset %}
                             <tr>
                                 {{ form.id }}
@@ -111,43 +111,114 @@
 
     <!-- SCRIPT SOLO PARA EL TOUR DE AYUDA DE ESTA PÁGINA -->
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const botonAyuda = document.getElementById('ayudaHorariosBtn');
-            if (botonAyuda) {
-                
-                botonAyuda.addEventListener('click', function() {
-                    
-                    // Si hay otro tour activo, lo cerramos.
-                    if (Shepherd.activeTour) {
-                        Shepherd.activeTour.cancel();
+document.addEventListener('DOMContentLoaded', function() {
+    const botonAyuda = document.getElementById('ayudaHorariosBtn');
+    if (botonAyuda) {
+
+        botonAyuda.addEventListener('click', function() {
+            if (Shepherd.activeTour) Shepherd.activeTour.cancel();
+
+            const tourGeneral = new Shepherd.Tour({
+                useModalOverlay: true,
+                defaultStepOptions: {
+                    classes: 'shepherd-custom-theme',
+                    scrollTo: true,
+                    cancelIcon: { enabled: true },
+                }
+            });
+
+            // Función para iniciar subtour de Configuración Semanal
+            function startSubTourHorario(callback) {
+                const subTour = new Shepherd.Tour({
+                    useModalOverlay: true,
+                    defaultStepOptions: {
+                        classes: 'shepherd-custom-theme',
+                        scrollTo: true,
+                        cancelIcon: { enabled: true },
                     }
-
-                    const tourAyudaHorarios = new Shepherd.Tour({
-                        useModalOverlay: true,
-                        defaultStepOptions: {
-                            classes: 'shepherd-custom-theme',
-                            scrollTo: true,
-                            cancelIcon: { enabled: true },
-                        }
-                    });
-
-                    tourAyudaHorarios.addStep({
-                        title: 'Configuración Semanal',
-                        text: 'Aquí activas los días que trabajas y defines tus horarios de apertura y cierre.',
-                        attachTo: { element: '#seccion-horario-semanal', on: 'bottom' },
-                        buttons: [{ text: 'Entendido', action: tourAyudaHorarios.next }]
-                    });
-                    
-                    tourAyudaHorarios.addStep({
-                        title: 'Bloquear Fechas',
-                        text: 'Si te vas de vacaciones o tienes un evento, puedes bloquearlo aquí para que nadie pueda reservar.',
-                        attachTo: { element: '#seccion-bloqueo-fechas', on: 'top' },
-                        buttons: [{ text: 'Finalizar', action: tourAyudaHorarios.complete }]
-                    });
-
-                    tourAyudaHorarios.start();
                 });
+
+                subTour.addStep({
+                    title: 'Checkbox Abierto',
+                    text: 'Activa o desactiva este checkbox para definir si ese día está habilitado.',
+                    attachTo: { element: 'td[data-label="Abierto"] input', on: 'right' },
+                    buttons: [{ text: 'Siguiente', action: subTour.next }]
+                });
+
+                subTour.addStep({
+                    title: 'Horarios',
+                    text: 'Define el horario de apertura y cierre.',
+                    attachTo: { element: 'td[data-label="Apertura"] input', on: 'left' },
+                    buttons: [{ text: 'Siguiente', action: subTour.next }]
+                });
+
+                subTour.addStep({
+                    title: 'Eliminar Día',
+                    text: 'Marca este checkbox y guarda para eliminar ese día.',
+                    attachTo: { element: 'td[data-label="Eliminar"] input', on: 'left' },
+                    buttons: [{ text: 'Finalizar', action: () => { subTour.complete(); callback(); } }]
+                });
+
+                subTour.start();
             }
+
+            // Función para iniciar subtour de Bloqueo Fechas
+            function startSubTourBloqueo(callback) {
+                const subTour = new Shepherd.Tour({
+                    useModalOverlay: true,
+                    defaultStepOptions: {
+                        classes: 'shepherd-custom-theme',
+                        scrollTo: true,
+                        cancelIcon: { enabled: true },
+                    }
+                });
+
+                subTour.addStep({
+                    title: 'Formulario de Bloqueo',
+                    text: 'Completa este formulario para bloquear un día o un rango de horas.',
+                    attachTo: { element: '.bloqueo-form', on: 'top' },
+                    buttons: [{ text: 'Finalizar', action: () => { subTour.complete(); callback(); } }]
+                });
+
+                subTour.start();
+            }
+
+            // --- TOUR GENERAL ---
+            tourGeneral.addStep({
+                title: 'Configuración Semanal',
+                text: 'Aquí defines los días que trabajás y tus horarios.',
+                attachTo: { element: '#seccion-horario-semanal', on: 'bottom' },
+                buttons: [
+                    {
+                        text: 'Ejemplo',
+                        action: function () {
+                            tourGeneral.cancel();  // Cancelamos el tour general temporalmente
+                            startSubTourHorario(() => tourGeneral.start());  // Al terminar el subtour, volvemos al general
+                        }
+                    },
+                    { text: 'Siguiente', action: tourGeneral.next }
+                ]
+            });
+
+            tourGeneral.addStep({
+                title: 'Bloquear Fechas',
+                text: 'Aquí podés bloquear fechas o periodos especiales.',
+                attachTo: { element: '#seccion-bloqueo-fechas', on: 'top' },
+                buttons: [
+                    {
+                        text: 'Ejemplo',
+                        action: function () {
+                            tourGeneral.cancel();
+                            startSubTourBloqueo(() => tourGeneral.start());
+                        }
+                    },
+                    { text: 'Finalizar', action: tourGeneral.complete }
+                ]
+            });
+
+            tourGeneral.start();
         });
-    </script>
+    }
+});
+</script>
 {% endblock %}
