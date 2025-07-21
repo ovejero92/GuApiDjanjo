@@ -232,8 +232,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
     // Solo si el onboarding NO está completo, definimos y ejecutamos todo lo del tour
-   
-        
+
         // 1. Definimos la función de marcado PRIMERO
         function marcarYFinalizarTour() {
             const csrfTokenInput = document.querySelector('form[action*="logout"] [name="csrfmiddlewaretoken"]');
@@ -272,25 +271,35 @@ document.addEventListener('DOMContentLoaded', function() {
         // 3. Añadimos los pasos del tour
         tour.addStep({
             title: '¡Bienvenido a tu Dashboard!',
-            text: 'Este es tu centro de control. Te daremos una rápida guía para que configures todo.',
+            text: 'Este es tu centro de control. Te daremos una guía General de las secciones.',
             buttons: [{ text: '¡Vamos!', action: tour.next }]
+        });
+
+        tour.addStep({
+            title:'⚠️Importante⚠️',
+            text:'En cada seccion vas a encontrar un boton al lado del titulo <button id="ayudaHorariosBtn" class="help-button" title="Ver guía de esta sección">?</button> para ver una guia del mismo',
+            buttons:[{text:'Omitir tour',action:tour.cancel},{text:'Seguir Tour',action:tour.next}]
+        });
+
+        tour.addStep({
+            title:'Gestion de turnos',
+            text:'Aqui debes confirmar tus turnos y seguirlos una vez finalizado es importante opner el importe que obtuviste en dicho turno.',
+            attachTo:{element:'a[href*="{% url "dashboard_turnos" %}"]',on:'right'},
+            buttons:[{text:'Siguiente',action:tour.next}]
         });
 
         tour.addStep({
             title: 'Horarios y Bloqueos',
             text: '<strong>¡Este es el paso más importante!</strong> Aquí debes definir tus días y horas de trabajo para que los clientes puedan reservar.',
             attachTo: { element: 'a[href*="horarios"]', on: 'right' },
-            buttons: [
-                { text: 'Omitir por ahora', classes: 'shepherd-button-secondary', action: tour.next },
-                { 
-                    text: 'Configurar ahora', 
-                    action: function() {
-                        // Al hacer clic, PRIMERO marcamos como completo y LUEGO redirigimos.
-                        marcarYFinalizarTour();
-                        window.location.href = "{% url 'dashboard_horarios' %}";
-                    }
-                }
-            ]
+            buttons: [{ text: 'Siguiente', action: tour.next }]
+        });
+
+        tour.addStep({
+            title:'Métricas y Reportes',
+            text:'Desde aquí podés acceder a las métricas y reportes de tu negocio.',
+            attachTo:{element:'a[href$="dashboard/metricas/"]',on:'right'},
+            buttons:[{text:'Siguiente',action:tour.next}]
         });
 
         tour.addStep({
@@ -299,20 +308,30 @@ document.addEventListener('DOMContentLoaded', function() {
             attachTo: { element: 'a[href*="catalogo"]', on: 'right' },
             buttons: [{ text: 'Siguiente', action: tour.next }]
         });
+
+        tour.addStep({
+            title:'Apariencia',
+            text:'En esta sección podés personalizar la apariencia de tu tienda, como los colores, logo y diseño.',
+            attachTo:{element:'a[href*="{% url "dashboard_servicios" %}"]',on:'right'},
+            buttons:[{ text: 'Siguiente', action: tour.next }]
+        });
         
         tour.addStep({
             title: '¡Todo Listo!',
             text: 'Ya conoces lo esencial. Explora las demás secciones cuando quieras. ¡Mucho éxito!',
-            buttons: [{ text: 'Finalizar Tour', action: tour.complete }]
+            buttons: [{ text: 'Finalizar Tour', action:function() {
+                        // Al hacer clic, PRIMERO marcamos como completo y LUEGO redirigimos.
+                        marcarYFinalizarTour();
+                        window.location.href = "{% url 'dashboard_horarios' %}";
+                    } }]
         });
 
-        // 4. Asignamos los eventos al final, ahora la función ya está definida
-        tour.on('complete', marcarYFinalizarTour);
         tour.on('cancel', marcarYFinalizarTour);
 
         // 5. Iniciamos el tour
         tour.start();
     }
-);
+
+    );
 </script>
 {% endblock %}

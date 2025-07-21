@@ -36,12 +36,12 @@
             <!-- Columna de la Previsualización -->
             <div class="dashboard-section preview-section">
                 <h2>Previsualización</h2>
-                <div class="preview-container">
-                    <div class="preview-banner" id="previewBanner" style=`{% if servicio.imagen_banner %}background-image: url('{{ servicio.imagen_banner.url }}');{% endif %}`></div>
-                    <div class="preview-card" id="previewCard">
+                <div class="preview-container"  data-existing-banner-url="{% if servicio_activo.imagen_banner %}{{ servicio_activo.imagen_banner.url }}{% endif %}">
+                    <div class="preview-banner" id="previewBanner"></div>
+                    <div class="preview-card" id="previewCard" style=`background-color: {{ servicio_activo.color_fondo }}`>
                         <h3>Tu Título de Ejemplo</h3>
                         <p>Un texto de ejemplo para que veas cómo queda.</p>
-                        <button class="preview-button" id="previewButton">Botón de Ejemplo</button>
+                        <button class="preview-button" id="previewButton"  style=`background-color: {{ servicio_activo.color_primario }};`>Botón de Ejemplo</button>
                     </div>
                 </div>
             </div>
@@ -69,25 +69,51 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const form = document.querySelector('.form-section form');
-            if (!form) return; // Si no hay formulario, no hacer nada
+            if (!form) return;
 
+            // --- SELECCIONAMOS LOS INPUTS Y ELEMENTOS DE PREVISUALIZACIÓN ---
             const colorPrimarioInput = document.getElementById('id_color_primario');
             const colorFondoInput = document.getElementById('id_color_fondo');
             const bannerInput = document.getElementById('id_imagen_banner');
+            
             const previewButton = document.getElementById('previewButton');
             const previewCard = document.getElementById('previewCard');
             const previewBanner = document.getElementById('previewBanner');
+            const previewContainer = document.querySelector('.preview-container');
 
+            // GUARDIÁN: Si los elementos no existen, no hacer nada.
+            if (!colorPrimarioInput || !previewButton || !previewContainer) return;
+
+            // --- FUNCIÓN DE ACTUALIZACIÓN (CORREGIDA) ---
             function updatePreview() {
-                if(previewButton) previewButton.style.backgroundColor = colorPrimarioInput.value;
-                if(previewCard) previewCard.style.backgroundColor = colorFondoInput.value;
-                if(bannerInput.files && bannerInput.files[0]) {
+                // Actualizar colores (sin cambios)
+                previewButton.style.backgroundColor = colorPrimarioInput.value;
+                previewCard.style.backgroundColor = colorFondoInput.value;
+                
+                // Actualizar banner
+                // 1. Si el usuario selecciona un NUEVO archivo:
+                if (bannerInput.files && bannerInput.files[0]) {
                     const reader = new FileReader();
-                    reader.onload = function(e) { previewBanner.style.backgroundImage = `url('${e.target.result}')`; }
+                    reader.onload = function(e) {
+                        previewBanner.style.backgroundImage = `url('${e.target.result}')`;
+                    }
                     reader.readAsDataURL(bannerInput.files[0]);
+                } 
+                // 2. Si NO ha seleccionado un nuevo archivo, usamos el que ya existe (si hay uno).
+                else {
+                    const existingBannerUrl = previewContainer.dataset.existingBannerUrl;
+                    if (existingBannerUrl) {
+                        previewBanner.style.backgroundImage = `url('${existingBannerUrl}')`;
+                    } else {
+                        previewBanner.style.backgroundImage = 'none'; // Sin imagen si no hay nada
+                    }
                 }
             }
+            
+            // Llamamos a la función al cargar la página para establecer el estado inicial
             updatePreview();
+
+            // Añadimos los listeners para actualizar en tiempo real
             colorPrimarioInput.addEventListener('input', updatePreview);
             colorFondoInput.addEventListener('input', updatePreview);
             bannerInput.addEventListener('change', updatePreview);

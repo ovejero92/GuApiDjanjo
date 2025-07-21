@@ -1,14 +1,18 @@
 {% extends 'layouts/dashboard_base.html' %}
 
 {% block dashboard_content %}
-    <h1>Horarios y Disponibilidad</h1>
+    <div style="display: flex; align-items: center; gap: 15px;">
+        <h1>Horarios y Disponibilidad</h1>
+        <!-- BOTÓN DE AYUDA CONTEXTUAL -->
+        <button id="ayudaHorariosBtn" class="help-button" title="Ver guía de esta sección">?</button>
+    </div>
     <p>Define tus horarios de trabajo para cada día y bloquea fechas por vacaciones o eventos especiales.</p>
     
     {% if no_hay_servicio %}
         <div class="dashboard-section"><p>Aún no tienes un servicio configurado.</p></div>
     {% else %}
         <!-- FORMULARIO DE HORARIO SEMANAL -->
-        <div class="dashboard-section">
+        <div class="dashboard-section"  id="seccion-horario-semanal">
             <h2>Configuración de Horario Semanal para: <strong>{{ servicio.nombre }}</strong></h2>
             <form method="post">
                 {% csrf_token %}
@@ -49,7 +53,7 @@
         </div>
 
         <!-- SECCIÓN DE BLOQUEO DE FECHAS -->
-        <div class="dashboard-section">
+        <div class="dashboard-section" id="seccion-bloqueo-fechas">
             <h2>Bloquear Fechas o Periodos</h2>
             <form method="post" class="bloqueo-form">
                 {% csrf_token %}
@@ -100,4 +104,50 @@
             .schedule-table td::before { content: attr(data-label); font-weight: bold; color: #ccc; text-align: left; }
         }
     </style>
+{% endblock %}
+
+{% block scripts_extra %}
+    {{ block.super }} {# ¡CRUCIAL! Esto incluye el script del tour de bienvenida de la plantilla base #}
+
+    <!-- SCRIPT SOLO PARA EL TOUR DE AYUDA DE ESTA PÁGINA -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const botonAyuda = document.getElementById('ayudaHorariosBtn');
+            if (botonAyuda) {
+                
+                botonAyuda.addEventListener('click', function() {
+                    
+                    // Si hay otro tour activo, lo cerramos.
+                    if (Shepherd.activeTour) {
+                        Shepherd.activeTour.cancel();
+                    }
+
+                    const tourAyudaHorarios = new Shepherd.Tour({
+                        useModalOverlay: true,
+                        defaultStepOptions: {
+                            classes: 'shepherd-custom-theme',
+                            scrollTo: true,
+                            cancelIcon: { enabled: true },
+                        }
+                    });
+
+                    tourAyudaHorarios.addStep({
+                        title: 'Configuración Semanal',
+                        text: 'Aquí activas los días que trabajas y defines tus horarios de apertura y cierre.',
+                        attachTo: { element: '#seccion-horario-semanal', on: 'bottom' },
+                        buttons: [{ text: 'Entendido', action: tourAyudaHorarios.next }]
+                    });
+                    
+                    tourAyudaHorarios.addStep({
+                        title: 'Bloquear Fechas',
+                        text: 'Si te vas de vacaciones o tienes un evento, puedes bloquearlo aquí para que nadie pueda reservar.',
+                        attachTo: { element: '#seccion-bloqueo-fechas', on: 'top' },
+                        buttons: [{ text: 'Finalizar', action: tourAyudaHorarios.complete }]
+                    });
+
+                    tourAyudaHorarios.start();
+                });
+            }
+        });
+    </script>
 {% endblock %}

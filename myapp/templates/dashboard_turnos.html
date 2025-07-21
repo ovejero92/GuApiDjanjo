@@ -70,7 +70,13 @@
                             {% for turno in turnos_confirmados %}
                             <tr>
                                 <td data-label="Cliente"><span class="data-value">{{ turno.cliente.first_name|default:turno.cliente.username }}</span></td>
-                                <td data-label="Servicios"><span class="data-value">{% for sub in turno.sub_servicios_solicitados.all %}{{ sub.nombre }}{% if not forloop.last %}, {% endif %}{% endfor %}</span></td>
+                                <td data-label="Servicios">
+                                    <span class="data-value">
+                                        {% for sub in turno.sub_servicios_solicitados.all %}
+                                            {{ sub.nombre }}{% if not forloop.last %}, {% endif %}
+                                        {% endfor %}
+                                    </span>
+                                </td>
                                 <td data-label="Fecha y Hora"><span class="data-value">{{ turno.fecha|date:"d/m/Y" }} - {{ turno.hora|time:"H:i" }}</span></td>
                             </tr>
                             {% endfor %}
