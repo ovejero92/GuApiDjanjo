@@ -4,7 +4,10 @@
      {% if no_hay_servicio %}
         <div class="dashboard-section"><p>Aún no tienes un servicio asignado.</p></div>
     {% else %}
+    <div style="display: flex; align-items: center; gap: 15px;">
         <h1>Catálogo de Servicios</h1>
+        <button id="ayudaCatalogoBtn" class="help-button" title="Ver guía de esta sección">?</button>
+    </div>
         <p>Añade, edita o elimina los diferentes servicios que ofreces a tus clientes. Cada uno puede tener su propio precio y duración.</p>
 
         <!-- SECCIÓN PARA GESTIONAR EL CATÁLOGO -->
@@ -25,11 +28,11 @@
                     {% for form in formset %}
                     <div class="formset-row">
                         {{ form.id }}
-                        <div class="form-item nombre-col"><label>Nombre del Servicio</label>{{ form.nombre }}</div>
-                        <div class="form-item descripcion-col"><label>Descripción</label>{{ form.descripcion }}</div>
-                        <div class="form-item duracion-col"><label>Duración (min)</label>{{ form.duracion }}</div>
-                        <div class="form-item precio-col"><label>Precio ($)</label>{{ form.precio }}</div>
-                        <div class="form-item eliminar-col"><label>Eliminar</label>{% if form.instance.pk %}{{ form.DELETE }}{% endif %}</div>
+                        <div class="form-item nombre-col"><label >Nombre del Servicio</label><span id="nom">{{ form.nombre }}</span></div>
+                        <div class="form-item descripcion-col"><label>Descripción</label><span id="des">{{ form.descripcion }}</span></div>
+                        <div class="form-item duracion-col"><label>Duración (min)</label><span id="dur">{{ form.duracion }}</span></div>
+                        <div class="form-item precio-col"><label>Precio ($)</label><span id="pre">{{ form.precio }}</span></div>
+                        <div class="form-item eliminar-col"><label>Eliminar</label><span id="eli">{% if form.instance.pk %}{{ form.DELETE }}{% endif %}</span></div>
                     </div>
                     {% endfor %}
                 </div>
@@ -144,4 +147,72 @@
         }
     }
     </style>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const botonAyuda = document.getElementById('ayudaCatalogoBtn');
+            if (botonAyuda) {
+                botonAyuda.addEventListener('click', function() {
+                    
+                    // Si hay un tour activo (el de bienvenida), lo cerramos primero
+                    if (Shepherd.activeTour) {
+                        Shepherd.activeTour.cancel();
+                    }
+
+                    // Creamos una nueva instancia del tour aquí mismo
+                    const tourAyuda = new Shepherd.Tour({
+                        useModalOverlay: true,
+                        defaultStepOptions: {
+                            classes: 'shepherd-custom-theme',
+                            scrollTo: true,
+                            cancelIcon: { enabled: true },
+                        }
+                    });
+
+                    // Añadimos los pasos
+                    tourAyuda.addSteps([
+                        {
+                            title: 'Catálogo de Servicios',
+                            text: 'Aquí vas a poder ver, crear y eliminar todos tus sub-servicios.',
+                            attachTo: { element: '#seccion-catalogo', on: 'top' },
+                            buttons: [{ text: 'Siguiente', action() { return this.next(); }}]
+                        },
+                        {
+                            title: 'Nombre',
+                            text: 'Aqui vas a poner el nombre de tu sub-servicio.',
+                            attachTo: { element: '#nom', on: 'bottom' },
+                            buttons: [{ text: 'Siguiente', action() { return this.next(); }}]
+                        },
+                        {
+                            title: 'Descripción',
+                            text: 'Aqui vas a poner la Descripcion de tu sub-servicio.',
+                            attachTo: { element: '#des', on: 'top' },
+                            buttons: [{ text: 'Siguiente', action() { return this.next(); }}]
+                        },
+                        {
+                            title: 'Duración',
+                            text: 'Aqui vas a poner la Duración de tu sub-servicio.',
+                            attachTo: { element: '#dur', on: 'top' },
+                            buttons: [{ text: 'Siguiente', action() { return this.next(); }}]
+                        },
+                        {
+                            title: 'Precio',
+                            text: 'Aqui vas a poner la Precio de tu sub-servicio.',
+                            attachTo: { element: '#pre', on: 'left' },
+                            buttons: [{ text: 'Siguiente', action() { return this.next(); }}]
+                        },
+                        {
+                            title: 'Eliminar',
+                            text: 'Si queres eliminar un sub-servicio hace click en este checkbox y luego de todo toca en el boton de guardar Catálogo.',
+                            attachTo: { element: '#eli', on: 'left' },
+                            buttons: [{ text: 'Finalizar', action() { return this.complete(); }}]
+                        }
+                    ]);
+                    
+                    // Iniciamos el tour
+                    tourAyuda.start();
+                });
+            }
+});
+    </script>
 {% endblock %}

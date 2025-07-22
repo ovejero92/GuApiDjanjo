@@ -2,7 +2,7 @@ import os
 import sys
 from io import BytesIO
 from PIL import Image
-
+from django.utils.text import slugify
 from django.db import models
 from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator, MaxValueValidator
@@ -56,6 +56,13 @@ class Servicio(models.Model):
         max_length=7, default='#FFFFFF',
         help_text="Color para el texto principal. Elige un color oscuro si usas un fondo claro."
     )
+    slug = models.SlugField(
+        max_length=120, 
+        unique=True,      # Asegura que no haya dos negocios con la misma URL.
+        blank=True,       # Permite que esté vacío temporalmente para los servicios ya existentes.
+        null=True,
+        help_text="Generado automáticamente a partir del nombre para la URL."
+    )
 
     # --- Campos para el Footer Estructurado ---
     footer_direccion = models.CharField(max_length=255, blank=True, null=True, help_text="Ej: Av. Siempreviva 742, Springfield")
@@ -65,6 +72,13 @@ class Servicio(models.Model):
     footer_facebook_url = models.URLField(max_length=255, blank=True, null=True, help_text="Pega aquí la URL completa de tu página de Facebook.")
     footer_tiktok_url = models.URLField(max_length=255, blank=True, null=True, help_text="Pega aquí la URL completa de tu perfil de TikTok.")
     
+    def save(self, *args, **kwargs):
+        # Si el servicio no tiene un slug, lo creamos a partir del nombre.
+        if not self.slug:
+            self.slug = slugify(self.nombre)
+        
+        # ... (el resto de tu lógica del método save para borrar imágenes se queda igual)
+        super().save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):
         if self.imagen_banner:

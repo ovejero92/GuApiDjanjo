@@ -39,8 +39,10 @@
         }
     }
 </style>
-
+<div style="display: flex; align-items: center; gap: 15px;">
 <h1>Calendario de Turnos</h1>
+<button id="ayudaCalendarioBtn" class="help-button" title="Ver guía de esta sección">?</button>
+</div>
 <p>Visualiza la ocupación de tus días de un vistazo.</p>
 
 <div class="dashboard-section">
@@ -59,8 +61,8 @@
         {% for _ in offset_dias %}<div class="calendario-dia-vacio"></div>{% endfor %}
         
         {% for dia in rango_dias %}
-            <div class="calendario-dia cal-dia--{{ estado_dias|get_item:dia }}" data-dia="{{ dia }}">
-                <span class="dia-numero">{{ dia }}</span>
+            <div class="calendario-dia cal-dia--{{ estado_dias|get_item:dia }}" data-dia="{{ dia }}" id="bloque">
+                <span class="dia-numero" id="dia">{{ dia }}</span>
             </div>
         {% endfor %}
     </div>
@@ -143,6 +145,59 @@ document.addEventListener('DOMContentLoaded', function() {
             cerrarModal();
         }
     });
+
+    const botonAyuda = document.getElementById('ayudaCalendarioBtn');
+            if (botonAyuda) {
+                botonAyuda.addEventListener('click', function() {
+                    
+                    // Si hay un tour activo (el de bienvenida), lo cerramos primero
+                    if (Shepherd.activeTour) {
+                        Shepherd.activeTour.cancel();
+                    }
+
+                    // Creamos una nueva instancia del tour aquí mismo
+                    const tourAyuda = new Shepherd.Tour({
+                        useModalOverlay: true,
+                        defaultStepOptions: {
+                            classes: 'shepherd-custom-theme',
+                            scrollTo: true,
+                            cancelIcon: { enabled: true },
+                        }
+                    });
+
+                    // Añadimos los pasos
+                    tourAyuda.addSteps([
+                        {
+                            title: 'Calendario mensual',
+                            text: 'Aquí vas a visualizar todo el calendario actual mensual de turnos.',
+                            attachTo: { element: '.calendario-header', on: 'top' },
+                            buttons: [{ text: 'Siguiente', action() { return this.next(); }}]
+                        },
+                        {
+                            title: 'Dia',
+                            text: 'Aqui su haces click o lo tocas con el dedo en el celular vas a poder visualizar los turnos del dia.',
+                            attachTo: { element: '#dia', on: 'top' },
+                            buttons: [{ text: 'Siguiente', action() { return this.next(); }}]
+                        },
+                        {
+                            title: '⚠️Importante⚠️',
+                            text: `
+                                    <p>Si este bloque está de color:</p>
+                                    <ul style="list-style: none;">
+                                        <li>🟩  significa que hay algunos turnos.</li>
+                                        <li>🟨  significa que hay bastantes turnos agendados.</li>
+                                        <li>🟥  significa que está completo el día de turnos.</li>
+                                    </ul>
+                                    `,
+                            attachTo: { element: '#bloque', on: 'top' },
+                            buttons: [{ text: 'Finalizar', action() { return this.complete(); }}]
+                        }
+                    ]);
+                    
+                    // Iniciamos el tour
+                    tourAyuda.start();
+                });
+            }
 });
 </script>
 

@@ -8,11 +8,14 @@
             <p>Aún no tienes un servicio configurado. Por favor, contacta al administrador para empezar.</p>
         </div>
     {% else %}
+        <div style="display: flex; align-items: center; gap: 15px;">
         <h1>Gestión de Turnos</h1>
+        <button id="ayudaGestionBtn" class="help-button" title="Ver guía de esta sección">?</button>
+        </div>
         <p>Confirma o cancela las solicitudes de turnos pendientes y revisa tu agenda.</p>
 
         <!-- SECCIÓN DE TURNOS PENDIENTES -->
-        <div class="dashboard-section">
+        <div class="dashboard-section" id="pendiente">
             <h2>Turnos Pendientes de Confirmación</h2>
             {% if turnos_pendientes %}
                 <div class="table-responsive-wrapper">
@@ -59,7 +62,7 @@
         </div>
 
         <!-- SECCIÓN DE PRÓXIMOS TURNOS CONFIRMADOS -->
-        <div class="dashboard-section">
+        <div class="dashboard-section" id="confirmados">
             <h2>Próximos Turnos Confirmados</h2>
             {% if turnos_confirmados %}
                 <div class="table-responsive-wrapper">
@@ -96,7 +99,7 @@
         </div>
 
         <!-- SECCIÓN DE HISTORIAL DE TURNOS PASADOS -->
-        <div class="dashboard-section">
+        <div class="dashboard-section" id="historial">
             <h2>Historial de Turnos Pasados</h2>
             {% if turnos_pasados %}
                 <div class="table-responsive-wrapper">
@@ -134,4 +137,57 @@
             {% endif %}
         </div>
     {% endif %}
+{% endblock %}
+
+{% block scripts_extra %}
+    {{ block.super }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const botonAyuda = document.getElementById('ayudaGestionBtn');
+            if (botonAyuda) {
+                botonAyuda.addEventListener('click', function() {
+                    
+                    // Si hay un tour activo (el de bienvenida), lo cerramos primero
+                    if (Shepherd.activeTour) {
+                        Shepherd.activeTour.cancel();
+                    }
+
+                    // Creamos una nueva instancia del tour aquí mismo
+                    const tourAyuda = new Shepherd.Tour({
+                        useModalOverlay: true,
+                        defaultStepOptions: {
+                            classes: 'shepherd-custom-theme',
+                            scrollTo: true,
+                            cancelIcon: { enabled: true },
+                        }
+                    });
+
+                    // Añadimos los pasos
+                    tourAyuda.addSteps([
+                        {
+                            title: 'Turnos pendientes',
+                            text: 'En este bloque vas a poder aceptar o cancelar turnos que agenden usuarios.',
+                            attachTo: { element: '#pendiente', on: 'bottom' },
+                            buttons: [{ text: 'Siguiente', action() { return this.next(); }}]
+                        },
+                        {
+                            title: 'turnos confirmados',
+                            text: 'Aca vas a poder ver los turnos confirmados, con sus servicios solicitados y la techa y hora del turno.',
+                            attachTo: { element: '#confirmados', on: 'top' },
+                            buttons: [{ text: 'Siguiente', action() { return this.next(); }}]
+                        },
+                        {
+                            title: 'Historial de Turnos',
+                            text: 'Aqui vas a poder ver el historial de turnos importante poner finalizar Turno para poder poner un monto generado en el turno y para que se retroalimente el dashboard de metricas.',
+                            attachTo: { element: '#historial', on: 'top' },
+                            buttons: [{ text: 'Finalizar', action() { return this.complete(); }}]
+                        }
+                    ]);
+                    
+                    // Iniciamos el tour
+                    tourAyuda.start();
+                });
+            }
+});
+</script>
 {% endblock %}

@@ -87,8 +87,8 @@ def get_servicio_activo(request):
     return servicio_activo
 
 @login_required
-def servicio_detail(request, servicio_id):
-    servicio = get_object_or_404(Servicio, id=servicio_id)
+def servicio_detail(request, servicio_slug):
+    servicio = get_object_or_404(Servicio, slug=servicio_slug)
     
     if request.method == 'POST':
         # Al procesar el POST, le pasamos los datos del request.

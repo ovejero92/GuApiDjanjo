@@ -322,6 +322,13 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         tour.addStep({
+            title:'Calendario',
+            text:'Aquí podes <strong>Ver el calendario semanal</strong>. En esta seccion vas a poder todos los dias que tenes turnos agendados y visualizar cada dia.',
+            attachTo:{element:'a[href*="{% url "dashboard_calendario" %}"]',on:posicionTooltip},
+            buttons:[{text:'Siguiente',action:tour.next}]
+        });
+
+        tour.addStep({
             title: 'Horarios y Bloqueos',
             text: '<strong>¡Este es el paso más importante!</strong> Aquí debes definir tus días y horarios de trabajo para que los clientes puedan reservar sus turnos.',
             attachTo: { element: 'a[href*="horarios"]', on:posicionTooltip },
@@ -346,6 +353,13 @@ document.addEventListener('DOMContentLoaded', function() {
             title:'Apariencia',
             text:'En esta sección podés <strong>personalizar la apariencia de tu tienda</strong>, como los colores, logo y diseño.',
             attachTo:{element:'a[href*="{% url "dashboard_servicios" %}"]',on:posicionTooltip},
+            buttons:[{ text: 'Siguiente', action: tour.next }]
+        });
+
+        tour.addStep({
+            title:'Detalles del negocio',
+            text:'En esta sección podés <strong>editar la información</strong>, podes modificar el nombre del servicio , la dirección , categoria.',
+            attachTo:{element:'a[href*="{% url "dashboard_detalles_negocio" %}"]',on:posicionTooltip},
             buttons:[{ text: 'Siguiente', action: tour.next }]
         });
         

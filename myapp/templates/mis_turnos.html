@@ -1,11 +1,92 @@
 {% extends 'layouts/navbar.html' %}
+{% load static %}
 
 {% block content %}
-<div class="container">
-    <h1>Mis Turnos</h1>
-    <p>Hola, {{ user.username|title }}. Aquí puedes ver el estado de tus turnos solicitados.</p>
+<style>
+    .mis-turnos-container {
+        max-width: 900px;
+        margin: 40px auto;
+        padding: 20px;
+    }
+    .turnos-section {
+        background-color: #2c2c2c;
+        padding: 25px;
+        border-radius: 8px;
+        margin-bottom: 30px;
+    }
+    .turnos-section h2 {
+        margin-top: 0;
+        border-bottom: 1px solid #444;
+        padding-bottom: 10px;
+        margin-bottom: 20px;
+    }
+    .turnos-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .turnos-table th, .turnos-table td {
+        padding: 12px 15px;
+        text-align: left;
+        border-bottom: 1px solid #444;
+    }
+    .turnos-table th {
+        background-color: #3a3a3a;
+    }
+    .btn-reseña {
+        background-color: #007bff;
+        color: white;
+        padding: 8px 12px;
+        text-decoration: none;
+        border-radius: 5px;
+        font-size: 0.9em;
+        transition: background-color 0.2s;
+    }
+    .btn-reseña:hover {
+        background-color: #0056b3;
+    }
+    .estado-pendiente { color: #ffc107; }
+    .estado-confirmado { color: #28a745; }
+    .estado-completado { color: #adb5bd; }
+    .estado-cancelado { color: #dc3545; }
 
-    <div class="dashboard-section">
+    /* ================================================================ */
+    /* ========== LA MAGIA PARA HACER LA TABLA RESPONSIVA ========== */
+    /* ================================================================ */
+    @media screen and (max-width: 768px) {
+        .turnos-table thead {
+            display: none; /* Ocultamos los encabezados de la tabla en móvil */
+        }
+        .turnos-table tr {
+            display: block; /* Cada fila se convierte en un bloque */
+            border: 1px solid #444;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            padding: 10px;
+        }
+        .turnos-table td {
+            display: block; /* Cada celda se convierte en un bloque */
+            text-align: right; /* Alineamos el contenido a la derecha */
+            padding: 8px 0;
+            border-bottom: none; /* Quitamos la línea divisoria de abajo */
+            position: relative;
+        }
+        .turnos-table td:before {
+            content: attr(data-label); /* Usamos el contenido del atributo 'data-label' */
+            position: absolute;
+            left: 0;
+            font-weight: bold;
+            text-align: left;
+            padding-right: 10px;
+        }
+    }
+</style>
+
+<div class="mis-turnos-container">
+    <h1>Mis Turnos</h1>
+    <p>Hola, {{ user.first_name|default:user.username }}. Aquí puedes ver el estado de tus turnos solicitados.</p>
+
+    <!-- SECCIÓN DE PRÓXIMOS TURNOS -->
+    <div class="turnos-section">
         <h2>Próximos Turnos</h2>
         {% if turnos_futuros %}
             <table class="turnos-table">
@@ -19,16 +100,11 @@
                 <tbody>
                     {% for turno in turnos_futuros %}
                     <tr>
-                        <td>{{ turno.servicio.nombre }}</td>
-                        <td data-label="Servicios">
-                            <span class="data-value">
-                                {% for sub in turno.sub_servicios_solicitados.all %}
-                                    {{ sub.nombre }}{% if not forloop.last %}, {% endif %}
-                                {% endfor %}
-                            </span>
+                        <td data-label="Negocio">{{ turno.servicio.nombre }}</td>
+                        <td data-label="Fecha y Hora">{{ turno.fecha|date:"d/m/Y" }} - {{ turno.hora|time:"H:i" }}</td>
+                        <td data-label="Estado">
+                            <span class="estado-{{ turno.estado }}">{{ turno.get_estado_display }}</span>
                         </td>
-                        <td data-label="Fecha y Hora"><span class="data-value">{{ turno.fecha|date:"d/m/Y" }} - {{ turno.hora|time:"H:i" }}</span></td>
-                        <td><span class="estado-{{ turno.estado }}">{{ turno.get_estado_display }}</span></td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -38,11 +114,12 @@
         {% endif %}
     </div>
 
-    <div class="dashboard-section">
+    <!-- SECCIÓN DE HISTORIAL DE TURNOS -->
+    <div class="turnos-section">
         <h2>Historial de Turnos</h2>
         {% if turnos_pasados %}
             <table class="turnos-table">
-                 <thead>
+                <thead>
                     <tr>
                         <th>Negocio</th>
                         <th>Fecha y Hora</th>
@@ -53,41 +130,27 @@
                 <tbody>
                     {% for turno in turnos_pasados %}
                     <tr>
-                        <td>{{ turno.servicio.nombre }}</td>
-                        <td data-label="Servicios">
-                                <span class="data-value">
-                                    {% for sub in turno.sub_servicios_solicitados.all %}
-                                        {{ sub.nombre }}{% if not forloop.last %}, {% endif %}
-                                    {% endfor %}
-                                </span>
+                        <td data-label="Negocio">{{ turno.servicio.nombre }}</td>
+                        <td data-label="Fecha y Hora">{{ turno.fecha|date:"d/m/Y" }} - {{ turno.hora|time:"H:i" }}</td>
+                        <td data-label="Estado">
+                            <span class="estado-{{ turno.estado }}">{{ turno.get_estado_display }}</span>
                         </td>
-                        <td>{{ turno.fecha|date:"d/m/Y" }} - {{ turno.hora|time:"H:i" }}</td>
-                        <td><span class="estado-{{ turno.estado }}">{{ turno.get_estado_display }}</span></td>
-                        <td>
-                        {% if turno.estado == 'completado' and not turno.reseña %}
-                            <a href="{% url 'crear_reseña' turno.id %}" class="btn-reseña">Dejar Reseña</a>
-                        {% endif %}
-                    </td>
+                        <td data-label="Acción">
+                            {% if turno.estado == 'completado' and not turno.reseña %}
+                                <a href="{% url 'crear_reseña' turno.id %}" class="btn-reseña">Dejar Reseña</a>
+                            {% elif turno.reseña %}
+                                <span>Reseña enviada</span>
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         {% else %}
-            <p>No tienes turnos en tu historial.</p>
+            <p>Aún no tienes un historial de turnos.</p>
         {% endif %}
     </div>
 </div>
-
-<style>
-    /* Puedes mover estos estilos a tu archivo main.css si quieres */
-    .dashboard-section { background-color: #333; padding: 20px; border-radius: 8px; margin-bottom: 25px; }
-    .turnos-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-    .turnos-table th, .turnos-table td { border: 1px solid #555; padding: 10px; text-align: left; }
-    .turnos-table th { background-color: #444; }
-    .estado-pendiente { color: #ffc107; font-weight: bold; }
-    .estado-confirmado { color: #28a745; font-weight: bold; }
-    .estado-cancelado { color: #dc3545; text-decoration: line-through; }
-    .estado-completado { color: #6c757d; }
-    .btn-reseña { background-color: #ffc107; color: #212529; padding: 5px 10px; border-radius: 4px; text-decoration: none; font-weight: bold; font-size: 0.9em; }
-</style>
 {% endblock %}

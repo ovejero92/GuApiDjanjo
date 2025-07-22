@@ -12,7 +12,7 @@ urlpatterns = [
     # Vistas principales
     path('', views.index, name='index'),
     path('about/', views.about, name='about'),
-    path('servicio/<int:servicio_id>/', views.servicio_detail, name='servicio_detail'),
+    path('servicio/<slug:servicio_slug>/', views.servicio_detail, name='servicio_detail'),
 
     # Dashboards
     path('dashboard/', views.dashboard_turnos, name='dashboard_propietario'),

@@ -75,7 +75,7 @@
                 {% endif %}
                 <h2>{{ servicio.nombre }}</h2>
                 <p>{{ servicio.descripcion|truncatewords:15 }}</p>
-                <a href="{% url 'servicio_detail' servicio.id %}" class="btn-solicitar">Ver y Reservar</a>
+                <a href="{% url 'servicio_detail' servicio.slug %}" class="btn-solicitar">Ver y Reservar</a>
             </div>
         {% endfor %}
     </div>
