@@ -1,0 +1,131 @@
+{% extends 'layouts/dashboard_base.html' %}
+{% load static %}
+{% load custom_filters %}
+
+{% block dashboard_content %}
+<style>
+    .calendario-header { text-align: center; margin-bottom: 20px; }
+    .calendario-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; border: 1px solid #444; padding: 5px; background-color: #2c2c2c; }
+    .calendario-dia, .calendario-header-dia { padding: 10px; text-align: center; border-radius: 4px; }
+    .calendario-header-dia { font-weight: bold; color: #ddd; }
+    .calendario-dia { min-height: 100px; background-color: #3a3a3a; color: #ccc; cursor: pointer; transition: transform 0.2s ease, box-shadow 0.2s ease; display: flex; flex-direction: column; justify-content: flex-start; align-items: flex-start; }
+    .calendario-dia:hover { transform: translateY(-3px); box-shadow: 0 4px 10px rgba(0,0,0,0.4); }
+    .dia-numero { font-weight: bold; font-size: 1.2em; }
+    .cal-dia--vacio { background-color: #4a4a4a; cursor: default; }
+    .cal-dia--vacio:hover { transform: none; box-shadow: none; }
+    .cal-dia--con-turnos { background-color: #2a5a41; }
+    .cal-dia--casi-lleno { background-color: #6e612f; }
+    .cal-dia--lleno { background-color: #6e2f2f; }
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); display: none; justify-content: center; align-items: center; z-index: 1000; }
+    .modal-content { background-color: #252525; padding: 30px; border-radius: 8px; width: 90%; max-width: 600px; max-height: 80vh; overflow-y: auto; position: relative; }
+    .modal-close { position: absolute; top: 15px; right: 15px; font-size: 1.5em; cursor: pointer; color: #aaa; }
+    .turno-card { background-color: #333; border-left: 4px solid var(--color-primario, #033f63); padding: 15px; margin-bottom: 15px; border-radius: 5px; }
+</style>
+
+<h1>Calendario de Turnos</h1>
+<p>Visualiza la ocupación de tus días de un vistazo.</p>
+
+<div class="dashboard-section">
+    <div class="calendario-header">
+        <h2>{{ mes_nombre }} {{ año }}</h2>
+    </div>
+    <div class="calendario-grid">
+        <div class="calendario-header-dia">Lunes</div>
+        <div class="calendario-header-dia">Martes</div>
+        <div class="calendario-header-dia">Miércoles</div>
+        <div class="calendario-header-dia">Jueves</div>
+        <div class="calendario-header-dia">Viernes</div>
+        <div class="calendario-header-dia">Sábado</div>
+        <div class="calendario-header-dia">Domingo</div>
+
+        {% for _ in offset_dias %}<div class="calendario-dia-vacio"></div>{% endfor %}
+        
+        {% for dia in rango_dias %}
+            <div class="calendario-dia cal-dia--{{ estado_dias|get_item:dia }}" data-dia="{{ dia }}">
+                <span class="dia-numero">{{ dia }}</span>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="modal-overlay" id="modalTurnos">
+    <div class="modal-content">
+        <span class="modal-close" id="modalClose">×</span>
+        <h2 id="modalHeader"></h2>
+        <div id="modalBody"></div>
+    </div>
+</div>
+
+{{ calendar_data|json_script:"calendar-data" }}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const calendarData = JSON.parse(document.getElementById('calendar-data').textContent);
+    const año = calendarData.año;
+    const mes = calendarData.mes;
+    const mes_nombre = calendarData.mes_nombre;
+
+    const calendarDays = document.querySelectorAll('.calendario-dia');
+    const modal = document.getElementById('modalTurnos');
+    const modalClose = document.getElementById('modalClose');
+    const modalHeader = document.getElementById('modalHeader');
+    const modalBody = document.getElementById('modalBody');
+
+    async function mostrarTurnosDelDia(dia) {
+        const fecha = `${año}-${String(mes).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
+        
+        modalHeader.innerText = `Turnos del ${dia} de ${mes_nombre}`;
+        modalBody.innerHTML = '<p>Cargando turnos...</p>';
+        modal.style.display = 'flex';
+
+        try {
+            const response = await fetch(`/api/turnos-por-dia/?fecha=${fecha}`);
+            if (!response.ok) throw new Error(`Error del servidor: ${response.statusText}`);
+            const data = await response.json();
+
+            modalBody.innerHTML = '';
+            if (data.turnos && data.turnos.length > 0) {
+                data.turnos.forEach(turno => {
+                    const serviciosHtml = turno.servicios.join(', ') || 'N/A';
+                    const turnoCard = `
+                        <div class="turno-card">
+                            <p><strong>Hora:</strong> ${turno.hora}</p>
+                            <p><strong>Cliente:</strong> ${turno.cliente}</p>
+                            <p><strong>Estado:</strong> ${turno.estado}</p>
+                            <p><strong>Servicios:</strong> ${serviciosHtml}</p>
+                        </div>
+                    `;
+                    modalBody.insertAdjacentHTML('beforeend', turnoCard);
+                });
+            } else {
+                modalBody.innerHTML = '<p>No hay turnos programados para este día.</p>';
+            }
+        } catch (error) {
+            console.error('Error al obtener turnos:', error);
+            modalBody.innerHTML = '<p style="color:red;">No se pudieron cargar los turnos. Inténtelo de nuevo.</p>';
+        }
+    }
+
+    calendarDays.forEach(day => {
+        day.addEventListener('click', function() {
+            const diaSeleccionado = this.dataset.dia;
+            if (diaSeleccionado) {
+                mostrarTurnosDelDia(diaSeleccionado);
+            }
+        });
+    });
+
+    function cerrarModal() {
+        modal.style.display = 'none';
+    }
+
+    modalClose.addEventListener('click', cerrarModal);
+    modal.addEventListener('click', function(event) {
+        if (event.target === modal) {
+            cerrarModal();
+        }
+    });
+});
+</script>
+
+{% endblock %}

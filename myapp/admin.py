@@ -1,7 +1,19 @@
 from django.contrib import admin
 from .models import Servicio, SubServicio, Turno, HorarioLaboral, DiaNoDisponible, Reseña
 
-# --- Clases Inline para una gestión centralizada ---
+@admin.action(description="Desactivar servicios seleccionados (pago vencido)")
+def desactivar_servicios(modeladmin, request, queryset):
+    """
+    Acción que marca los servicios seleccionados como inactivos.
+    """
+    queryset.update(esta_activo=False)
+
+@admin.action(description="Activar servicios seleccionados (pago recibido)")
+def activar_servicios(modeladmin, request, queryset):
+    """
+    Acción que marca los servicios seleccionados como activos.
+    """
+    queryset.update(esta_activo=True)
 
 class SubServicioInline(admin.TabularInline):
     """Permite editar los SubServicios directamente desde la página de Servicio."""
@@ -27,9 +39,12 @@ class DiaNoDisponibleInline(admin.TabularInline):
 @admin.register(Servicio)
 class ServicioAdmin(admin.ModelAdmin):
     """Configuración avanzada para el modelo Servicio en el panel de admin."""
-    list_display = ('nombre', 'propietario')
+    list_display = ('nombre', 'propietario', 'esta_activo')
+    list_filter = ('esta_activo',)
     search_fields = ('nombre', 'propietario__username')
     # Añadimos los modelos relacionados para gestionarlos todos desde un solo lugar.
+    actions = [activar_servicios, desactivar_servicios]
+    
     inlines = [
         SubServicioInline,
         HorarioLaboralInline,
@@ -48,3 +63,4 @@ class TurnoAdmin(admin.ModelAdmin):
 class ReseñaAdmin(admin.ModelAdmin):
     list_display = ('turno', 'usuario', 'calificacion', 'fecha_creacion')
     list_filter = ('calificacion',)
+

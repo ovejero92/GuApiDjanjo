@@ -36,7 +36,41 @@ class Servicio(models.Model):
     imagen_banner = models.ImageField(upload_to='banners/', null=True, blank=True, help_text="Banner (máx 2MB)", validators=[validar_tamaño_maximo_img])
     footer_personalizado = models.TextField(blank=True, help_text="Texto o HTML simple para el footer")
     configuracion_inicial_completa = models.BooleanField(default=False)
+    esta_activo = models.BooleanField( default=True, help_text="Indica si el propietario tiene el pago al día y el servicio está habilitado.")
+    FONT_CHOICES = [
+        ('Roboto, sans-serif', 'Simple y Moderna (Roboto)'),
+        ('Open Sans, sans-serif', 'Clara y Amigable (Open Sans)'),
+        ('Lato, sans-serif', 'Elegante y Profesional (Lato)'),
+        ('Playfair Display, serif', 'Clásica y Sofisticada (Playfair Display)'),
+        ('Montserrat, sans-serif', 'Audaz y Geométrica (Montserrat)'),
+    ]
+    fuente_titulos = models.CharField(
+        max_length=100, choices=FONT_CHOICES, default='Montserrat, sans-serif',
+        help_text="Elige la fuente para los títulos principales."
+    )
+    fuente_cuerpo = models.CharField(
+        max_length=100, choices=FONT_CHOICES, default='Roboto, sans-serif',
+        help_text="Elige la fuente para el texto general."
+    )
+    color_texto = models.CharField(
+        max_length=7, default='#FFFFFF',
+        help_text="Color para el texto principal. Elige un color oscuro si usas un fondo claro."
+    )
+
+    # --- Campos para el Footer Estructurado ---
+    footer_direccion = models.CharField(max_length=255, blank=True, null=True, help_text="Ej: Av. Siempreviva 742, Springfield")
+    footer_telefono = models.CharField(max_length=20, blank=True, null=True, help_text="Ej: +54 9 11 1234-5678")
+    footer_email = models.EmailField(max_length=255, blank=True, null=True, help_text="El email de contacto de tu negocio.")
+    footer_instagram_url = models.URLField(max_length=255, blank=True, null=True, help_text="Pega aquí la URL completa de tu perfil de Instagram.")
+    footer_facebook_url = models.URLField(max_length=255, blank=True, null=True, help_text="Pega aquí la URL completa de tu página de Facebook.")
+    footer_tiktok_url = models.URLField(max_length=255, blank=True, null=True, help_text="Pega aquí la URL completa de tu perfil de TikTok.")
     
+
+    def delete(self, *args, **kwargs):
+        if self.imagen_banner:
+            self.imagen_banner.delete(save=False)
+        super().delete(*args, **kwargs)
+        
     def __str__(self):
         return self.nombre
 

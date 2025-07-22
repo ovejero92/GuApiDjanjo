@@ -9,7 +9,8 @@ from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from django.http import JsonResponse
 from datetime import datetime, timedelta
-from django.db.models import Count, Sum,Avg
+import calendar
+from django.db.models import Count, Sum,Avg,F, ExpressionWrapper, fields
 from django.db.models.functions import TruncDay,TruncWeek, TruncMonth, TruncHour
 from django.utils.http import urlsafe_base64_decode
 from django.utils.encoding import force_str
@@ -123,12 +124,28 @@ def servicio_detail(request, servicio_id):
         'calificacion_promedio': calificacion_promedio,
     }
     return render(request, 'servicio_detail.html', context)
-    
+
 @login_required
 def dashboard_turnos(request):
     servicio_activo = get_servicio_activo(request)
     if not servicio_activo:
         return render(request, 'dashboard_turnos.html', {'no_hay_servicio': True})
+    
+    if not servicio_activo.esta_activo:
+        context = {
+            'servicio': servicio_activo,
+            'onboarding_completo': True, # Le decimos a la plantilla que el tour YA se hizo.
+            'servicio_activo': servicio_activo # Es buena práctica pasarlo también
+        }
+        return render(request, 'servicio_suspendido.html', context)
+    
+    if not servicio_activo.esta_activo:
+        context = {
+            'servicio': servicio_activo,
+            'onboarding_completo': True, # Le decimos a la plantilla que el tour YA se hizo.
+            'servicio_activo': servicio_activo # Es buena práctica pasarlo también
+        }
+        return render(request, 'servicio_suspendido.html', context)
     
     turnos = Turno.objects.filter(
         servicio=servicio_activo
@@ -162,6 +179,124 @@ def dashboard_turnos(request):
         'turnos_pasados': turnos_pasados
     }
     return render(request, 'dashboard_turnos.html', context)
+
+@login_required
+def dashboard_calendario(request):
+    servicio_activo = get_servicio_activo(request)
+    if not servicio_activo:
+        return render(request, 'dashboard_calendario.html', {'no_hay_servicio': True})
+
+    if not servicio_activo.esta_activo:
+        context = {
+            'servicio': servicio_activo,
+            'onboarding_completo': True, # Le decimos a la plantilla que el tour YA se hizo.
+            'servicio_activo': servicio_activo # Es buena práctica pasarlo también
+        }
+        return render(request, 'servicio_suspendido.html', context)
+    
+    hoy = timezone.localdate()
+    año = hoy.year
+    mes = hoy.month
+
+    primer_dia, num_dias = calendar.monthrange(año, mes)
+    
+    # --- Toda la lógica de obtención de turnos y cálculo de colores se mantiene EXACTAMENTE IGUAL ---
+    turnos_del_mes = Turno.objects.filter(
+        servicio=servicio_activo,
+        fecha__year=año,
+        fecha__month=mes,
+        estado__in=['confirmado', 'pendiente']
+    ).prefetch_related('sub_servicios_solicitados')
+
+    estado_dias = {}
+    for dia_num in range(1, num_dias + 1):
+        fecha_actual = datetime(año, mes, dia_num).date()
+        turnos_del_dia = [t for t in turnos_del_mes if t.fecha == fecha_actual]
+        
+        if not turnos_del_dia:
+            estado_dias[dia_num] = 'vacio'
+            continue
+
+        try:
+            horario_laboral = servicio_activo.horarios.get(dia_semana=fecha_actual.weekday(), activo=True)
+            minutos_laborales = (datetime.combine(datetime.min, horario_laboral.horario_cierre) - 
+                                datetime.combine(datetime.min, horario_laboral.horario_apertura)).seconds / 60
+        except HorarioLaboral.DoesNotExist:
+            minutos_laborales = 0
+
+        if minutos_laborales > 0:
+            # Corrección aquí: Usamos duracion_total del modelo Turno si existe, si no, calculamos.
+            minutos_reservados = sum(turno.duracion_total for turno in turnos_del_dia)
+            porcentaje_ocupacion = (minutos_reservados / minutos_laborales) * 100
+        else:
+            porcentaje_ocupacion = 100
+
+        if porcentaje_ocupacion >= 90:
+            estado_dias[dia_num] = 'lleno'
+        elif porcentaje_ocupacion >= 50:
+            estado_dias[dia_num] = 'casi-lleno'
+        else:
+            estado_dias[dia_num] = 'con-turnos'
+
+    # 1. Obtenemos el nombre del mes para usarlo en varias partes
+    nombre_del_mes = calendar.month_name[mes]
+
+    # 2. Creamos un diccionario específico para pasar datos al JavaScript de forma segura
+    calendar_data_for_js = {
+        'año': año,
+        'mes': mes,
+        'mes_nombre': nombre_del_mes,
+    }
+
+    # 3. Construimos el contexto final que se enviará a la plantilla
+    context = {
+        'servicio_activo': servicio_activo,
+        'onboarding_completo': servicio_activo.configuracion_inicial_completa,
+        'año': año,
+        'mes_nombre': nombre_del_mes,
+        'rango_dias': range(1, num_dias + 1),
+        'offset_dias': range(primer_dia),
+        'estado_dias': estado_dias,
+        # 4. Añadimos el diccionario para JS al contexto. Esto alimentará al tag `json_script`.
+        'calendar_data': calendar_data_for_js,
+    }
+    
+    return render(request, 'dashboard_calendario.html', context)
+
+@login_required
+def api_turnos_por_dia(request):
+    """
+    API que devuelve los detalles de los turnos de una fecha específica.
+    """
+    fecha_str = request.GET.get('fecha')
+    servicio_activo = get_servicio_activo(request)
+
+    if not fecha_str or not servicio_activo:
+        return JsonResponse({'error': 'Faltan parámetros'}, status=400)
+
+    try:
+        fecha = datetime.strptime(fecha_str, '%Y-%m-%d').date()
+    except ValueError:
+        return JsonResponse({'error': 'Formato de fecha inválido'}, status=400)
+
+    turnos = Turno.objects.filter(
+        servicio=servicio_activo,
+        fecha=fecha,
+        estado__in=['confirmado', 'pendiente']
+    ).select_related('cliente').prefetch_related('sub_servicios_solicitados').order_by('hora')
+
+    # Preparamos los datos para enviarlos como JSON
+    datos_turnos = []
+    for turno in turnos:
+        servicios = [s.nombre for s in turno.sub_servicios_solicitados.all()]
+        datos_turnos.append({
+            'hora': turno.hora.strftime('%H:%M'),
+            'cliente': turno.cliente.first_name or turno.cliente.username,
+            'estado': turno.get_estado_display(),
+            'servicios': servicios,
+        })
+    
+    return JsonResponse({'turnos': datos_turnos})
 
 @login_required
 def marcar_tour_visto(request):
@@ -228,10 +363,15 @@ def dashboard_horarios(request):
     servicio_activo = get_servicio_activo(request)
     if not servicio_activo:
         return render(request, 'dashboard_horarios.html', {'no_hay_servicio': True})
-
-    # --- LÓGICA DEL FORMULARIO DE HORARIOS SEMANALES ---
-    # Creamos un FormSet para el modelo HorarioLaboral, vinculado a Servicio.
-    # Esto nos permitirá editar los 7 días a la vez.
+    
+    if not servicio_activo.esta_activo:
+        context = {
+            'servicio': servicio_activo,
+            'onboarding_completo': True, # Le decimos a la plantilla que el tour YA se hizo.
+            'servicio_activo': servicio_activo # Es buena práctica pasarlo también
+        }
+        return render(request, 'servicio_suspendido.html', context)
+    
     HorarioFormSet = inlineformset_factory(
         Servicio,           # Modelo Padre
         HorarioLaboral,     # Modelo Hijo
@@ -245,8 +385,7 @@ def dashboard_horarios(request):
             'activo': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
     )
-    # --- Lógica de Bloqueos (Formulario simple y lista) ---
-    # Creamos dos formularios distintos para no confundir el POST
+
     horario_formset = HorarioFormSet(prefix='horarios', instance=servicio_activo)
     bloqueo_form = BloqueoForm(prefix='bloqueo')
     
@@ -285,7 +424,15 @@ def dashboard_metricas(request):
     servicio_activo = get_servicio_activo(request)
     if not servicio_activo:
         return render(request, 'dashboard_metricas.html', {'no_hay_servicio': True})
-
+    
+    if not servicio_activo.esta_activo:
+        context = {
+            'servicio': servicio_activo,
+            'onboarding_completo': True, # Le decimos a la plantilla que el tour YA se hizo.
+            'servicio_activo': servicio_activo # Es buena práctica pasarlo también
+        }
+        return render(request, 'servicio_suspendido.html', context)
+    
     # --- LÓGICA DE API PARA EL GRÁFICO DE INGRESOS (AJAX) ---
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
         agrupar_por = request.GET.get('agrupar_por', 'dia')
@@ -369,6 +516,14 @@ def dashboard_servicios(request): # Apariencia
     servicio_activo = get_servicio_activo(request)
     if not servicio_activo:
         return render(request, 'dashboard_servicios.html', {'no_hay_servicio': True})
+    
+    if not servicio_activo.esta_activo:
+        context = {
+            'servicio': servicio_activo,
+            'onboarding_completo': True, # Le decimos a la plantilla que el tour YA se hizo.
+            'servicio_activo': servicio_activo # Es buena práctica pasarlo también
+        }
+        return render(request, 'servicio_suspendido.html', context)
 
     if request.method == 'POST':
         form = ServicioPersonalizacionForm(request.POST, request.FILES, instance=servicio_activo)
@@ -391,6 +546,14 @@ def dashboard_catalogo(request):
     # Usamos la función auxiliar para obtener el servicio que se está gestionando
     servicio_activo = get_servicio_activo(request)
 
+    if not servicio_activo.esta_activo:
+        context = {
+            'servicio': servicio_activo,
+            'onboarding_completo': True, # Le decimos a la plantilla que el tour YA se hizo.
+            'servicio_activo': servicio_activo # Es buena práctica pasarlo también
+        }
+        return render(request, 'servicio_suspendido.html', context)
+    
     # Si el propietario no tiene ningún servicio, mostramos una página informativa
     if not servicio_activo:
         return render(request, 'dashboard_catalogo.html', {'no_hay_servicio': True})
@@ -426,6 +589,14 @@ def dashboard_detalles_negocio(request):
     if not servicio_activo:
         return render(request, 'dashboard_detalles_negocio.html', {'no_hay_servicio': True})
 
+    if not servicio_activo.esta_activo:
+        context = {
+            'servicio': servicio_activo,
+            'onboarding_completo': True, # Le decimos a la plantilla que el tour YA se hizo.
+            'servicio_activo': servicio_activo # Es buena práctica pasarlo también
+        }
+        return render(request, 'servicio_suspendido.html', context)
+    
     if request.method == 'POST':
         form = ServicioUpdateForm(request.POST, instance=servicio_activo)
         if form.is_valid():
@@ -498,29 +669,46 @@ def finalizar_turno(request, turno_id):
     turno = get_object_or_404(Turno, id=turno_id, servicio__propietario=request.user)
     servicio_activo = turno.servicio
 
-    if turno.estado in ['completado', 'cancelado']:
-        messages.warning(request, "Este turno ya ha sido procesado.")
+    if turno.estado == 'cancelado':
+        messages.warning(request, "No se puede procesar un turno que ha sido cancelado.")
         return redirect('dashboard_turnos')
 
     if request.method == 'POST':
         form = IngresoTurnoForm(request.POST, instance=turno)
         if form.is_valid():
             instancia_turno = form.save(commit=False)
+            
+            # Siempre nos aseguramos de que el estado final sea 'completado'.
             instancia_turno.estado = 'completado'
             instancia_turno.save()
-            messages.success(request, f"¡Turno de {turno.cliente.username} finalizado con éxito!")
+
+            # Mensaje dinámico dependiendo de la acción
+            if turno.ingreso_real is None:
+                messages.success(request, f"¡Turno de {turno.cliente.username} finalizado con éxito!")
+            else:
+                messages.success(request, f"¡Ingreso del turno actualizado correctamente!")
+
             return redirect('dashboard_turnos')
     else:
-        # Calculamos el precio sugerido
-        precio_sugerido_dict = turno.sub_servicios_solicitados.aggregate(total=Sum('precio'))
-        precio_sugerido = precio_sugerido_dict.get('total') or 0.00
-        form = IngresoTurnoForm(instance=turno, initial={'ingreso_real': precio_sugerido})
+        # Si el turno ya tiene un ingreso, lo usamos. Si no, calculamos el sugerido.
+        if turno.ingreso_real is not None:
+            # El turno ya fue finalizado, estamos editando.
+            form = IngresoTurnoForm(instance=turno)
+        else:
+            # Es la primera vez que se finaliza, calculamos el precio sugerido.
+            precio_sugerido_dict = turno.sub_servicios_solicitados.aggregate(total=Sum('precio'))
+            precio_sugerido = precio_sugerido_dict.get('total') or 0.00
+            form = IngresoTurnoForm(instance=turno, initial={'ingreso_real': precio_sugerido})
+
+    # Decidimos el título de la página según si estamos finalizando o editando
+    titulo_pagina = "Editar Ingreso del Turno" if turno.ingreso_real is not None else "Finalizar y Registrar Ingreso"
 
     context = {
         'form': form,
         'turno': turno,
         'servicio_activo': servicio_activo,
         'onboarding_completo': servicio_activo.configuracion_inicial_completa,
+        'titulo_pagina': titulo_pagina, # Pasamos el título dinámico a la plantilla
     }
     return render(request, 'finalizar_turno.html', context)
 

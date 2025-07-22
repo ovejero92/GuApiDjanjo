@@ -1,0 +1,20 @@
+{% extends 'layouts/dashboard_base.html' %} {# O la base que prefieras #}
+{% load static %}
+
+{% block dashboard_content %}
+<div class="dashboard-section">
+    <div style="text-align: center; padding: 40px; background-color: #3e2723; border: 1px solid #d84315; border-radius: 8px;">
+        <i class="fas fa-exclamation-triangle" style="font-size: 48px; color: #ffab40; margin-bottom: 20px;"></i>
+        <h2>Servicio Suspendido</h2>
+        <p>
+            Tu acceso al panel de gestión para <strong>"{{ servicio.nombre }}"</strong> ha sido temporalmente deshabilitado.
+        </p>
+        <p>
+            Esto suele ocurrir por un pago pendiente. Por favor, para reactivar tu servicio, contacta con el administrador de la plataforma.
+        </p>
+        <p style="margin-top: 30px;">
+            <a href="{% url 'index' %}" class="btn-submit" style="background-color: #616161; text-decoration: none; display: inline-block; width: auto; padding: 10px 20px;">Volver a la página principal</a>
+        </p>
+    </div>
+</div>
+{% endblock %}

@@ -156,6 +156,58 @@ document.addEventListener('DOMContentLoaded', function() {
     setInterval(checkNotifications, 90000); // 30000 milisegundos = 30 segundos
 });
 </script>
+
+<script>
+    // Referencia a nuestro botón personalizado
+    const installButton = document.getElementById('installAppButton');
+    
+    // Variable para guardar el evento que dispara el prompt de instalación
+    let deferredPrompt;
+
+    // Escuchamos el evento 'beforeinstallprompt'
+    window.addEventListener('beforeinstallprompt', (e) => {
+        // 1. Evita que el mini-infobar o el banner por defecto aparezcan
+        e.preventDefault();
+        
+        // 2. Guarda el evento para que se pueda activar más tarde
+        deferredPrompt = e;
+        
+        // 3. Muestra nuestro botón de instalación personalizado
+        if (installButton) {
+            installButton.style.display = 'block';
+        }
+    });
+
+    // Añadimos un listener al clic de nuestro botón
+    if (installButton) {
+        installButton.addEventListener('click', async () => {
+            // Ocultamos nuestro botón, ya que el prompt se va a mostrar
+            installButton.style.display = 'none';
+            
+            // Lanzamos el prompt de instalación que guardamos antes
+            deferredPrompt.prompt();
+            
+            // Esperamos a que el usuario responda al prompt
+            const { outcome } = await deferredPrompt.userChoice;
+            
+            // Opcional: Registramos el resultado para análisis
+            console.log(`Acción del usuario en el prompt: ${outcome}`);
+            
+            // Ya no podemos usar el prompt, lo descartamos
+            deferredPrompt = null;
+        });
+    }
+
+    // Opcional: Escucha cuando la app ya ha sido instalada para ocultar el botón
+    window.addEventListener('appinstalled', () => {
+        // Limpia el prompt y oculta el botón
+        deferredPrompt = null;
+        if (installButton) {
+            installButton.style.display = 'none';
+        }
+        console.log('¡PWA instalada con éxito!');
+    });
+</script>
 {% endif %}
 
 {% block scripts_extra %}{% endblock %}

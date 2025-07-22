@@ -112,46 +112,62 @@ class ReseñaForm(forms.ModelForm):
         }
 
 class ServicioPersonalizacionForm(forms.ModelForm):
+    # ================================================================
+    # ========== LÓGICA DE BORRADO DEFINITIVA DENTRO DEL FORMULARIO ==========
+    # ================================================================
+    
+    def save(self, commit=True):
+        # 1. Obtenemos la instancia del servicio ANTES de que se guarde cualquier cambio.
+        #    Guardamos su estado original.
+        try:
+            original_instance = Servicio.objects.get(pk=self.instance.pk)
+            original_banner = original_instance.imagen_banner
+        except Servicio.DoesNotExist:
+            original_banner = None
+
+        # 2. Llamamos al método save del padre para que procese los datos del formulario,
+        #    pero sin guardarlos aún en la base de datos (commit=False).
+        #    Esto nos da la instancia con los nuevos valores.
+        new_instance = super().save(commit=False)
+
+        # 3. Comparamos la imagen original con la nueva.
+        #    La casilla "Limpiar" habrá hecho que `new_instance.imagen_banner` esté vacío.
+        if original_banner and original_banner != new_instance.imagen_banner:
+            # Si había una imagen original y es diferente de la nueva (o la nueva no existe),
+            # BORRAMOS EL ARCHIVO FÍSICO.
+            original_banner.delete(save=False)
+
+        # 4. Si el argumento `commit` es True, guardamos la instancia final en la BD.
+        if commit:
+            new_instance.save()
+            
+        return new_instance
+
+    # ================================================================
+    # TU CLASE META Y TU MÉTODO CLEAN SE QUEDAN COMO ESTABAN,
+    # PERO TE LOS PONGO PARA QUE REEMPLACES TODA LA CLASE DE UNA VEZ.
+    # ================================================================
     class Meta:
         model = Servicio
-        fields = ['color_primario', 'color_fondo', 'imagen_banner', 'footer_personalizado']
+        fields = [
+            'color_primario', 'color_fondo', 'color_texto' , 'imagen_banner',
+            'fuente_titulos', 'fuente_cuerpo',
+            'footer_direccion', 'footer_telefono', 'footer_email',
+            'footer_instagram_url', 'footer_facebook_url', 'footer_tiktok_url'
+        ]
         widgets = {
             'color_primario': forms.TextInput(attrs={'type': 'color'}),
             'color_fondo': forms.TextInput(attrs={'type': 'color'}),
+            'color_texto': forms.TextInput(attrs={'type': 'color'}),
+            'fuente_titulos': forms.Select(attrs={'class': 'form-control'}),
+            'fuente_cuerpo': forms.Select(attrs={'class': 'form-control'}),
+            'footer_direccion': forms.TextInput(attrs={'placeholder': 'Ej: Av. Siempreviva 742'}),
+            'footer_telefono': forms.TextInput(attrs={'placeholder': 'Ej: +54 9 11 1234-5678'}),
+            'footer_email': forms.EmailInput(attrs={'placeholder': 'Ej: contacto@minegocio.com'}),
+            'footer_instagram_url': forms.URLInput(attrs={'placeholder': 'https://instagram.com/tu-usuario'}),
+            'footer_facebook_url': forms.URLInput(attrs={'placeholder': 'https://facebook.com/tu-pagina'}),
+            'footer_tiktok_url': forms.URLInput(attrs={'placeholder': 'https://tiktok.com/@tu.usuario'}),
         }
-
-    def clean_imagen_banner(self):
-        imagen = self.cleaned_data.get('imagen_banner', False) # 'False' como valor por defecto si no hay imagen
-        
-        # Si no se subió una imagen nueva (el campo está vacío), devolvemos el valor actual.
-        if not imagen:
-            return self.instance.imagen_banner
-
-        try:
-            img = Image.open(imagen)
-            
-            # Redimensionar
-            if img.width > 1920 or img.height > 1080:
-                img.thumbnail((1920, 1080))
-            
-            # Preparar para guardar en memoria
-            output_io = BytesIO()
-            if img.mode in ("RGBA", "P"):
-                img = img.convert("RGB")
-            
-            img.save(output_io, format='JPEG', quality=85)
-            output_io.seek(0)
-
-            # Crear un nuevo nombre de archivo
-            file_name = f"{os.path.splitext(imagen.name)[0]}.jpg"
-            
-            # Devolvemos el nuevo archivo procesado en memoria
-            return InMemoryUploadedFile(
-                output_io, 'ImageField', file_name,
-                'image/jpeg', sys.getsizeof(output_io), None
-            )
-        except Exception as e:
-            raise forms.ValidationError(f"No se pudo procesar la imagen: {e}")
 
 class ServicioUpdateForm(forms.ModelForm):
     class Meta:

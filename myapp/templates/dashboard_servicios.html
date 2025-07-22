@@ -1,4 +1,5 @@
 {% extends 'layouts/dashboard_base.html' %}
+
 {% block dashboard_content %}
     <h1>Mis Servicios y Apariencia</h1>
     <p>Personaliza cómo los clientes ven la página de tu servicio.</p>
@@ -7,62 +8,102 @@
         <div class="dashboard-section"><p>Aún no tienes un servicio asignado.</p></div>
     {% else %}
         <div class="dashboard-grid" id="zona-apariencia">
-            <!-- Columna del Formulario de Apariencia -->
+            <!-- COLUMNA DEL FORMULARIO DE PERSONALIZACIÓN -->
             <div class="dashboard-section form-section">
-                <h2>Personalizar Apariencia</h2>
                 <form method="post" enctype="multipart/form-data">
                     {% csrf_token %}
-                    <div class="form-group">
-                        <label for="{{ form.color_primario.id_for_label }}">Color Primario (botones, etc):</label>
-                        {{ form.color_primario }}
-                    </div>
-                    <div class="form-group">
-                        <label for="{{ form.color_fondo.id_for_label }}">Color de Fondo (tarjetas):</label>
-                        {{ form.color_fondo }}
-                    </div>
-                    <div class="form-group">
-                        <label for="{{ form.imagen_banner.id_for_label }}">Imagen de Banner:</label>
-                        {{ form.imagen_banner }}
-                        {% if servicio.imagen_banner %}<small>Actual: <a href="{{ servicio.imagen_banner.url }}" target="_blank">ver</a></small>{% endif %}
-                    </div>
-                    <div class="form-group">
-                        <label for="{{ form.footer_personalizado.id_for_label }}">Footer Personalizado:</label>
-                        {{ form.footer_personalizado }}
-                    </div>
+
+                    <!-- SECCIÓN DE COLORES Y BANNER -->
+                    <fieldset class="colores-fieldset">
+                        <legend>Colores y Banner Principal</legend>
+                        <div class="form-group">
+                            <label for="{{ form.color_primario.id_for_label }}">Color Primario (botones, etc):</label>
+                            <div style="max-width: 100px;">{{ form.color_primario }}</div>
+                        </div>
+                        <div class="form-group">
+                            <label for="{{ form.color_fondo.id_for_label }}">Color de Fondo (tarjetas):</label>
+                            <div style="max-width: 100px;">{{ form.color_fondo }}</div>
+                        </div>
+                        <div class="form-group">
+                            <label for="{{ form.color_texto.id_for_label }}">Color del Texto:</label>
+                            <div style="max-width: 100px;">{{ form.color_texto }}</div>
+                        </div>
+                        <div class="form-group">
+                            <label for="{{ form.imagen_banner.id_for_label }}">Imagen de Banner:</label>
+                            <div style="max-width: 300px;overflow: hidden;">{{ form.imagen_banner }}</div>
+                            {% if servicio_activo.imagen_banner %}
+                                <small>Actual: <a href="{{ servicio_activo.imagen_banner.url }}" target="_blank">ver imagen</a></small>
+                            {% endif %}
+                        </div>
+                    </fieldset>
+
+                    <!-- SECCIÓN DE TIPOGRAFÍAS -->
+                    <fieldset>
+                        <legend>Tipografías</legend>
+                        <div class="form-group">
+                            <label for="{{ form.fuente_titulos.id_for_label }}">Fuente para Títulos:</label>
+                            {{ form.fuente_titulos }}
+                        </div>
+                        <div class="form-group">
+                            <label for="{{ form.fuente_cuerpo.id_for_label }}">Fuente para Texto General:</label>
+                            {{ form.fuente_cuerpo }}
+                        </div>
+                    </fieldset>
+
+                    <!-- SECCIÓN DE INFORMACIÓN DEL FOOTER -->
+                    <fieldset>
+                        <legend>Información de Contacto (Footer)</legend>
+                        <div class="form-group"><label for="{{ form.footer_direccion.id_for_label }}">Dirección:</label>{{ form.footer_direccion }}</div>
+                        <div class="form-group"><label for="{{ form.footer_telefono.id_for_label }}">Teléfono:</label>{{ form.footer_telefono }}</div>
+                        <div class="form-group"><label for="{{ form.footer_email.id_for_label }}">Email:</label>{{ form.footer_email }}</div>
+                        <div class="form-group"><label for="{{ form.footer_instagram_url.id_for_label }}">Instagram (URL completa):</label>{{ form.footer_instagram_url }}</div>
+                        <div class="form-group"><label for="{{ form.footer_facebook_url.id_for_label }}">Facebook (URL completa):</label>{{ form.footer_facebook_url }}</div>
+                        <div class="form-group"><label for="{{ form.footer_tiktok_url.id_for_label }}">TikTok (URL completa):</label>{{ form.footer_tiktok_url }}</div>
+                    </fieldset>
+
                     <button type="submit" class="btn-submit">Guardar Cambios</button>
                 </form>
             </div>
 
-            <!-- Columna de la Previsualización -->
+            <!-- COLUMNA DE LA PREVISUALIZACIÓN -->
             <div class="dashboard-section preview-section">
                 <h2>Previsualización</h2>
-                <div class="preview-container"  data-existing-banner-url="{% if servicio_activo.imagen_banner %}{{ servicio_activo.imagen_banner.url }}{% endif %}">
+                <div class="preview-container" data-existing-banner-url="{% if servicio_activo.imagen_banner %}{{ servicio_activo.imagen_banner.url }}{% endif %}">
+                    <link rel="preconnect" href="https://fonts.googleapis.com">
+                    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+                    <link id="fontLinkPreview" href="https://fonts.googleapis.com/css2?family=Montserrat&family=Roboto&display=swap" rel="stylesheet">
+                    
                     <div class="preview-banner" id="previewBanner"></div>
-                    <div class="preview-card" id="previewCard" style=`background-color: {{ servicio_activo.color_fondo }}`>
-                        <h3>Tu Título de Ejemplo</h3>
-                        <p>Un texto de ejemplo para que veas cómo queda.</p>
-                        <button class="preview-button" id="previewButton"  style=`background-color: {{ servicio_activo.color_primario }};`>Botón de Ejemplo</button>
+                    <div class="preview-card" id="previewCard">
+                        <h3 id="previewTitle">Tu Título de Ejemplo</h3>
+                        <p id="previewText">Un texto de ejemplo para que veas cómo queda.</p>
+                        <button class="preview-button" id="previewButton">Botón de Ejemplo</button>
                     </div>
                 </div>
             </div>
         </div>
     {% endif %}
 
-    <style>
+     <style>
         .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         @media (max-width: 992px) { .dashboard-grid { grid-template-columns: 1fr; } }
-        .form-group { margin-bottom: 20px; }
-        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
-        .form-group input[type="color"], .form-group input[type="file"], .form-group textarea { width: 100%; padding: 8px; box-sizing: border-box; background-color: #444; color: white; border: 1px solid #666; border-radius: 4px; }
-        .form-group textarea { min-height: 120px; }
-        .btn-submit { background-color: #007bff; color: white; padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; }
-        .preview-container { border: 2px dashed #555; border-radius: 8px; padding: 15px; }
-        .preview-banner { height: 150px; background-color: #555; background-size: cover; background-position: center; border-radius: 5px; margin-bottom: 15px; }
-        .preview-card { border-radius: 5px; padding: 20px; text-align: center; }
-        .preview-button { color: white; padding: 10px 15px; border: none; border-radius: 5px; }
+        .form-section { min-width: 0; }
+        .form-section fieldset { border: 1px solid #555; padding: 20px; margin-bottom: 20px; border-radius: 8px; }
+        .form-section legend { padding: 0 10px; font-weight: bold; color: #ccc; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 0.9em; color: #bbb; }
+        .form-group input[type="color"], .form-group input[type="file"], .form-group input[type="text"], .form-group input[type="email"], .form-group input[type="url"], .form-group select, .form-group textarea { width: 100%; padding: 10px; box-sizing: border-box; background-color: #333; color: white; border: 1px solid #666; border-radius: 4px; }
+        form { margin: 0; }
+        .btn-submit { background-color: #007bff; color: white; padding: 12px 20px; border: none; border-radius: 5px; cursor: pointer; width: 100%; font-size: 1.1em; }
+        .colores-fieldset { width: 400px; }
+        .preview-container { border: 2px dashed #555; border-radius: 8px; padding: 15px; overflow: hidden; }
+        .preview-banner { height: 150px; background-color: #555; background-size: cover; background-position: center; border-radius: 5px; margin-bottom: 15px; transition: background-image 0.3s; }
+        .preview-card { border-radius: 5px; padding: 20px; text-align: center; transition: all 0.3s; }
+        .preview-card h3, .preview-card p { transition: font-family 0.3s, color 0.3s; }
+        .preview-button { color: white; padding: 10px 15px; border: none; border-radius: 5px; transition: background-color 0.3s; }
     </style>
-    {% endblock %}
-    
+{% endblock %}
+
 
 {% block scripts_extra %}
     {{ block.super }}
@@ -71,51 +112,60 @@
             const form = document.querySelector('.form-section form');
             if (!form) return;
 
-            // --- SELECCIONAMOS LOS INPUTS Y ELEMENTOS DE PREVISUALIZACIÓN ---
             const colorPrimarioInput = document.getElementById('id_color_primario');
             const colorFondoInput = document.getElementById('id_color_fondo');
+            const colorTextoInput = document.getElementById('id_color_texto');
             const bannerInput = document.getElementById('id_imagen_banner');
+            const fuenteTitulosInput = document.getElementById('id_fuente_titulos');
+            const fuenteCuerpoInput = document.getElementById('id_fuente_cuerpo');
             
             const previewButton = document.getElementById('previewButton');
             const previewCard = document.getElementById('previewCard');
             const previewBanner = document.getElementById('previewBanner');
             const previewContainer = document.querySelector('.preview-container');
+            const previewTitle = document.getElementById('previewTitle');
+            const previewText = document.getElementById('previewText');
+            const fontLinkPreview = document.getElementById('fontLinkPreview');
 
-            // GUARDIÁN: Si los elementos no existen, no hacer nada.
-            if (!colorPrimarioInput || !previewButton || !previewContainer) return;
-
-            // --- FUNCIÓN DE ACTUALIZACIÓN (CORREGIDA) ---
+            function updateGoogleFonts(fontTitles, fontBody) {
+                const fontTitleName = fontTitles.split(',')[0].replace(/'/g, "").replace(/ /g, "+");
+                const fontBodyName = fontBody.split(',')[0].replace(/'/g, "").replace(/ /g, "+");
+                fontLinkPreview.href = `https://fonts.googleapis.com/css2?family=${fontTitleName}&family=${fontBodyName}&display=swap`;
+            }
+            
             function updatePreview() {
-                // Actualizar colores (sin cambios)
                 previewButton.style.backgroundColor = colorPrimarioInput.value;
                 previewCard.style.backgroundColor = colorFondoInput.value;
+                previewTitle.style.color = colorTextoInput.value;
+                previewText.style.color = colorTextoInput.value;
                 
-                // Actualizar banner
-                // 1. Si el usuario selecciona un NUEVO archivo:
                 if (bannerInput.files && bannerInput.files[0]) {
                     const reader = new FileReader();
                     reader.onload = function(e) {
                         previewBanner.style.backgroundImage = `url('${e.target.result}')`;
                     }
                     reader.readAsDataURL(bannerInput.files[0]);
-                } 
-                // 2. Si NO ha seleccionado un nuevo archivo, usamos el que ya existe (si hay uno).
-                else {
+                } else {
                     const existingBannerUrl = previewContainer.dataset.existingBannerUrl;
                     if (existingBannerUrl) {
                         previewBanner.style.backgroundImage = `url('${existingBannerUrl}')`;
                     } else {
-                        previewBanner.style.backgroundImage = 'none'; // Sin imagen si no hay nada
+                        previewBanner.style.backgroundImage = 'none';
                     }
                 }
+                
+                const selectedFontTitles = fuenteTitulosInput.value;
+                const selectedFontBody = fuenteCuerpoInput.value;
+                
+                updateGoogleFonts(selectedFontTitles, selectedFontBody);
+                
+                previewTitle.style.fontFamily = selectedFontTitles;
+                previewText.style.fontFamily = selectedFontBody;
             }
             
-            // Llamamos a la función al cargar la página para establecer el estado inicial
             updatePreview();
 
-            // Añadimos los listeners para actualizar en tiempo real
-            colorPrimarioInput.addEventListener('input', updatePreview);
-            colorFondoInput.addEventListener('input', updatePreview);
+            form.addEventListener('input', updatePreview);
             bannerInput.addEventListener('change', updatePreview);
         });
     </script>

@@ -11,6 +11,11 @@
                     <li class="{% if request.resolver_match.url_name == 'dashboard_turnos' %}active{% endif %}">
                         <a href="{% url 'dashboard_turnos' %}"><i class="fas fa-tasks"></i> <span>Gestión de Turnos</span></a>
                     </li>
+                    <li class="nav-item">
+                        <a href="{% url 'dashboard_calendario' %}" class="nav-link">
+                        <i class="fas fa-calendar-alt"></i> <span>Calendario</span>
+                        </a>
+                    </li>
                     <li class="{% if request.resolver_match.url_name == 'dashboard_horarios' %}active{% endif %}">
                         <a href="{% url 'dashboard_horarios' %}"><i class="fas fa-calendar-alt"></i> <span>Horarios y Bloqueos</span></a>
                     </li>

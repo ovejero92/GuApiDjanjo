@@ -10,6 +10,10 @@
             <h1>Reservá Turnos Online al Instante</h1>
             <p class="subtitle">Peluquerías, barberías, manicuras y más. Encontrá tu servicio ideal o llevá tu negocio al siguiente nivel.</p>
             <a href="{% url 'account_signup' %}" class="btn-primary">Registrate Gratis</a>
+            <button id="installAppButton" class="btn-instalar" style="display: none;">
+            <i class="fas fa-download"></i> <!-- Ícono de ejemplo, necesitas FontAwesome -->
+            Instalar Aplicación
+            </button>
         </section>
 
         <!-- Beneficios para Negocios -->
@@ -109,6 +113,32 @@
 .category-filters a:hover, .category-filters a.active {
     background-color: #007bff; color: white; transform: scale(1.05);
 }
+.btn-instalar {
+    position: fixed; /* Lo fija en la pantalla */
+    bottom: 20px;
+    right: 20px;
+    background-color: var(--color-primario, #007bff); /* Usa tu color primario */
+    color: white;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 25px;
+    font-size: 1em;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+    transition: transform 0.2s ease;
+}
+
+.btn-instalar:hover {
+    transform: scale(1.05);
+}
+
+.btn-instalar i {
+    margin-right: 8px;
+}
 </style>
+
+
 
 {% endblock %}

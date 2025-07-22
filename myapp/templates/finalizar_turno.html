@@ -1,37 +1,98 @@
 {% extends 'layouts/dashboard_base.html' %}
-    
-{% block dashboard_content %}
-    <div class="dashboard-section">
-        <h1>Finalizar Turno y Registrar Ingreso</h1>
-        <p>Confirma el monto final cobrado para este turno. Al guardar, el turno se marcará como <strong>Completado</strong>.</p>
-        <hr>
-        
-        <div class="turno-info">
-            <p><strong>Cliente:</strong> {{ turno.cliente.username }}</p>
-            <p><strong>Servicio:</strong> {{ turno.servicio.nombre }} (Precio estándar: ${{ turno.servicio.precio_estandar }})</p>
-            <p><strong>Fecha:</strong> {{ turno.fecha|date:"d/m/Y" }} a las {{ turno.hora|time:"H:i" }}</p>
-        </div>
 
-        <form method="post" class="finalizar-form">
-            {% csrf_token %}
-            {{ form.as_p }}
-            <button type="submit" class="btn-submit btn-completar">Finalizar y Guardar</button>
-        </form>
+{% block dashboard_content %}
+<div class="dashboard-section">
+    
+    <!-- 1. Usamos el título dinámico que ahora pasamos desde la vista -->
+    <h1>{{ titulo_pagina }}</h1>
+    
+    <p>Confirma o ajusta el monto final cobrado por este turno. Al guardar, el turno quedará marcado como <strong>Completado</strong>.</p>
+    <hr>
+    
+    <!-- 2. Tarjeta de detalles del turno mejorada -->
+    <div class="turno-info-card">
+        <p><strong>Cliente:</strong> {{ turno.cliente.first_name|default:turno.cliente.username }}</p>
+        <p><strong>Fecha y Hora:</strong> {{ turno.fecha|date:"d/m/Y" }} a las {{ turno.hora|time:"H:i" }}</p>
+        <p><strong>Servicios Solicitados:</strong>
+            <span class="servicio-tag-container-inline">
+                {% for sub in turno.sub_servicios_solicitados.all %}
+                    <span class="servicio-tag-inline">{{ sub.nombre }}</span>
+                {% empty %}
+                    <em>Sin servicios especificados.</em>
+                {% endfor %}
+            </span>
+        </p>
     </div>
 
-    <style>
-    /* Puedes mover esto a tu archivo de estilos principal */
-    .turno-info {
-        margin-bottom: 20px;
-        padding: 15px;
-        background-color: #444;
-        border-radius: 5px;
+    <!-- 3. Formulario con estilo mejorado -->
+    <form method="post" class="finalizar-form">
+        {% csrf_token %}
+        
+        <div class="form-group">
+            <label for="{{ form.ingreso_real.id_for_label }}">Ingreso Real Cobrado:</label>
+            {{ form.ingreso_real }}
+            {% if form.ingreso_real.errors %}
+                <div class="form-error">{{ form.ingreso_real.errors|join:", " }}</div>
+            {% endif %}
+        </div>
+        
+        <!-- 4. Botones de acción claros -->
+        <div class="action-buttons" style="margin-top: 20px;">
+            <button type="submit" class="btn-confirmar">Guardar Ingreso</button>
+            <a href="{% url 'dashboard_turnos' %}" class="btn-cancelar" style="text-decoration: none; padding: 10px 15px; color: white;">Cancelar</a>
+        </div>
+    </form>
+</div>
+
+<!-- 5. Estilos mejorados para esta página específica -->
+<style>
+    .turno-info-card {
+        margin-bottom: 25px;
+        padding: 20px;
+        background-color: #3a3a3a;
+        border-left: 5px solid var(--color-primario, #033f63);
+        border-radius: 8px;
+    }
+    .turno-info-card p {
+        margin: 8px 0;
+        font-size: 1.1em;
     }
     .finalizar-form {
-        margin-top: 20px;
+        max-width: 500px;
     }
-    .btn-submit.btn-completar { /* Combinando clases para un estilo específico */
-        background-color: #28a745;
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: bold;
     }
-    </style>
+    .form-group input {
+        width: 100%;
+        padding: 10px;
+        border-radius: 5px;
+        border: 1px solid #555;
+        background-color: #2c2c2c;
+        color: #fff;
+        font-size: 1.1em;
+    }
+    .form-error {
+        color: #ff6b6b;
+        font-size: 0.9em;
+        margin-top: 5px;
+    }
+    
+    /* Estilos para las etiquetas de servicios (versión inline) */
+    .servicio-tag-container-inline {
+        display: inline-flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        vertical-align: middle;
+    }
+    .servicio-tag-inline {
+        background-color: #555;
+        color: #ddd;
+        padding: 3px 8px;
+        border-radius: 12px;
+        font-size: 0.9em;
+    }
+</style>
 {% endblock %}
