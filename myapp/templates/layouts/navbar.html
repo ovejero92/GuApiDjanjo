@@ -66,11 +66,7 @@
 <body>
     <nav class="navbar">
         <div class="nav-content">
-            <img src="{% static 'image/logoNav.png' %}" alt="Logo" class="logo">
-            <button id="installAppButton" class="btn-instalar" style="display: none;">
-            <i class="fas fa-download"></i> <!-- Ícono de ejemplo, necesitas FontAwesome -->
-            Instalar Aplicación
-            </button>
+            <a href="{% url 'index' %}" class="logo-link"><img src="{% static 'image/logoNav.png' %}" alt="Logo" class="logo"></a>
             <div class="nav-links">
                 <a href="{% url 'index' %}">Home</a>
                 <a href="{% url 'about' %}">About</a>
@@ -103,7 +99,10 @@
             </div>
         </div>
     </nav>
-
+     <button id="installAppButton" class="btn-instalar" style="display: none;">
+        <i class="fas fa-download"></i>
+        <span>Instalar App</span>
+    </button>
     <main class="container">
         {% block content %}{% endblock %}
     </main>
@@ -157,22 +156,49 @@
                 });
             }
         });
+
+        // --- Lógica del Service Worker (PWA) ---
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register("{% static 'serviceworker.js' %}")
+                    .then(reg => console.log('Service worker registered.', reg))
+                    .catch(err => console.log('Service worker registration failed:', err));
+            });
+        }
+
+        // --- Lógica del botón de instalar (Ahora se ejecuta SIEMPRE) ---
+        const installButton = document.getElementById('installAppButton');
+        let deferredPrompt;
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            if (installButton) {
+                installButton.style.display = 'flex'; // Usamos flex para centrar el contenido
+            }
+        });
+
+        if (installButton) {
+            installButton.addEventListener('click', async () => {
+                if (deferredPrompt) {
+                    installButton.style.display = 'none';
+                    deferredPrompt.prompt();
+                    const { outcome } = await deferredPrompt.userChoice;
+                    console.log(`User response to the install prompt: ${outcome}`);
+                    deferredPrompt = null;
+                }
+            });
+        }
+
+        window.addEventListener('appinstalled', () => {
+            deferredPrompt = null;
+            if (installButton) {
+                installButton.style.display = 'none';
+            }
+        });
     </script>
 
 
-<script>
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-        navigator.serviceWorker.register("{% static 'serviceworker.js' %}")
-            .then(registration => {
-            console.log('ServiceWorker registration successful with scope: ', registration.scope);
-            })
-            .catch(err => {
-            console.log('ServiceWorker registration failed: ', err);
-            });
-        });
-    }
-</script>
 {% if user.is_authenticated %}
 <script>
 // Asegúrate de que este script se ejecute solo si el usuario está logueado
@@ -199,58 +225,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Y luego, comprueba cada 30 segundos
     setInterval(checkNotifications, 90000); // 30000 milisegundos = 30 segundos
 });
-</script>
-
-<script>
-    // Referencia a nuestro botón personalizado
-    const installButton = document.getElementById('installAppButton');
-    
-    // Variable para guardar el evento que dispara el prompt de instalación
-    let deferredPrompt;
-
-    // Escuchamos el evento 'beforeinstallprompt'
-    window.addEventListener('beforeinstallprompt', (e) => {
-        // 1. Evita que el mini-infobar o el banner por defecto aparezcan
-        e.preventDefault();
-        
-        // 2. Guarda el evento para que se pueda activar más tarde
-        deferredPrompt = e;
-        
-        // 3. Muestra nuestro botón de instalación personalizado
-        if (installButton) {
-            installButton.style.display = 'block';
-        }
-    });
-
-    // Añadimos un listener al clic de nuestro botón
-    if (installButton) {
-        installButton.addEventListener('click', async () => {
-            // Ocultamos nuestro botón, ya que el prompt se va a mostrar
-            installButton.style.display = 'none';
-            
-            // Lanzamos el prompt de instalación que guardamos antes
-            deferredPrompt.prompt();
-            
-            // Esperamos a que el usuario responda al prompt
-            const { outcome } = await deferredPrompt.userChoice;
-            
-            // Opcional: Registramos el resultado para análisis
-            console.log(`Acción del usuario en el prompt: ${outcome}`);
-            
-            // Ya no podemos usar el prompt, lo descartamos
-            deferredPrompt = null;
-        });
-    }
-
-    // Opcional: Escucha cuando la app ya ha sido instalada para ocultar el botón
-    window.addEventListener('appinstalled', () => {
-        // Limpia el prompt y oculta el botón
-        deferredPrompt = null;
-        if (installButton) {
-            installButton.style.display = 'none';
-        }
-        console.log('¡PWA instalada con éxito!');
-    });
 </script>
 {% endif %}
 
