@@ -26,7 +26,30 @@
         .user-initial {
             display: inline-block; /* La inicial se muestra */
         }
+        .btn-instalar {
+        position: fixed; /* Lo fija en la pantalla */
+        bottom: 20px;
+        right: 20px;
+        background-color: var(--color-primario, #007bff); /* Usa tu color primario */
+        color: white;
+        padding: 12px 20px;
+        border: none;
+        border-radius: 25px;
+        font-size: 1em;
+        font-weight: bold;
+        cursor: pointer;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        z-index: 1000;
+        transition: transform 0.2s ease;
+        }
 
+        .btn-instalar:hover {
+            transform: scale(1.05);
+        }
+        
+        .btn-instalar i {
+            margin-right: 8px;
+        }
         /* En pantallas más grandes (tablets y escritorio)... */
         @media (min-width: 768px) {
             /* Mostramos el nombre completo */
@@ -44,6 +67,10 @@
     <nav class="navbar">
         <div class="nav-content">
             <img src="{% static 'image/logoNav.png' %}" alt="Logo" class="logo">
+            <button id="installAppButton" class="btn-instalar" style="display: none;">
+            <i class="fas fa-download"></i> <!-- Ícono de ejemplo, necesitas FontAwesome -->
+            Instalar Aplicación
+            </button>
             <div class="nav-links">
                 <a href="{% url 'index' %}">Home</a>
                 <a href="{% url 'about' %}">About</a>
