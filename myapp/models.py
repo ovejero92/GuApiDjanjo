@@ -76,7 +76,8 @@ class Servicio(models.Model):
         # Si el servicio no tiene un slug, lo creamos a partir del nombre.
         if not self.slug:
             self.slug = slugify(self.nombre)
-        
+        else:
+            self.slug = slugify(self.slug)
         # ... (el resto de tu lógica del método save para borrar imágenes se queda igual)
         super().save(*args, **kwargs)
 

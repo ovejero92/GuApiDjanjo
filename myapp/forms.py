@@ -5,7 +5,7 @@ from django.utils import timezone
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from datetime import datetime, timedelta
 from PIL import Image
-import sys
+from django.utils.text import slugify
 from io import BytesIO
 import os
 
@@ -143,15 +143,21 @@ class ServicioPersonalizacionForm(forms.ModelForm):
             
         return new_instance
 
-    # ================================================================
-    # TU CLASE META Y TU MÉTODO CLEAN SE QUEDAN COMO ESTABAN,
-    # PERO TE LOS PONGO PARA QUE REEMPLACES TODA LA CLASE DE UNA VEZ.
-    # ================================================================
+    def clean_slug(self):
+        slug_ingresado = self.cleaned_data.get('slug')
+        slug_limpio = slugify(slug_ingresado) # Limpiamos el slug por si el usuario puso espacios
+
+        # Comprobamos si ya existe otro servicio con ese slug (excluyéndonos a nosotros mismos)
+        if Servicio.objects.filter(slug=slug_limpio).exclude(pk=self.instance.pk).exists():
+            raise forms.ValidationError("¡Oh no! Esta URL ya está en uso. Por favor, elige otra.")
+        
+        return slug_limpio
+    
     class Meta:
         model = Servicio
         fields = [
             'color_primario', 'color_fondo', 'color_texto' , 'imagen_banner',
-            'fuente_titulos', 'fuente_cuerpo',
+            'fuente_titulos', 'fuente_cuerpo', 'slug',
             'footer_direccion', 'footer_telefono', 'footer_email',
             'footer_instagram_url', 'footer_facebook_url', 'footer_tiktok_url'
         ]
@@ -167,6 +173,9 @@ class ServicioPersonalizacionForm(forms.ModelForm):
             'footer_instagram_url': forms.URLInput(attrs={'placeholder': 'https://instagram.com/tu-usuario'}),
             'footer_facebook_url': forms.URLInput(attrs={'placeholder': 'https://facebook.com/tu-pagina'}),
             'footer_tiktok_url': forms.URLInput(attrs={'placeholder': 'https://tiktok.com/@tu.usuario'}),
+        }
+        help_texts = { # <-- NUEVO DICCIONARIO
+            'slug': "Esta será la URL de tu negocio. Usa solo letras, números y guiones. Sin espacios."
         }
 
 class ServicioUpdateForm(forms.ModelForm):

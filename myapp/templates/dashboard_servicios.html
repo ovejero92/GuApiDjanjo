@@ -13,6 +13,23 @@
                 <form method="post" enctype="multipart/form-data">
                     {% csrf_token %}
 
+                    <fieldset>
+                        <legend>URL Pública de tu Servicio</legend>
+                        <div class="form-group">
+                            <label for="{{ form.slug.id_for_label }}">Dirección de tu página:</label>
+                            <div class="url-preview">
+                                <span>{{ request.get_host }}/s/</span>
+                                <span class="input-url">{{ form.slug }}</span>
+                            </div>
+                            {% if form.slug.help_text %}
+                                <small class="form-help-text">{{ form.slug.help_text }}</small>
+                            {% endif %}
+                            {% if form.slug.errors %}
+                                <div class="form-error">{{ form.slug.errors|join:", " }}</div>
+                            {% endif %}
+                        </div>
+                    </fieldset>
+
                     <!-- SECCIÓN DE COLORES Y BANNER -->
                     <fieldset class="colores-fieldset">
                         <legend>Colores y Banner Principal</legend>
@@ -101,6 +118,15 @@
         .preview-card { border-radius: 5px; padding: 20px; text-align: center; transition: all 0.3s; }
         .preview-card h3, .preview-card p { transition: font-family 0.3s, color 0.3s; }
         .preview-button { color: white; padding: 10px 15px; border: none; border-radius: 5px; transition: background-color 0.3s; }
+          .url-preview { display: flex; align-items: center; background-color: #2c2c2c; border: 1px solid #555; border-radius: 5px; padding: 5px; }
+        .url-preview span { padding: 0 10px; color: #888; white-space: nowrap; }
+        .url-preview input { border: none !important; background: none !important; flex-grow: 1; padding: 5px !important; }
+        .form-help-text { font-size: 0.8em; color: #888; }
+        .form-error { color: #ff6b6b; font-size: 0.9em; margin-top: 5px; background-color: #5d1a1a; padding: 8px; border-radius: 4px; }
+        .input-url{padding: 0 !important;}
+        .input-url input{
+            margin: 0;
+        }
     </style>
 {% endblock %}
 
