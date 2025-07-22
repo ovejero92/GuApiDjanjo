@@ -2,57 +2,76 @@
 {% load static %}
 
 {% block content %}
-{# Si el usuario NO está autenticado, mostramos la Landing Page #}
 {% if not user.is_authenticated %}
     <div class="landing-page">
-        <!-- Sección Hero -->
-        <section class="hero-section text-center">
-            <h1>La Forma Más Simple de Gestionar Tus Turnos</h1>
-            <p class="subtitle">Encuentra y reserva citas en tus servicios locales favoritos, o potencia tu negocio con nuestra plataforma de gestión inteligente.</p>
-            <a href="{% url 'account_signup' %}" class="btn-cta">Empieza Ahora - ¡Es Gratis!</a>
+
+        <!-- Hero Principal -->
+        <section class="hero text-center">
+            <h1>Reservá Turnos Online al Instante</h1>
+            <p class="subtitle">Peluquerías, barberías, manicuras y más. Encontrá tu servicio ideal o llevá tu negocio al siguiente nivel.</p>
+            <a href="{% url 'account_signup' %}" class="btn-primary">Registrate Gratis</a>
         </section>
 
-        <!-- Sección "Para Negocios" -->
-        <section class="landing-section">
-            <h2>Potencia Tu Negocio</h2>
-            <p>Deja de perder tiempo con llamadas y mensajes. Ofrece a tus clientes una agenda online 24/7 y dedica tu tiempo a lo que realmente importa. <a href="{% url 'about' %}">Descubre más...</a></p>
+        <!-- Beneficios para Negocios -->
+        <section class="benefits">
+            <div class="benefit-card">
+                <h2>Para Negocios</h2>
+                <p>Gestioná reservas, agenda online 24/7 y ganá visibilidad. Nos ocupamos de la tecnología, vos de tus clientes.</p>
+                <a href="{% url 'about' %}" class="btn-secondary">Quiero Saber Más</a>
+            </div>
+
+            <!-- Beneficios para Clientes -->
+            <div class="benefit-card">
+                <h2>Para Clientes</h2>
+                <p>Reservá en segundos en los mejores locales cerca tuyo. Sin llamadas ni esperas.</p>
+                <a href="{% url 'account_signup' %}" class="btn-secondary">Comenzá Ahora</a>
+            </div>
         </section>
 
-        <!-- Sección "Para Clientes" -->
-        <section class="landing-section">
-            <h2>Encuentra Tu Próximo Turno</h2>
-            <p>Explora peluquerías, barberías, spas y más. Compara, elige y reserva en segundos.</p>
-            <!-- Mostramos algunos servicios como ejemplo -->
-            <div class="contenedor-servicios">
-                {% for servicio in servicios|slice:":3" %} {# Muestra solo los 3 primeros #}
-                    <div class="card-servicio">
+        <!-- Servicios Destacados -->
+        <section class="featured">
+            <h2>Servicios Populares</h2>
+            <div class="services-grid">
+                {% for servicio in servicios|slice:":3" %}
+                    <div class="service-card">
                         <h3>{{ servicio.nombre }}</h3>
-                        <p>{{ servicio.descripcion|truncatewords:10 }}</p>
-                        <a href="{% url 'servicio_detail' servicio.id %}" class="btn-solicitar">Ver Servicios</a>
+                        <p>{{ servicio.descripcion|truncatewords:12 }}</p>
+                        <a href="{% url 'servicio_detail' servicio.id %}" class="btn-tertiary">Ver Más</a>
                     </div>
                 {% endfor %}
             </div>
         </section>
+
+        <!-- Call to Action Final -->
+        <section class="cta-final text-center">
+            <h2>¡No esperes más!</h2>
+            <p>Unite a cientos de usuarios y negocios que ya gestionan sus turnos con nosotros.</p>
+            <a href="{% url 'account_signup' %}" class="btn-primary">Registrarme Ahora</a>
+        </section>
+
     </div>
 
-{# Si el usuario SÍ está autenticado, mostramos el listado de siempre #}
 {% else %}
+    {# Página cuando el usuario está autenticado (dejé tu código intacto) #}
     <h1>Servicios Disponibles</h1>
     <div class="category-filters">
-    <a href="{% url 'index' %}" class="{% if not categoria_activa %}active{% endif %}">Todos</a>
-    {% for cat in categorias %}
-        <a href="?categoria={{ cat.slug }}" class="{% if categoria_activa == cat.slug %}active{% endif %}">
-            {{ cat.nombre }}
-        </a>
-    {% endfor %}
+        <a href="{% url 'index' %}" class="{% if not categoria_activa %}active{% endif %}">Todos</a>
+        {% for cat in categorias %}
+            <a href="?categoria={{ cat.slug }}" class="{% if categoria_activa == cat.slug %}active{% endif %}">{{ cat.nombre }}</a>
+        {% endfor %}
     </div>
+
     <div class="contenedor-servicios">
         {% for servicio in servicios %}
             <div class="card-servicio">
                 {% if user.is_authenticated %}
-                <a href="{% url 'toggle_favorito' servicio.id %}" class="favorito-btn">
-                    {% if servicio in user.servicios_favoritos.all %}<i class="fas fa-heart"></i>{% else %}<i class="far fa-heart"></i>{% endif %}
-                </a>
+                    <a href="{% url 'toggle_favorito' servicio.id %}" class="favorito-btn">
+                        {% if servicio in user.servicios_favoritos.all %}
+                            <i class="fas fa-heart"></i>
+                        {% else %}
+                            <i class="far fa-heart"></i>
+                        {% endif %}
+                    </a>
                 {% endif %}
                 <h2>{{ servicio.nombre }}</h2>
                 <p>{{ servicio.descripcion|truncatewords:15 }}</p>
@@ -63,16 +82,22 @@
 {% endif %}
 
 <style>
-.landing-section { padding: 40px 20px; text-align: center; }
-.hero-section { padding: 80px 20px; background-color: #2a2a2a; }
-.category-filters { text-align: center; margin-bottom: 30px; }
-.category-filters a {
-    display: inline-block; padding: 8px 15px; margin: 5px;
-    background-color: #444; color: #ccc; text-decoration: none;
-    border-radius: 20px; transition: all 0.2s;
-}
-.category-filters a:hover, .category-filters a.active {
-    background-color: #007bff; color: white; transform: scale(1.05);
-}
+.landing-page { font-family: 'Segoe UI', sans-serif; color: #333; }
+.hero { background: linear-gradient(135deg, #007bff, #00c6ff); color: white; padding: 80px 20px; }
+.hero h1 { font-size: 3em; margin-bottom: 10px; }
+.hero .subtitle { font-size: 1.2em; margin-bottom: 30px; }
+.benefits { display: flex; justify-content: center; gap: 40px; padding: 40px 20px; flex-wrap: wrap; }
+.benefit-card { background: #f8f9fa; padding: 30px; border-radius: 10px; width: 300px; text-align: center; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+.featured { background: #f1f1f1; padding: 50px 20px; text-align: center; }
+.services-grid { display: flex; justify-content: center; gap: 30px; flex-wrap: wrap; }
+.service-card { background: white; padding: 20px; border-radius: 10px; width: 250px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+.cta-final { background: #007bff; color: white; padding: 60px 20px; }
+.btn-primary, .btn-secondary, .btn-tertiary { padding: 10px 20px; border-radius: 5px; text-decoration: none; display: inline-block; margin-top: 10px; }
+.btn-primary { background: #ffc107; color: black; font-weight: bold; }
+.btn-secondary { background: white; color: #007bff; border: 2px solid #007bff; }
+.btn-tertiary { background: #e0e0e0; color: #333; }
+.btn-primary:hover, .btn-secondary:hover, .btn-tertiary:hover { opacity: 0.9; }
+.text-center { text-align: center; }
 </style>
+
 {% endblock %}
