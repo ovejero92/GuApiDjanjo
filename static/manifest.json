@@ -8,14 +8,14 @@
   "description": "Tu plataforma de gestión de turnos.",
   "icons": [
     {
-      "src": "/static/images/icon-192x192.png",
+      "src": "/static/image/phonebook_notebook_14401.ico",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/ico"
     },
     {
-      "src": "/static/images/icon-512x512.png",
+      "src": "/static/image/phonebook_notebook_14401.ico",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/ico"
     }
   ]
 }
