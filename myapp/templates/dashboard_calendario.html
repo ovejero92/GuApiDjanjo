@@ -20,6 +20,24 @@
     .modal-content { background-color: #252525; padding: 30px; border-radius: 8px; width: 90%; max-width: 600px; max-height: 80vh; overflow-y: auto; position: relative; }
     .modal-close { position: absolute; top: 15px; right: 15px; font-size: 1.5em; cursor: pointer; color: #aaa; }
     .turno-card { background-color: #333; border-left: 4px solid var(--color-primario, #033f63); padding: 15px; margin-bottom: 15px; border-radius: 5px; }
+
+    @media (max-width: 768px) {
+        .calendario-grid {
+            gap: 2px; /* Reducimos el espacio entre días */
+        }
+        .calendario-dia {
+            min-height: 60px; /* Hacemos los cuadrados más pequeños */
+            padding: 5px;
+            font-size: 0.9em; /* Achicamos un poco la letra */
+        }
+        .calendario-header-dia {
+            font-size: 0.8em; /* Achicamos los encabezados de los días */
+            padding: 8px 0;
+        }
+        .dia-numero {
+            font-size: 1.1em;
+        }
+    }
 </style>
 
 <h1>Calendario de Turnos</h1>
@@ -30,13 +48,13 @@
         <h2>{{ mes_nombre }} {{ año }}</h2>
     </div>
     <div class="calendario-grid">
-        <div class="calendario-header-dia">Lunes</div>
-        <div class="calendario-header-dia">Martes</div>
-        <div class="calendario-header-dia">Miércoles</div>
-        <div class="calendario-header-dia">Jueves</div>
-        <div class="calendario-header-dia">Viernes</div>
-        <div class="calendario-header-dia">Sábado</div>
-        <div class="calendario-header-dia">Domingo</div>
+        <div class="calendario-header-dia">Lu</div>
+        <div class="calendario-header-dia">Ma</div>
+        <div class="calendario-header-dia">Mi</div>
+        <div class="calendario-header-dia">Ju</div>
+        <div class="calendario-header-dia">Vi</div>
+        <div class="calendario-header-dia">Sá</div>
+        <div class="calendario-header-dia">Do</div>
 
         {% for _ in offset_dias %}<div class="calendario-dia-vacio"></div>{% endfor %}
         

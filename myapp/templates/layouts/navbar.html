@@ -7,7 +7,9 @@
     <title>Turnos Online</title>
     <link rel="stylesheet" href="{% static 'styles/main.css' %}">
     <link rel="shortcut icon" href="{% static 'image/phonebook_notebook_14401.ico' %}" type="image/x-icon">
-    <script src="https://kit.fontawesome.com/76e20a326e.js" crossorigin="anonymous"></script>  
+    <script src="https://kit.fontawesome.com/76e20a326e.js" crossorigin="anonymous"></script>
+    <link rel="manifest" href="{% static 'manifest.json' %}">
+    <meta name="theme-color" content="#007bff">
     <style>
         .notificacion-circulo {
             background-color: #e63946; color: white; border-radius: 50%;
@@ -129,8 +131,23 @@
             }
         });
     </script>
+
+
+<script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+        navigator.serviceWorker.register("{% static 'serviceworker.js' %}")
+            .then(registration => {
+            console.log('ServiceWorker registration successful with scope: ', registration.scope);
+            })
+            .catch(err => {
+            console.log('ServiceWorker registration failed: ', err);
+            });
+        });
+    }
+</script>
 {% if user.is_authenticated %}
-    <script>
+<script>
 // Asegúrate de que este script se ejecute solo si el usuario está logueado
 document.addEventListener('DOMContentLoaded', function() {
     const notificacionCirculo = document.getElementById('notificacion-circulo');
