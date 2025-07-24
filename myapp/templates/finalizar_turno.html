@@ -3,13 +3,11 @@
 {% block dashboard_content %}
 <div class="dashboard-section">
     
-    <!-- 1. Usamos el título dinámico que ahora pasamos desde la vista -->
     <h1>{{ titulo_pagina }}</h1>
     
     <p>Confirma o ajusta el monto final cobrado por este turno. Al guardar, el turno quedará marcado como <strong>Completado</strong>.</p>
     <hr>
     
-    <!-- 2. Tarjeta de detalles del turno mejorada -->
     <div class="turno-info-card">
         <p><strong>Cliente:</strong> {{ turno.cliente.first_name|default:turno.cliente.username }}</p>
         <p><strong>Fecha y Hora:</strong> {{ turno.fecha|date:"d/m/Y" }} a las {{ turno.hora|time:"H:i" }}</p>
@@ -24,7 +22,6 @@
         </p>
     </div>
 
-    <!-- 3. Formulario con estilo mejorado -->
     <form method="post" class="finalizar-form">
         {% csrf_token %}
         
@@ -36,7 +33,6 @@
             {% endif %}
         </div>
         
-        <!-- 4. Botones de acción claros -->
         <div class="action-buttons" style="margin-top: 20px;">
             <button type="submit" class="btn-confirmar">Guardar Ingreso</button>
             <a href="{% url 'dashboard_turnos' %}" class="btn-cancelar" style="text-decoration: none; padding: 10px 15px; color: white;">Cancelar</a>
@@ -44,7 +40,6 @@
     </form>
 </div>
 
-<!-- 5. Estilos mejorados para esta página específica -->
 <style>
     .turno-info-card {
         margin-bottom: 25px;
@@ -80,7 +75,6 @@
         margin-top: 5px;
     }
     
-    /* Estilos para las etiquetas de servicios (versión inline) */
     .servicio-tag-container-inline {
         display: inline-flex;
         flex-wrap: wrap;

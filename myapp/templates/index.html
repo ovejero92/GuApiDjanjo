@@ -5,7 +5,6 @@
 {% if not user.is_authenticated %}
     <div class="landing-page">
 
-        <!-- Hero Principal -->
         <section class="hero">
             <div class="hero-content">
               <h1>Organizá tus turnos y hacé crecer tu negocio</h1>
@@ -17,7 +16,6 @@
             </div>
         </section>
 
-        <!-- Beneficios para Negocios -->
         <section class="benefits">
             <div class="benefit-card">
                 <h2>Para Negocios</h2>
@@ -25,7 +23,6 @@
                 <a href="https://wa.me/5491169594538?text=¡Hola!%20Quisiera%20saber%20más%20sobre%20el%20servicio%20para%20negocios." target="_blank" class="btn-secondary">Quiero Saber Más</a>
             </div>
 
-            <!-- Beneficios para Clientes -->
             <div class="benefit-card">
                 <h2>Para Clientes</h2>
                 <p>Reservá en segundos en los mejores locales cerca tuyo. Sin llamadas ni esperas.</p>
@@ -33,7 +30,6 @@
             </div>
         </section>
 
-        <!-- Servicios Destacados -->
         <section class="featured">
             <h2>Servicios Populares</h2>
             <div class="services-grid">
@@ -47,7 +43,6 @@
             </div>
         </section>
 
-        <!-- Call to Action Final -->
         <section class="cta-final text-center">
             <h2>¡No esperes más!</h2>
             <p>Unite a cientos de usuarios y negocios que ya gestionan sus turnos con nosotros.</p>
@@ -92,7 +87,6 @@
   color: #333;
 }
 
-/* HERO principal */
 .hero {
   display: flex;
   flex-wrap: wrap;
@@ -133,7 +127,6 @@
   margin-bottom: 30px;
 }
 
-/* Botón principal degradado */
 .btn-gradient {
   display: inline-block;
   padding: 12px 30px;
@@ -152,7 +145,6 @@
   opacity: 0.95;
 }
 
-/* Botones secundarios unificados */
 .btn-primary,
 .btn-secondary,
 .btn-tertiary {
@@ -192,7 +184,6 @@
   color: white;
 }
 
-/* Cards de beneficios */
 .benefits {
   display: flex;
   justify-content: center;
@@ -224,7 +215,6 @@
   margin-bottom: 20px;
 }
 
-/* Sección servicios */
 .services-grid {
   display: flex;
   justify-content: center;
@@ -255,14 +245,12 @@
   margin-bottom: 20px;
 }
 
-/* Sección destacada (fondo claro) */
 .featured {
   background: #F9F8FF;
   padding: 60px 20px;
   text-align: center;
 }
 
-/* CTA final potente */
 .cta-final {
   background: linear-gradient(135deg, #6C63FF, #00B4DB);
   color: white;
@@ -278,7 +266,6 @@
   margin-bottom: 30px;
 }
 
-/* Filtros de categorías */
 .category-filters {
   text-align: center;
   margin-bottom: 30px;
@@ -300,7 +287,6 @@
   transform: scale(1.05);
 }
 
-/* Utilidades */
 .text-center {
   text-align: center;
 }
@@ -313,7 +299,6 @@
   background-color: #2a2a2a;
 }
 
-/* Responsive */
 @media (max-width: 768px) {
   .hero {
     flex-direction: column;
@@ -328,7 +313,4 @@
   }
 }
 </style>
-
-
-
 {% endblock %}

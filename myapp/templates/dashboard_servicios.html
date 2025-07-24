@@ -8,7 +8,6 @@
         <div class="dashboard-section"><p>Aún no tienes un servicio asignado.</p></div>
     {% else %}
         <div class="dashboard-grid" id="zona-apariencia">
-            <!-- COLUMNA DEL FORMULARIO DE PERSONALIZACIÓN -->
             <div class="dashboard-section form-section">
                 <form method="post" enctype="multipart/form-data">
                     {% csrf_token %}
@@ -30,7 +29,6 @@
                         </div>
                     </fieldset>
 
-                    <!-- SECCIÓN DE COLORES Y BANNER -->
                     <fieldset class="colores-fieldset">
                         <legend>Colores y Banner Principal</legend>
                         <div class="form-group">
@@ -54,7 +52,6 @@
                         </div>
                     </fieldset>
 
-                    <!-- SECCIÓN DE TIPOGRAFÍAS -->
                     <fieldset>
                         <legend>Tipografías</legend>
                         <div class="form-group">
@@ -67,7 +64,6 @@
                         </div>
                     </fieldset>
 
-                    <!-- SECCIÓN DE INFORMACIÓN DEL FOOTER -->
                     <fieldset>
                         <legend>Información de Contacto (Footer)</legend>
                         <div class="form-group"><label for="{{ form.footer_direccion.id_for_label }}">Dirección:</label>{{ form.footer_direccion }}</div>
@@ -82,7 +78,6 @@
                 </form>
             </div>
 
-            <!-- COLUMNA DE LA PREVISUALIZACIÓN -->
             <div class="dashboard-section preview-section">
                 <h2>Previsualización</h2>
                 <div class="preview-container" data-existing-banner-url="{% if servicio_activo.imagen_banner %}{{ servicio_activo.imagen_banner.url }}{% endif %}">

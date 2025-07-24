@@ -1,0 +1,9 @@
+{% extends 'layouts/navbar.html' %}
+{% block content %}
+<div style="text-align: center; margin-top: 50px;">
+    <h1>Error 500 - Problema en el Servidor</h1>
+    <p>¡Ups! Algo salió mal de nuestro lado. Nuestro equipo técnico ya fue notificado.</p>
+    <p>Por favor, intenta de nuevo en unos momentos.</p>
+    <a href="{% url 'index' %}" class="btn-submit" style="text-decoration: none; display: inline-block; width: auto; padding: 12px 25px;">Volver al Inicio</a>
+</div>
+{% endblock %}

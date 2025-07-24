@@ -5,14 +5,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Lato&family=Montserrat&family=Open+Sans&family=Playfair+Display&family=Roboto&display=swap" rel="stylesheet">
-<!-- ESTILOS DINÁMICOS Y BANNER -->
 <style>
     :root {
-        /* Colores */
         --color-primario-servicio: {{ servicio.color_primario|default:'#007bff' }};
         --color-fondo-servicio: {{ servicio.color_fondo|default:'#f0f2f5' }};
         --color-texto-servicio: {{ servicio.color_texto|default:'#FFFFFF' }};
-        /* Fuentes (usamos las de Google Fonts) */
         --fuente-titulos: {{ servicio.fuente_titulos|default:'Montserrat, sans-serif' }};
         --fuente-cuerpo: {{ servicio.fuente_cuerpo|default:'Roboto, sans-serif' }};
     }
@@ -38,7 +35,6 @@
 {% endif %}
 
 
-<!-- CONTENIDO PRINCIPAL -->
 <div class="container">
     <div class="turno-form-container" {% if servicio.imagen_banner %}style="margin-top: 20px;"{% endif %}>
         <h1>Solicitar turno para: {{ servicio.nombre }}</h1>
@@ -48,7 +44,6 @@
             {% csrf_token %}
             {% if form.non_field_errors %}<div class="form-error">{{ form.non_field_errors|join:", " }}</div>{% endif %}
             
-            <!-- PASO 1: ELEGIR SUB-SERVICIOS -->
             <div class="form-group">
                 <label>1. Elige los servicios que deseas:</label>
                 <div id="subservicios-list">
@@ -61,17 +56,14 @@
                         <p>Este negocio aún no ha cargado su catálogo de servicios.</p>
                     {% endfor %}
                 </div>
-                <!-- El campo de formulario real estará oculto y se llenará con JS -->
                 <div style="display:none;">{{ form.sub_servicios_solicitados }}</div>
             </div>
 
-            <!-- Resumen dinámico -->
             <div id="resumen-turno" style="display: none;">
                 <p><strong>Duración Total:</strong> <span id="duracion-total">0</span> minutos</p>
                 <p><strong>Precio Total Estimado:</strong> $<span id="precio-total">0.00</span></p>
             </div>
             
-            <!-- Pasos 2 y 3 (inicialmente ocultos) -->
             <div id="reserva-pasos-siguientes" style="display: none;">
                 <div class="form-group">
                     <label for="id_fecha">2. Selecciona una fecha:</label>
@@ -88,21 +80,17 @@
         </form>
     </div>
 
-    <!-- Contenedor de Reseñas -->
     <div class="reseñas-container" id="seccion-reseñas">
     <h2>Opiniones de Nuestros Clientes</h2>
     
     {% if calificacion_promedio %}
-        <!-- Resumen de Calificación -->
         <div class="resumen-calificacion">
             <span class="promedio-numero">{{ calificacion_promedio|floatformat:1 }}</span>
             <span class="promedio-estrellas">
-                <!-- ... (tu bucle para las estrellas del promedio) ... -->
             </span>
             <span class="total-reseñas">(basado en {{ conteo_total_reseñas }} reseñas)</span>
         </div>
 
-        <!-- Filtros por Estrellas -->
         <div class="filtros-reseñas">
             <a href="{% url 'servicio_detail' servicio.slug %}" class="filtro-btn {% if not filtro_activo %}active{% endif %}">Todas ({{ conteo_total_reseñas }})</a>
             {% for i in "54321"|make_list %}
@@ -114,7 +102,6 @@
             {% endfor %}
         </div>
 
-        <!-- Contenedor para la Lista de Reseñas -->
         <div id="lista-reseñas" class="lista-reseñas">
             {% for reseña in reseñas %}
                 <div class="reseña-card">
@@ -132,7 +119,6 @@
             {% endfor %}
         </div>
         
-        <!-- Botón para Cargar Más -->
         {% if tiene_mas_paginas %}
         <div class="load-more-container">
             <button id="load-more-reviews" class="btn-load-more">Cargar más reseñas</button>
@@ -147,7 +133,6 @@
 <footer class="footer-estructurado">
     <div class="container footer-grid">
         
-        <!-- ========== COLUMNA DEL MAPA (MODIFICADA) ========== -->
         <div class="footer-columna footer-mapa">
             <h4>Ubicación</h4>
             {% if servicio.footer_direccion and google_maps_api_key %}
@@ -166,7 +151,6 @@
             {% endif %}
         </div>
 
-        <!-- Columna de Contacto (sin cambios) -->
         <div class="footer-columna">
             <h4>Contacto</h4>
             {% if servicio.footer_direccion %}<p><i class="fas fa-map-marker-alt"></i> {{ servicio.footer_direccion }}</p>{% endif %}
@@ -174,7 +158,6 @@
             {% if servicio.footer_email %}<p><i class="fas fa-envelope"></i> {{ servicio.footer_email }}</p>{% endif %}
         </div>
 
-        <!-- Columna de Redes Sociales (sin cambios) -->
         <div class="footer-columna">
             <h4>Síguenos en Redes</h4>
             <div class="social-links">
@@ -189,11 +172,7 @@
     </div>
 </footer>
 
-<!-- ================================================================ -->
-<!-- ========== ESTILOS ESTÁTICOS Y SCRIPTS DE LA PÁGINA ========== -->
-<!-- ================================================================ -->
 <style>
-    /* Estilos estáticos que definen el layout original */
     .turno-form-container, .reseñas-container {
         padding: 30px;
         border-radius: 8px;
@@ -209,9 +188,7 @@
     .form-error { color: #ff6b6b; background-color: #5d1a1a; padding: 10px; border-radius: 5px; margin-top: 5px; }
     .btn-submit { color: white; padding: 10px 15px; width: 100%; border: none; border-radius: 5px; cursor: pointer; transition: background-color 0.2s, opacity 0.2s; opacity: 1; }
     .btn-submit.is-disabled { cursor: not-allowed; opacity: 0.6; pointer-events: none; }
-    
-    /* Estilos para la sección de reseñas */
-    .resumen-calificacion { text-align: center; margin-bottom: 30px; }
+        .resumen-calificacion { text-align: center; margin-bottom: 30px; }
     .promedio-numero { font-size: 3em; font-weight: bold; }
     .promedio-estrellas { font-size: 1.5em; color: #ffc107; margin: 0 10px; }
     .reseña-card { border-bottom: 1px solid #555; padding: 20px 0; }
@@ -221,7 +198,6 @@
     .reseña-fecha { font-size: 0.9em; color: #999; }
     .reseña-calificacion { color: #ffc107; margin-bottom: 10px; }
 
-    /* Estilos para el footer personalizado */
     .footer-estructurado { background-color: var(--color-fondo-servicio, #222); color: var(--color-texto-servicio, #ccc); padding: 40px 0 20px 0; margin-top: 50px; border-top: 3px solid var(--color-primario-servicio, #007bff); }
     .footer-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 30px; }
     .footer-columna h4 { font-family: var(--fuente-titulos);  color: var(--color-texto-servicio);  margin-bottom: 15px; border-bottom: 1px solid #555; padding-bottom: 10px; }
@@ -237,15 +213,14 @@
     .btn-load-more { background-color: transparent; border: 1px solid var(--color-primario-servicio); color: var(--color-primario-servicio); padding: 10px 25px; border-radius: 5px; cursor: pointer; }
     .footer-mapa .map-container {
         width: 100%;
-        height: 200px; /* Puedes ajustar esta altura */
+        height: 200px; 
     }
-    /* ========== NUEVOS ESTILOS PARA SUB-SERVICIOS ========== */
     .subservicio-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; background-color: #444; padding: 12px; border-radius: 5px; cursor: pointer; transition: background-color 0.2s; border-left: 4px solid transparent; }
     .subservicio-item:hover { background-color: #555; }
     .subservicio-item.selected { font-weight: bold; border-left-color: var(--color-primario-servicio); }
     #resumen-turno { background: #2a2a2a; padding: 15px; border-radius: 5px; margin-top: 15px; border-left: 4px solid aqua; }
-    .subservicio-item input[type="checkbox"] { display: none; } /* Ocultamos el checkbox feo */
-    .subservicio-item label { cursor: pointer; width: 100%; } /* Hacemos que toda la etiqueta sea clickeable */
+    .subservicio-item input[type="checkbox"] { display: none; } 
+    .subservicio-item label { cursor: pointer; width: 100%; } 
     #resumen-turno { background: #2a2a2a; padding: 15px; border-radius: 5px; margin-top: 15px; border-left: 4px solid aqua; }
 </style>
 {% endblock %}
@@ -280,7 +255,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
-        // Actualizar los checkboxes ocultos del formulario
         formCheckboxes.forEach(cb => {
             cb.checked = seleccionados.includes(cb.value);
         });
@@ -362,14 +336,12 @@ document.addEventListener('DOMContentLoaded', function() {
         const loadMoreButton = document.getElementById('load-more-reviews');
         const reviewsContainer = document.getElementById('lista-reseñas');
         
-        // Si el botón no existe en la página, no hacemos nada.
         if (!loadMoreButton) return;
 
-        let currentPage = 2; // La página 1 ya fue cargada por Django
+        let currentPage = 2; 
         const urlParams = new URLSearchParams(window.location.search);
         const calificacionFiltro = urlParams.get('calificacion') || '';
 
-        // Función para generar las estrellas en las nuevas reseñas cargadas
         function generateStars(rating) {
             let starsHtml = '';
             for (let i = 1; i <= 5; i++) {
@@ -409,7 +381,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     loadMoreButton.textContent = 'Cargar más reseñas';
                     loadMoreButton.disabled = false;
                 } else {
-                    loadMoreButton.style.display = 'none'; // Ocultamos el botón si no hay más páginas
+                    loadMoreButton.style.display = 'none'; 
                 }
             } catch (error) {
                 console.error('Error al cargar más reseñas:', error);

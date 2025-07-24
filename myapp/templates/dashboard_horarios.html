@@ -3,7 +3,6 @@
 {% block dashboard_content %}
     <div style="display: flex; align-items: center; gap: 15px;">
         <h1>Horarios y Disponibilidad</h1>
-        <!-- BOTÓN DE AYUDA CONTEXTUAL -->
         <button id="ayudaHorariosBtn" class="help-button" title="Ver guía de esta sección">?</button>
     </div>
     <p>Define tus horarios de trabajo para cada día y bloquea fechas por vacaciones o eventos especiales.</p>
@@ -11,7 +10,6 @@
     {% if no_hay_servicio %}
         <div class="dashboard-section"><p>Aún no tienes un servicio configurado.</p></div>
     {% else %}
-        <!-- FORMULARIO DE HORARIO SEMANAL -->
         <div class="dashboard-section"  id="seccion-horario-semanal">
             <h2>Configuración de Horario Semanal para: <strong>{{ servicio.nombre }}</strong></h2>
             <form method="post">
@@ -52,7 +50,6 @@
             </form>
         </div>
 
-        <!-- SECCIÓN DE BLOQUEO DE FECHAS -->
         <div class="dashboard-section" id="seccion-bloqueo-fechas">
             <h2>Bloquear Fechas o Periodos</h2>
             <form method="post" class="bloqueo-form">
@@ -93,8 +90,6 @@
         .bloqueo-form p { margin-bottom: 15px; }
         .lista-bloqueos { list-style: none; padding-left: 0; }
         .lista-bloqueos li { background-color: #444; padding: 10px; border-radius: 4px; margin-bottom: 8px; }
-
-        /* --- ESTILOS RESPONSIVOS PARA MÓVIL --- */
         @media (max-width: 768px) {
             .schedule-table thead { display: none; }
             .schedule-table, .schedule-table tbody, .schedule-table tr, .schedule-table td { display: block; }
@@ -109,7 +104,6 @@
 {% block scripts_extra %}
     {{ block.super }} {# ¡CRUCIAL! Esto incluye el script del tour de bienvenida de la plantilla base #}
 
-    <!-- SCRIPT SOLO PARA EL TOUR DE AYUDA DE ESTA PÁGINA -->
     <script>
 document.addEventListener('DOMContentLoaded', function() {
     const botonAyuda = document.getElementById('ayudaHorariosBtn');
@@ -127,7 +121,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
 
-            // Función para iniciar subtour de Configuración Semanal
             function startSubTourHorario(callback) {
                 const subTour = new Shepherd.Tour({
                     useModalOverlay: true,
@@ -162,7 +155,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 subTour.start();
             }
 
-            // Función para iniciar subtour de Bloqueo Fechas
             function startSubTourBloqueo(callback) {
                 const subTour = new Shepherd.Tour({
                     useModalOverlay: true,
@@ -183,7 +175,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 subTour.start();
             }
 
-            // --- TOUR GENERAL ---
             tourGeneral.addStep({
                 title: 'Configuración Semanal',
                 text: 'Aquí defines los días que trabajás y tus horarios.',
@@ -192,8 +183,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     {
                         text: 'Ejemplo',
                         action: function () {
-                            tourGeneral.cancel();  // Cancelamos el tour general temporalmente
-                            startSubTourHorario(() => tourGeneral.start());  // Al terminar el subtour, volvemos al general
+                            tourGeneral.cancel(); 
+                            startSubTourHorario(() => tourGeneral.start());  
                         }
                     },
                     { text: 'Siguiente', action: tourGeneral.next }

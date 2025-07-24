@@ -16,7 +16,6 @@
         </div>
     </div>
 
-    <!-- Tarjetas de KPI (ahora muestran el total histórico) -->
     <h2 class="subtitulo-periodo">{{ titulo_periodo }}</h2>
     <div class="metric-cards" id="tarjetas-kpi">
         <div class="metric-card" id="IT"><h3>Ingresos Totales</h3><p class="metric-value">${{ ingresos_totales|floatformat:2 }}</p></div>
@@ -25,7 +24,6 @@
     </div>
 
      <div class="charts-grid" id="zona-graficos">
-        <!-- GRÁFICO DINÁMICO DE INGRESOS -->
         <div class="dashboard-section chart-container" id="GID">
             <div class="chart-header">
                 <h2>Análisis de Ingresos</h2>
@@ -40,7 +38,6 @@
             </div>
             <canvas id="ingresosChart"></canvas>
         </div>
-        <!-- GRÁFICO DE SERVICIOS POPULARES -->
         <div class="dashboard-section chart-container" id="SP">
             <h2>Servicios Populares (Total)</h2>
             <canvas id="serviciosPopularesChart"></canvas>
@@ -52,12 +49,11 @@
 {{ data_servicios_json|json_script:"data-servicios-data" }}
 
     <style>
-    /* --- Estructura Principal del Encabezado --- */
     .chart-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        flex-wrap: wrap; /* Para que se adapte en móvil */
+        flex-wrap: wrap; 
         gap: 15px;
         margin-bottom: 20px;
     }
@@ -87,11 +83,11 @@
         border: 1px solid #777;
         border-radius: 4px;
         padding: 8px;
-        color-scheme: dark; /* Ayuda a que el calendario se vea oscuro en navegadores compatibles */
+        color-scheme: dark; 
     }
     .metricas-header {
         display: flex;
-        flex-direction: column; /* Apilado por defecto (mobile-first) */
+        flex-direction: column; 
         gap: 20px;
         margin-bottom: 20px;
     }
@@ -100,17 +96,16 @@
         text-align: center;
     }
 
-    /* --- Filtro de Período --- */
     .periodo-filtro {
         display: flex;
-        flex-wrap: nowrap; /* Evita que los botones se rompan en varias líneas */
-        overflow-x: auto;  /* PERMITE SCROLL HORIZONTAL SOLO EN LOS BOTONES */
-        -webkit-overflow-scrolling: touch; /* Scroll suave en iOS */
-        padding-bottom: 10px; /* Espacio para la barra de scroll */
-        scrollbar-width: thin; /* Barra de scroll más fina en Firefox */
+        flex-wrap: nowrap;
+        overflow-x: auto; 
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 10px;
+        scrollbar-width: thin; 
     }
     .periodo-filtro::-webkit-scrollbar {
-        height: 5px; /* Altura de la barra de scroll en Chrome/Safari */
+        height: 5px; 
     }
     .periodo-filtro::-webkit-scrollbar-thumb {
         background: #555;
@@ -119,11 +114,11 @@
     .periodo-filtro a {
         color: #ccc;
         text-decoration: none;
-        padding: 8px 15px; /* Padding horizontal más grande */
+        padding: 8px 15px; 
         border-radius: 5px;
         background-color: #444;
-        white-space: nowrap; /* Evita que el texto del botón se rompa */
-        flex-shrink: 0; /* Evita que los botones se encojan */
+        white-space: nowrap; 
+        flex-shrink: 0; 
         margin: 0 4px;
         transition: background-color 0.2s;
     }
@@ -132,25 +127,18 @@
         color: white;
     }
 
-    /* --- Título y Tarjetas de Métricas --- */
     .subtitulo-periodo { color: #ccc; margin-bottom: 20px; border-bottom: 1px solid #444; padding-bottom: 10px; text-align: center; }
     .metric-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
     .metric-card { background-color: #333; padding: 20px; border-radius: 8px; text-align: center; }
     .metric-card h3 { margin-top: 0; color: #ccc; font-size: 0.9em; text-transform: uppercase; }
     .metric-value { font-size: 2em; font-weight: bold; color: #fff; margin: 10px 0 0; }
     
-    /* --- Gráficos --- */
-    .charts-grid { display: grid; grid-template-columns: 1fr; gap: 20px; } /* Apilados por defecto */
+    .charts-grid { display: grid; grid-template-columns: 1fr; gap: 20px; } 
     .chart-container { padding: 20px; }
 
-    /* ================================================================ */
-    /* ==========   MEDIA QUERY PARA PANTALLAS MÁS GRANDES   ========== */
-    /* ================================================================ */
-
-    /* Se aplica a partir de 768px (tablets y más grandes) */
     @media (min-width: 768px) {
         .metricas-header {
-            flex-direction: row; /* En pantallas grandes, se ponen en fila */
+            flex-direction: row;
             justify-content: space-between;
             align-items: center;
         }
@@ -158,7 +146,7 @@
             text-align: left;
         }
         .periodo-filtro {
-            overflow-x: visible; /* Ya no necesitamos el scroll en los botones */
+            overflow-x: visible;
             padding-bottom: 0;
         }
         .subtitulo-periodo {
@@ -166,10 +154,9 @@
         }
     }
     
-    /* Se aplica a partir de 992px (escritorios) */
     @media (min-width: 992px) {
         .charts-grid {
-            grid-template-columns: 2fr 1fr; /* Los gráficos se ponen uno al lado del otro */
+            grid-template-columns: 2fr 1fr;
         }
     }
     </style>
@@ -181,7 +168,6 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-           // --- GRÁFICO DE SERVICIOS POPULARES (Estático) ---
             try {
                 const labelsServicios = JSON.parse(document.getElementById('labels-servicios-data').textContent);
                 const dataServicios = JSON.parse(document.getElementById('data-servicios-data').textContent);
@@ -206,7 +192,6 @@
             } catch (e) { console.error("Error en gráfico de servicios:", e); }
 
 
-            // --- GRÁFICO DE INGRESOS (Dinámico con AJAX) ---
             const ctxIngresos = document.getElementById('ingresosChart').getContext('2d');
             let ingresosChart = new Chart(ctxIngresos, {
                 type: 'line',
@@ -259,17 +244,14 @@
             
             actualizarGrafico();
 
-            // --- INICIALIZAR TOUR DE AYUDA (LÓGICA AUTOCONTENIDA) ---
             const botonAyuda = document.getElementById('ayudaMetricasBtn');
             if (botonAyuda) {
                 botonAyuda.addEventListener('click', function() {
                     
-                    // Si hay un tour activo (el de bienvenida), lo cerramos primero
                     if (Shepherd.activeTour) {
                         Shepherd.activeTour.cancel();
                     }
 
-                    // Creamos una nueva instancia del tour aquí mismo
                     const tourAyuda = new Shepherd.Tour({
                         useModalOverlay: true,
                         defaultStepOptions: {
@@ -279,7 +261,6 @@
                         }
                     });
 
-                    // Añadimos los pasos
                     tourAyuda.addSteps([
                         {
                             title: 'Filtros de Período',
@@ -319,7 +300,6 @@
                         }
                     ]);
                     
-                    // Iniciamos el tour
                     tourAyuda.start();
                 });
             }

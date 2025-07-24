@@ -150,12 +150,10 @@ document.addEventListener('DOMContentLoaded', function() {
             if (botonAyuda) {
                 botonAyuda.addEventListener('click', function() {
                     
-                    // Si hay un tour activo (el de bienvenida), lo cerramos primero
                     if (Shepherd.activeTour) {
                         Shepherd.activeTour.cancel();
                     }
 
-                    // Creamos una nueva instancia del tour aquí mismo
                     const tourAyuda = new Shepherd.Tour({
                         useModalOverlay: true,
                         defaultStepOptions: {
@@ -165,7 +163,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     });
 
-                    // Añadimos los pasos
                     tourAyuda.addSteps([
                         {
                             title: 'Calendario mensual',
@@ -194,7 +191,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     ]);
                     
-                    // Iniciamos el tour
                     tourAyuda.start();
                 });
             }

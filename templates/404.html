@@ -1,0 +1,8 @@
+{% extends 'layouts/navbar.html' %}
+{% block content %}
+<div style="text-align: center; margin-top: 50px;">
+    <h1>Error 404 - Página No Encontrada</h1>
+    <p>Lo sentimos, la página que buscas no existe o fue movida.</p>
+    <a href="{% url 'index' %}" class="btn-submit" style="text-decoration: none; display: inline-block; width: auto; padding: 12px 25px;">Volver al Inicio</a>
+</div>
+{% endblock %}

@@ -17,20 +17,17 @@
             vertical-align: top; margin-left: 5px;
         }
         .hidden { display: none; }
-
-        /* --- LÓGICA PARA MOSTRAR NOMBRE/INICIAL --- */
-        /* Por defecto (móvil), ocultamos el nombre completo */
         .user-fullname {
             display: none;
         }
         .user-initial {
-            display: inline-block; /* La inicial se muestra */
+            display: inline-block; 
         }
         .btn-instalar {
-        position: fixed; /* Lo fija en la pantalla */
+        position: fixed; 
         bottom: 20px;
         right: 20px;
-        background-color: var(--color-primario, #007bff); /* Usa tu color primario */
+        background-color: var(--color-primario, #007bff);
         color: white;
         padding: 12px 20px;
         border: none;
@@ -50,13 +47,12 @@
         .btn-instalar i {
             margin-right: 8px;
         }
-        /* En pantallas más grandes (tablets y escritorio)... */
         @media (min-width: 768px) {
-            /* Mostramos el nombre completo */
+     
             .user-fullname {
                 display: inline-block;
             }
-            /* Y ocultamos la inicial */
+  
             .user-initial {
                 display: none;
             }
@@ -75,7 +71,6 @@
                 <a href="{% url 'mis_favoritos' %}">Mis Favoritos</a>
                 <a href="{% url 'mis_turnos' %}">Mis Turnos  <span id="notificacion-circulo" class="notificacion-circulo hidden"></span></a>
                     <div class="user-menu">
-                        <!-- HTML ESTRUCTURADO PARA EL BOTÓN -->
                         <button id="userButton" class="user-button">
                             <span class="user-fullname">{{ user.first_name|default:user.username|title }}</span>
                             <span class="user-initial">{{ user.first_name.0|default:user.username.0|upper }}</span>
@@ -157,7 +152,6 @@
             }
         });
 
-        // --- Lógica del Service Worker (PWA) ---
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register("{% static 'serviceworker.js' %}")
@@ -166,7 +160,6 @@
             });
         }
 
-        // --- Lógica del botón de instalar (Ahora se ejecuta SIEMPRE) ---
         const installButton = document.getElementById('installAppButton');
         let deferredPrompt;
 
@@ -174,7 +167,7 @@
             e.preventDefault();
             deferredPrompt = e;
             if (installButton) {
-                installButton.style.display = 'flex'; // Usamos flex para centrar el contenido
+                installButton.style.display = 'flex'; 
             }
         });
 
@@ -201,7 +194,6 @@
 
 {% if user.is_authenticated %}
 <script>
-// Asegúrate de que este script se ejecute solo si el usuario está logueado
 document.addEventListener('DOMContentLoaded', function() {
     const notificacionCirculo = document.getElementById('notificacion-circulo');
 
@@ -219,10 +211,8 @@ document.addEventListener('DOMContentLoaded', function() {
             .catch(error => console.error('Error al obtener notificaciones:', error));
     }
 
-    // Comprueba las notificaciones al cargar la página
     checkNotifications();
 
-    // Y luego, comprueba cada 30 segundos
     setInterval(checkNotifications, 90000); // 30000 milisegundos = 30 segundos
 });
 </script>

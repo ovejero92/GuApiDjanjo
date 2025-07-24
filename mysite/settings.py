@@ -32,7 +32,8 @@ DEBUG = not IS_PRODUCTION if IS_PRODUCTION else env('DEBUG')
 
 # ========== 3. CONFIGURACIÓN ESTÁNDAR DE DJANGO ==========
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'turnosok.com', 'www.turnosok.com']
+
 RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
 if RENDER_EXTERNAL_HOSTNAME:
     ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)

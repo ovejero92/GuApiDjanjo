@@ -4,7 +4,6 @@
 {% block content %}
 <div class="dashboard-wrapper" data-onboarding-completo="{{ onboarding_completo|yesno:'True,False' }}">
     <div class="dashboard-layout">
-        <!-- MENÚ LATERAL (SIDEBAR) -->
         <aside class="dashboard-sidebar" id="dashboardSidebar">
             <nav class="sidebar-nav">
                 <ul>
@@ -38,7 +37,6 @@
             </button>
         </aside>
 
-        <!-- ÁREA DE CONTENIDO PRINCIPAL -->
          <main class="dashboard-content">
             {% if user.servicios_propios.count > 1 and servicio_activo %}
                 <div class="servicio-selector">
@@ -61,21 +59,18 @@
 
 {% block scripts_extra %}
 <style>
-    /* --- Contenedor Principal y Layout --- */
-    /* Quitamos el padding del .container de la navbar para usar todo el ancho */
-        .servicio-tag-container {
+    .servicio-tag-container {
         display: flex;
-        flex-wrap: wrap; /* Permite que las etiquetas pasen a la siguiente línea si no caben */
-        gap: 8px;      /* Espacio entre cada etiqueta */
+        flex-wrap: wrap; 
+        gap: 8px;
         align-items: center;
     }
-    
     .servicio-tag {
-        background-color: #033f63; /* El fondo azul que pediste */
-        color: #ffffff;           /* Letra blanca para un buen contraste */
-        padding: 5px 12px;         /* Espaciado interno para que no se vea apretado */
-        border-radius: 16px;       /* Bordes completamente redondeados para un look de "píldora" */
-        font-size: 0.9em;          /* Un tamaño de letra ligeramente más pequeño */
+        background-color: #033f63;
+        color: #ffffff;
+        padding: 5px 12px;
+        border-radius: 16px;
+        font-size: 0.9em;
         font-weight: 500;
         line-height: 1.2;
     }
@@ -84,60 +79,55 @@
         max-width: 100%;
     }
     .dashboard-wrapper {
-        height: calc(100vh - 80px); /* Altura total de la ventana menos la navbar */
+        height: calc(100vh - 80px);
         display: flex;
-        overflow: hidden; /* Evita cualquier scroll en el contenedor principal */
+        overflow: hidden; 
     }
     .dashboard-layout {
         display: flex;
         width: 100%;
-        max-width: 1600px; /* Ancho máximo para el contenido */
+        max-width: 1600px;
         margin: 0 auto;
         padding: 20px;
         gap: 20px;
-        transition: gap 0.3s ease; /* Transición suave para el gap */
+        transition: gap 0.3s ease; 
     }
-
-    /* --- Sidebar (Menú Lateral) --- */
     .dashboard-sidebar {
-        flex: 0 0 250px; /* Base fija de 250px */
+        flex: 0 0 250px;
         background-color: #2a2a2a;
         padding: 20px;
         border-radius: 8px;
-        position: relative; /* Necesario para posicionar el botón de toggle */
-        transition: all 0.3s ease; /* Transición suave para colapsar/expandir */
-        overflow: hidden; /* Oculta el texto cuando se colapsa */
+        position: relative;
+        transition: all 0.3s ease; 
+        overflow: hidden; 
     }
     .sidebar-nav ul { list-style: none; padding: 0; margin: 0; }
     .sidebar-nav li a {
         display: flex; align-items: center; gap: 10px;
         padding: 12px 15px; color: #ccc; text-decoration: none;
         border-radius: 5px; transition: background-color 0.2s, color 0.2s;
-        white-space: nowrap; /* Evita que el texto se rompa */
+        white-space: nowrap;
     }
     .sidebar-nav li a:hover { background-color: #444; color: #fff; }
     .sidebar-nav li.active a { background-color: #007bff; color: #fff; font-weight: bold; }
     .sidebar-nav i { width: 20px; text-align: center; }
-
     .dashboard-sidebar.collapsed {
-        flex-basis: 70px; /* Ancho cuando está colapsado */
+        flex-basis: 70px;
         padding: 20px 0;
     }
     .dashboard-sidebar.collapsed .sidebar-nav li a {
-        justify-content: center; /* Centra el ícono */
+        justify-content: center; 
     }
     .dashboard-sidebar.collapsed .sidebar-nav span {
-        display: none; /* Oculta el texto del enlace */
+        display: none; 
     }
     .dashboard-sidebar.collapsed .sidebar-toggle-btn i {
-        transform: rotate(180deg); /* Gira la flecha */
+        transform: rotate(180deg);
     }
-
-    /* --- Botón para Ocultar/Mostrar --- */
     .sidebar-toggle-btn {
         position: absolute;
         top: 50%;
-        right: -13px; /* Lo saca un poco del borde */
+        right: -13px; 
         transform: translateY(-50%);
         background-color: #007bff;
         color: white;
@@ -158,20 +148,16 @@
     .sidebar-toggle-btn i {
         transition: transform 0.3s ease;
     }
-
-    /* --- Contenido Principal (con scroll propio) --- */
     .dashboard-content {
-        flex-grow: 1; /* Ocupa el espacio restante */
-        min-width: 0; /* Solución clave para evitar desbordamiento en flexbox */
-        overflow-y: auto; /* AÑADE SCROLL VERTICAL SÓLO A ESTA COLUMNA */
-        padding-right: 10px; /* Espacio para que el scroll no tape el contenido */
+        flex-grow: 1; 
+        min-width: 0; 
+        overflow-y: auto; 
+        padding-right: 10px;
     }
-    /* Estilo del scrollbar */
     .dashboard-content::-webkit-scrollbar { width: 8px; }
     .dashboard-content::-webkit-scrollbar-track { background: transparent; }
     .dashboard-content::-webkit-scrollbar-thumb { background: #555; border-radius: 4px; }
     .dashboard-content::-webkit-scrollbar-thumb:hover { background: #777; }
-
     /* --- Estilos para las tablas y botones (los que ya tenías) --- */
     .dashboard-section { background-color: #333; padding: 20px; border-radius: 8px; margin-bottom: 25px; }
     .turnos-table { width: 100%; border-collapse: collapse; margin-top: 15px; color: #ccc; }
@@ -193,27 +179,22 @@
         width: 30px; height: 30px; font-size: 1.1em; font-weight: bold;
         cursor: pointer;  vertical-align: middle;
     }
-    /* ================================================================ */
-    /* ==========            ESTILOS RESPONSIVOS             ========== */
-    /* ================================================================ */
     @media (max-width: 992px) {
         .dashboard-wrapper {
-            height: auto; /* En móvil, la altura es automática */
-            overflow: visible; /* Devolvemos el scroll al body */
+            height: auto; 
+            overflow: visible; 
         }
         .dashboard-layout {
             flex-direction: column;
             padding: 10px;
         }
         .dashboard-sidebar {
-            flex-shrink: 0; /* Evita que se encoja */
+            flex-shrink: 0; 
         }
         .dashboard-content {
-            overflow-y: visible; /* Ya no necesita su propio scroll */
+            overflow-y: visible; 
             padding-right: 0;
         }
-
-        /* Transformación de la tabla a tarjetas (la que ya tenías) */
         .responsive-table thead { display: none; }
         .responsive-table tr { display: block; margin-bottom: 15px; border: 1px solid #555; border-radius: 5px; padding: 10px; background-color: #404040; }
         .responsive-table td { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #555; padding: 10px 0; text-align: left; }
@@ -227,7 +208,7 @@
         }
     }
 </style>
-<!-- Librerías para el Tour Interactivo (Shepherd.js) -->
+
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/shepherd.js@10.0.1/dist/css/shepherd.css"/>
 <script src="https://cdn.jsdelivr.net/npm/shepherd.js@10.0.1/dist/js/shepherd.min.js"></script>
 <script>
@@ -235,7 +216,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const sidebar = document.getElementById('dashboardSidebar');
     const toggleBtn = document.getElementById('sidebarToggleBtn');
 
-    // GUARDIÁN: Solo ejecutar si los elementos del dashboard existen en esta página.
     if (sidebar && toggleBtn) {
         const toggleIcon = toggleBtn.querySelector('i');
 
@@ -252,20 +232,15 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-     // --- LÓGICA DEL TOUR DE BIENVENIDA (CORREGIDA) ---
     const dashboardContainer = document.querySelector('.dashboard-wrapper');
-    if (!dashboardContainer) return; // Salir si no estamos en una página de dashboard
+    if (!dashboardContainer) return; 
 
     const onboardingCompleto = dashboardContainer.dataset.onboardingCompleto === 'True';
 
-    // Si el tour ya se vio, no hacer nada.
     if (onboardingCompleto) {
         return;
     }
-    // Solo si el onboarding NO está completo, definimos y ejecutamos todo lo del tour
-
-        // 1. Definimos la función de marcado PRIMERO
-        function marcarYFinalizarTour() {
+    function marcarYFinalizarTour() {
             const csrfTokenInput = document.querySelector('form[action*="logout"] [name="csrfmiddlewaretoken"]');
             if (!csrfTokenInput) {
                 console.error("No se pudo encontrar el token CSRF para marcar el onboarding.");
@@ -281,17 +256,12 @@ document.addEventListener('DOMContentLoaded', function() {
             }).then(response => {
                 if (response.ok) {
                     console.log('Onboarding marcado como completo. No volverá a aparecer.');
-                    // Opcional: recargar la página para que el data-attribute cambie al instante
-                    // window.location.reload(); 
                 } else {
                     console.error("Falló la petición para marcar el onboarding.");
                 }
             });
         }
-
         const posicionTooltip = window.innerWidth < 992 ? 'bottom' : 'right';
-
-        // 2. Creamos la instancia del tour
         const tour = new Shepherd.Tour({
             useModalOverlay: true,
             defaultStepOptions: {
@@ -300,69 +270,58 @@ document.addEventListener('DOMContentLoaded', function() {
                 cancelIcon: { enabled: true },
             }
         });
-
-        // 3. Añadimos los pasos del tour
         tour.addStep({
             title: '¡Bienvenido a tu Dashboard!',
             text: 'Este es tu centro de control. Te daremos una guía general de las secciones.',
             buttons: [{ text: '¡Vamos!', action: tour.next }]
         });
-
         tour.addStep({
             title:'<strong>⚠️Importante⚠️</strong>',
             text:'En cada sección vas a encontrar un boton al lado del título <button class="help-button-tour">?</button> para ver una guia del mismo',
             buttons:[{text:'Omitir tour',action:tour.cancel},{text:'Seguir Tour',action:tour.next}]
         });
-
         tour.addStep({
             title:'Gestion de Turnos',
             text:'Aquí podes <strong>cancelar o confirmar tus turnos</strong>. Al finalizar un turno es importante ingresar el importe obtenido para que impacte en tus métricas.',
             attachTo:{element:'a[href*="{% url "dashboard_turnos" %}"]',on:posicionTooltip},
             buttons:[{text:'Siguiente',action:tour.next}]
         });
-
         tour.addStep({
             title:'Calendario',
             text:'Aquí podes <strong>Ver el calendario semanal</strong>. En esta seccion vas a poder todos los dias que tenes turnos agendados y visualizar cada dia.',
             attachTo:{element:'a[href*="{% url "dashboard_calendario" %}"]',on:posicionTooltip},
             buttons:[{text:'Siguiente',action:tour.next}]
         });
-
         tour.addStep({
             title: 'Horarios y Bloqueos',
             text: '<strong>¡Este es el paso más importante!</strong> Aquí debes definir tus días y horarios de trabajo para que los clientes puedan reservar sus turnos.',
             attachTo: { element: 'a[href*="horarios"]', on:posicionTooltip },
             buttons: [{ text: 'Siguiente', action: tour.next }]
         });
-
         tour.addStep({
             title:'Métricas y Reportes',
             text:'En esta sección podés ver <strong>los números más importantes de tu negocio</strong>, como las ventas, servicios más vendidos y resultados generales.',
             attachTo:{element:'a[href$="dashboard/metricas/"]',on:posicionTooltip},
             buttons:[{text:'Siguiente',action:tour.next}]
         });
-
         tour.addStep({
             title: 'Catálogo de Servicios',
             text: 'Aquí podes <strong>crear y editar la lista de servicios</strong> que ofreces (Ej: "Corte de pelo"). Cada servicio requiere completar precio y duración.',
             attachTo: { element: 'a[href*="catalogo"]', on:posicionTooltip },
             buttons: [{ text: 'Siguiente', action: tour.next }]
         });
-
         tour.addStep({
             title:'Apariencia',
             text:'En esta sección podés <strong>personalizar la apariencia de tu tienda</strong>, como los colores, logo y diseño.',
             attachTo:{element:'a[href*="{% url "dashboard_servicios" %}"]',on:posicionTooltip},
             buttons:[{ text: 'Siguiente', action: tour.next }]
         });
-
         tour.addStep({
             title:'Detalles del negocio',
             text:'En esta sección podés <strong>editar la información</strong>, podes modificar el nombre del servicio , la dirección , categoria.',
             attachTo:{element:'a[href*="{% url "dashboard_detalles_negocio" %}"]',on:posicionTooltip},
             buttons:[{ text: 'Siguiente', action: tour.next }]
         });
-        
         tour.addStep({
             title: '¡Todo listo!',
             text: 'Ya conoces lo esencial. Explora las demás secciones cuando quieras. ¡Muchos éxitos!',
@@ -372,13 +331,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         window.location.href = "{% url 'dashboard_horarios' %}";
                     } }]
         });
-
         tour.on('cancel', marcarYFinalizarTour);
-
-        // 5. Iniciamos el tour
         tour.start();
     }
-
     );
 </script>
 {% endblock %}
