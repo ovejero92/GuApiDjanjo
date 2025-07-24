@@ -20,6 +20,7 @@ from django.contrib.auth.models import User
 import json
 from django.db.models import Q
 from django.core.serializers import serialize
+from django.core.mail import send_mail
 # ========== INICIO DE LA MODIFICACIÓN ==========
 # Importaciones necesarias para la nueva vista de Login
 from django.contrib.auth.views import LoginView
@@ -708,6 +709,28 @@ def confirmar_turno(request, turno_id):
         turno.visto_por_cliente = False
         turno.save()
     
+        try:
+            asunto = f"¡Tu turno en {turno.servicio.nombre} ha sido confirmado!"
+            mensaje = (
+                f"Hola {turno.cliente.first_name},\n\n"
+                f"Buenas noticias. Tu turno para el día {turno.fecha.strftime('%d/%m/%Y')} a las {turno.hora.strftime('%H:%M')} hs "
+                f"en '{turno.servicio.nombre}' ha sido confirmado por el propietario.\n\n"
+                f"Puedes ver todos tus turnos en tu perfil.\n\n"
+                f"¡Te esperamos!"
+            )
+            
+            send_mail(
+                asunto,
+                mensaje,
+                None,  # Django usará el DEFAULT_FROM_EMAIL de tus settings
+                [turno.cliente.email],
+                fail_silently=False,
+            )
+            messages.success(request, f"Turno confirmado y notificación enviada a {turno.cliente.first_name}.")
+        except Exception as e:
+            # Si el email falla, no queremos que la app se rompa.
+            # Simplemente informamos al propietario del error.
+            messages.error(request, f"El turno fue confirmado, pero hubo un error al enviar el email de notificación: {e}")
     # Redirigimos de vuelta al dashboard
     return redirect('dashboard_propietario')
 
@@ -721,6 +744,27 @@ def cancelar_turno(request, turno_id):
         turno.visto_por_cliente = False
         turno.save()
         
+        try:
+            asunto = f"Información importante sobre tu turno en {turno.servicio.nombre}"
+            mensaje = (
+                f"Hola {turno.cliente.first_name},\n\n"
+                f"Te informamos que tu turno para el día {turno.fecha.strftime('%d/%m/%Y')} a las {turno.hora.strftime('%H:%M')} hs "
+                f"en '{turno.servicio.nombre}' ha sido cancelado por el propietario.\n\n"
+                f"Si crees que esto es un error o quieres reprogramar, por favor, ponte en contacto directamente con el negocio.\n\n"
+                f"Lamentamos las molestias."
+            )
+            
+            send_mail(
+                asunto,
+                mensaje,
+                None,
+                [turno.cliente.email],
+                fail_silently=False,
+            )
+            messages.info(request, f"Turno cancelado y notificación enviada a {turno.cliente.first_name}.")
+        except Exception as e:
+            messages.error(request, f"El turno fue cancelado, pero hubo un error al enviar el email de notificación: {e}")
+            
     return redirect('dashboard_propietario')
 
 @login_required
