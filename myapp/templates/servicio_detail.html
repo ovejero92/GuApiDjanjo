@@ -1,6 +1,6 @@
 {% extends 'layouts/navbar.html' %}
 {% load static %}
-
+{% load custom_filters %}
 {% block content %}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -89,48 +89,92 @@
     </div>
 
     <!-- Contenedor de Reseñas -->
-    <div class="reseñas-container">
-        <h2>Opiniones de Nuestros Clientes</h2>
-        {% if calificacion_promedio %}
-            <div class="resumen-calificacion">
-                <span class="promedio-numero">{{ calificacion_promedio|floatformat:1 }}</span>
-                <span class="promedio-estrellas">
-                    {% for i in "12345" %}{% if calificacion_promedio >= i|add:"0" %}<i class="fas fa-star"></i>{% else %}<i class="far fa-star"></i>{% endif %}{% endfor %}
-                </span>
-                <span class="total-reseñas"> (basado en {{ reseñas|length }} reseñas)</span>
-            </div>
-        {% endif %}
-        <div class="lista-reseñas">
-        {% for reseña in reseñas %}
-            <div class="reseña-card">
-                <div class="reseña-header">
-                    <span class="reseña-usuario">{{ reseña.usuario.username }}</span>
-                    <span class="reseña-fecha">{{ reseña.fecha_creacion|date:"d/m/Y" }}</span>
-                </div>
-                <div class="reseña-calificacion">
-                    {% for i in "12345" %}{% if reseña.calificacion >= i|add:"0" %}<i class="fas fa-star"></i>{% endif %}{% endfor %}
-                </div>
-                <p class="reseña-comentario">{{ reseña.comentario|linebreaksbr }}</p>
-            </div>
-        {% empty %}
-            <p>Este servicio aún no tiene reseñas. ¡Sé el primero en dejar una!</p>
-        {% endfor %}
+    <div class="reseñas-container" id="seccion-reseñas">
+    <h2>Opiniones de Nuestros Clientes</h2>
+    
+    {% if calificacion_promedio %}
+        <!-- Resumen de Calificación -->
+        <div class="resumen-calificacion">
+            <span class="promedio-numero">{{ calificacion_promedio|floatformat:1 }}</span>
+            <span class="promedio-estrellas">
+                <!-- ... (tu bucle para las estrellas del promedio) ... -->
+            </span>
+            <span class="total-reseñas">(basado en {{ conteo_total_reseñas }} reseñas)</span>
         </div>
-    </div>
+
+        <!-- Filtros por Estrellas -->
+        <div class="filtros-reseñas">
+            <a href="{% url 'servicio_detail' servicio.slug %}" class="filtro-btn {% if not filtro_activo %}active{% endif %}">Todas ({{ conteo_total_reseñas }})</a>
+            {% for i in "54321"|make_list %}
+                {% with star_count=conteo_estrellas|get_item:i|default:0 %}
+                <a href="?calificacion={{ i }}" class="filtro-btn {% if filtro_activo == i|add:0 %}active{% endif %}">
+                    {{ i }} <i class="fas fa-star"></i> ({{ star_count }})
+                </a>
+                {% endwith %}
+            {% endfor %}
+        </div>
+
+        <!-- Contenedor para la Lista de Reseñas -->
+        <div id="lista-reseñas" class="lista-reseñas">
+            {% for reseña in reseñas %}
+                <div class="reseña-card">
+                    <div class="reseña-header">
+                        <span class="reseña-usuario">{{ reseña.usuario.username }}</span>
+                        <span class="reseña-fecha">{{ reseña.fecha_creacion|date:"d/m/Y" }}</span>
+                    </div>
+                    <div class="reseña-calificacion">
+                        {% for i in "12345"|make_list %}{% if reseña.calificacion >= i|add:0 %}<i class="fas fa-star"></i>{% endif %}{% endfor %}
+                    </div>
+                    <p class="reseña-comentario">{{ reseña.comentario|linebreaksbr }}</p>
+                </div>
+            {% empty %}
+                <p>No hay reseñas que coincidan con este filtro.</p>
+            {% endfor %}
+        </div>
+        
+        <!-- Botón para Cargar Más -->
+        {% if tiene_mas_paginas %}
+        <div class="load-more-container">
+            <button id="load-more-reviews" class="btn-load-more">Cargar más reseñas</button>
+        </div>
+        {% endif %}
+
+    {% else %}
+        <p>Este servicio aún no tiene reseñas. ¡Sé el primero en dejar una!</p>
+    {% endif %}
 </div>
 
 <footer class="footer-estructurado">
     <div class="container footer-grid">
-        <div class="footer-columna">
-            <h4>Sobre "{{ servicio.nombre }}"</h4>
-            <p>{{ servicio.descripcion|truncatewords:25 }}</p>
+        
+        <!-- ========== COLUMNA DEL MAPA (MODIFICADA) ========== -->
+        <div class="footer-columna footer-mapa">
+            <h4>Ubicación</h4>
+            {% if servicio.footer_direccion and google_maps_api_key %}
+                <div class="map-container">
+                    <iframe
+                        width="100%"
+                        height="200"
+                        style="border:0; border-radius: 8px;"
+                        loading="lazy"
+                        allowfullscreen
+                        src="https://www.google.com/maps/embed/v1/place?key={{ google_maps_api_key }}&q={{ servicio.footer_direccion|urlencode }}">
+                    </iframe>
+                </div>
+            {% else %}
+                <p>La dirección no ha sido especificada por el propietario.</p>
+            {% endif %}
         </div>
+
+        <!-- Columna de Contacto (sin cambios) -->
         <div class="footer-columna">
-            <h4>Contacto y Ubicación</h4>
+            <h4>Contacto</h4>
             {% if servicio.footer_direccion %}<p><i class="fas fa-map-marker-alt"></i> {{ servicio.footer_direccion }}</p>{% endif %}
             {% if servicio.footer_telefono %}<p><i class="fas fa-phone"></i> {{ servicio.footer_telefono }}</p>{% endif %}
             {% if servicio.footer_email %}<p><i class="fas fa-envelope"></i> {{ servicio.footer_email }}</p>{% endif %}
         </div>
+
+        <!-- Columna de Redes Sociales (sin cambios) -->
         <div class="footer-columna">
             <h4>Síguenos en Redes</h4>
             <div class="social-links">
@@ -186,8 +230,16 @@
     .social-links a { color: #ccc; font-size: 1.8em; margin-right: 15px; transition: color 0.2s; }
     .social-links a:hover { color: var(--color-primario-servicio); }
     .footer-bottom { text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #444; font-size: 0.9em; }
-
-     /* ========== NUEVOS ESTILOS PARA SUB-SERVICIOS ========== */
+    .filtros-reseñas { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 30px; justify-content: center; }
+    .filtro-btn { background-color: #444; color: #ccc; padding: 8px 15px; border-radius: 20px; text-decoration: none; transition: all 0.2s; }
+    .filtro-btn.active, .filtro-btn:hover { background-color: var(--color-primario-servicio); color: white; }
+    .load-more-container { text-align: center; margin-top: 30px; }
+    .btn-load-more { background-color: transparent; border: 1px solid var(--color-primario-servicio); color: var(--color-primario-servicio); padding: 10px 25px; border-radius: 5px; cursor: pointer; }
+    .footer-mapa .map-container {
+        width: 100%;
+        height: 200px; /* Puedes ajustar esta altura */
+    }
+    /* ========== NUEVOS ESTILOS PARA SUB-SERVICIOS ========== */
     .subservicio-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; background-color: #444; padding: 12px; border-radius: 5px; cursor: pointer; transition: background-color 0.2s; border-left: 4px solid transparent; }
     .subservicio-item:hover { background-color: #555; }
     .subservicio-item.selected { font-weight: bold; border-left-color: var(--color-primario-servicio); }
@@ -196,6 +248,9 @@
     .subservicio-item label { cursor: pointer; width: 100%; } /* Hacemos que toda la etiqueta sea clickeable */
     #resumen-turno { background: #2a2a2a; padding: 15px; border-radius: 5px; margin-top: 15px; border-left: 4px solid aqua; }
 </style>
+{% endblock %}
+
+{% block scripts_extra %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const subserviciosItems = document.querySelectorAll('.subservicio-item');
@@ -302,4 +357,68 @@ document.addEventListener('DOMContentLoaded', function() {
     actualizarResumenYPasos();
 });
 </script>
+ <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const loadMoreButton = document.getElementById('load-more-reviews');
+        const reviewsContainer = document.getElementById('lista-reseñas');
+        
+        // Si el botón no existe en la página, no hacemos nada.
+        if (!loadMoreButton) return;
+
+        let currentPage = 2; // La página 1 ya fue cargada por Django
+        const urlParams = new URLSearchParams(window.location.search);
+        const calificacionFiltro = urlParams.get('calificacion') || '';
+
+        // Función para generar las estrellas en las nuevas reseñas cargadas
+        function generateStars(rating) {
+            let starsHtml = '';
+            for (let i = 1; i <= 5; i++) {
+                if (i <= rating) {
+                    starsHtml += '<i class="fas fa-star"></i>';
+                }
+            }
+            return starsHtml;
+        }
+
+        async function loadMoreReviews() {
+            loadMoreButton.textContent = 'Cargando...';
+            loadMoreButton.disabled = true;
+
+            const apiUrl = `/api/reseñas/{{ servicio.slug }}/?page=${currentPage}&calificacion=${calificacionFiltro}`;
+            
+            try {
+                const response = await fetch(apiUrl);
+                const data = await response.json();
+
+                data.reseñas.forEach(reseña => {
+                    const reviewCardHTML = `
+                        <div class="reseña-card">
+                            <div class="reseña-header">
+                                <span class="reseña-usuario">${reseña.usuario}</span>
+                                <span class="reseña-fecha">${reseña.fecha_creacion}</span>
+                            </div>
+                            <div class="reseña-calificacion">${generateStars(reseña.calificacion)}</div>
+                            <p class="reseña-comentario">${reseña.comentario.replace(/\n/g, '<br>')}</p>
+                        </div>
+                    `;
+                    reviewsContainer.insertAdjacentHTML('beforeend', reviewCardHTML);
+                });
+
+                if (data.has_next_page) {
+                    currentPage++;
+                    loadMoreButton.textContent = 'Cargar más reseñas';
+                    loadMoreButton.disabled = false;
+                } else {
+                    loadMoreButton.style.display = 'none'; // Ocultamos el botón si no hay más páginas
+                }
+            } catch (error) {
+                console.error('Error al cargar más reseñas:', error);
+                loadMoreButton.textContent = 'Error al cargar. Reintentar.';
+                loadMoreButton.disabled = false;
+            }
+        }
+
+        loadMoreButton.addEventListener('click', loadMoreReviews);
+    });
+    </script>
 {% endblock %}

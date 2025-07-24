@@ -1,6 +1,51 @@
 {% extends 'layouts/dashboard_base.html' %}
 
 {% block dashboard_content %}
+    <style>
+        /* Estilos para los nuevos botones de filtro */
+        .historial-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .historial-filtros a {
+            text-decoration: none;
+            color: #ccc;
+            background-color: #3a3a3a;
+            padding: 8px 15px;
+            border-radius: 20px;
+            margin-left: 10px;
+            font-size: 0.9em;
+            transition: all 0.2s;
+        }
+        .historial-filtros a.active {
+            background-color: var(--color-primario, #007bff);
+            color: white;
+            font-weight: bold;
+        }
+        /* Estilos para la paginación */
+        .pagination-container {
+            margin-top: 25px;
+            text-align: center;
+        }
+        .pagination-container a, .pagination-container span {
+            color: #ccc;
+            padding: 8px 12px;
+            text-decoration: none;
+            border: 1px solid #444;
+            margin: 0 4px;
+            border-radius: 5px;
+        }
+        .pagination-container .current-page {
+            background-color: var(--color-primario, #007bff);
+            color: white;
+            border-color: var(--color-primario, #007bff);
+        }
+        .pagination-container a:hover {
+            background-color: #444;
+        }
+    </style>
     
     {% if no_hay_servicio %}
         <div class="dashboard-section">
@@ -100,8 +145,15 @@
 
         <!-- SECCIÓN DE HISTORIAL DE TURNOS PASADOS -->
         <div class="dashboard-section" id="historial">
-            <h2>Historial de Turnos Pasados</h2>
-            {% if turnos_pasados %}
+            <div class="historial-header">
+                <h2>Historial de Turnos Pasados</h2>
+                <div class="historial-filtros">
+                    <a href="{% url 'dashboard_turnos' %}?filtro_historial=por_finalizar" class="{% if filtro_historial_activo == 'por_finalizar' %}active{% endif %}">Para Finalizar</a>
+                    <a href="{% url 'dashboard_turnos' %}?filtro_historial=finalizados" class="{% if filtro_historial_activo == 'finalizados' %}active{% endif %}">Finalizados</a>
+                </div>
+            </div>
+
+            {% if historial_page_obj %}
                 <div class="table-responsive-wrapper">
                     <table class="turnos-table responsive-table">
                         <thead>
@@ -114,17 +166,18 @@
                             </tr>
                         </thead>
                         <tbody>
-                            {% for turno in turnos_pasados %}
+                            <!-- Cambiamos el bucle para que itere sobre el objeto de la página -->
+                            {% for turno in historial_page_obj %}
                             <tr>
-                                <td data-label="Cliente"><span class="data-value">{{ turno.cliente.first_name|default:turno.cliente.username }}</span></td>
-                                <td data-label="Fecha y Hora"><span class="data-value">{{ turno.fecha|date:"d/m/Y" }} - {{ turno.hora|time:"H:i" }}</span></td>
-                                <td data-label="Estado"><span class="data-value">{{ turno.get_estado_display }}</span></td>
-                                <td data-label="Ingreso"><span class="data-value">{% if turno.ingreso_real %}${{ turno.ingreso_real|floatformat:2 }}{% else %}-{% endif %}</span></td>
+                                <td data-label="Cliente">{{ turno.cliente.first_name|default:turno.cliente.username }}</td>
+                                <td data-label="Fecha y Hora">{{ turno.fecha|date:"d/m/Y" }} - {{ turno.hora|time:"H:i" }}</td>
+                                <td data-label="Estado">{{ turno.get_estado_display }}</td>
+                                <td data-label="Ingreso">{% if turno.ingreso_real %}${{ turno.ingreso_real|floatformat:2 }}{% else %}-{% endif %}</td>
                                 <td data-label="Acciones">
-                                    {% if turno.estado != 'completado' and turno.estado != 'cancelado' %}
-                                        <a href="{% url 'finalizar_turno' turno.id %}" style="color: #033f63; background-color:#b5b682; padding: 4px 3px; text-decoration: none; border-radius: 4px;">Finalizar Turno</a>
+                                    {% if turno.estado == 'pendiente' or turno.estado == 'confirmado' %}
+                                        <a href="{% url 'finalizar_turno' turno.id %}" class="btn-confirmar"  style="color: #033f63; background-color:#b5b682; padding: 4px 3px; text-decoration: none; border-radius: 4px;">Finalizar Turno</a>
                                     {% elif turno.estado == 'completado' %}
-                                        <a href="{% url 'finalizar_turno' turno.id %}" style="color:#b5b682 ; background-color:#033f63; padding: 4px 3px; text-decoration: none; border-radius: 4px;">Editar Ingreso</a>
+                                        <a href="{% url 'finalizar_turno' turno.id %}" class="btn-editar-ingreso"  style="color:#b5b682 ; background-color:#033f63; padding: 4px 3px; text-decoration: none; border-radius: 4px;">Editar Ingreso</a>
                                     {% endif %}
                                 </td>
                             </tr>
@@ -132,8 +185,26 @@
                         </tbody>
                     </table>
                 </div>
+
+                <!-- Controles de Paginación -->
+                {% if historial_page_obj.has_other_pages %}
+                <div class="pagination-container">
+                    {% if historial_page_obj.has_previous %}
+                        <a href="?page={{ historial_page_obj.previous_page_number }}&filtro_historial={{ filtro_historial_activo }}">« Anterior</a>
+                    {% endif %}
+
+                    <span class="current-page">
+                        Página {{ historial_page_obj.number }} de {{ historial_page_obj.paginator.num_pages }}
+                    </span>
+
+                    {% if historial_page_obj.has_next %}
+                        <a href="?page={{ historial_page_obj.next_page_number }}&filtro_historial={{ filtro_historial_activo }}">Siguiente »</a>
+                    {% endif %}
+                </div>
+                {% endif %}
+
             {% else %}
-                <p>No hay historial de turnos.</p>
+                <p>No hay historial de turnos para este filtro.</p>
             {% endif %}
         </div>
     {% endif %}

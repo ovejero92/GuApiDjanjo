@@ -8,6 +8,7 @@ from .forms import BloqueoForm, TurnoForm, UserUpdateForm, IngresoTurnoForm, Res
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from django.http import JsonResponse
+from django.core.paginator import Paginator
 from datetime import datetime, timedelta
 import calendar
 from django.db.models import Count, Sum,Avg,F, ExpressionWrapper, fields
@@ -23,6 +24,7 @@ from django.core.serializers import serialize
 # Importaciones necesarias para la nueva vista de Login
 from django.contrib.auth.views import LoginView
 from django.urls import reverse_lazy
+from django.conf import settings
 # ========== FIN DE LA MODIFICACIÓN ==========
 
 def index(request):
@@ -113,15 +115,44 @@ def servicio_detail(request, servicio_slug):
         form = TurnoForm(servicio_id=servicio.id, initial={'fecha': timezone.localdate()})
         # ========== FIN DE LA CORRECCIÓN ==========
 
-    # La lógica para reseñas y calificación promedio se queda igual.
-    reseñas = servicio.reseñas.all()
+    # 1. Leemos el filtro de calificación desde la URL (ej: ?calificacion=5).
+    calificacion_filtro = request.GET.get('calificacion')
+
+    # 2. Creamos la consulta base para TODAS las reseñas de este servicio.
+    reseñas_base = servicio.reseñas.all().select_related('usuario').order_by('-fecha_creacion')
+    
+    # 3. Contamos cuántas reseñas hay para cada estrella ANTES de aplicar el filtro.
+    #    Esto es para poder mostrar "(10)" en el botón del filtro de 5 estrellas, etc.
+    conteo_estrellas = reseñas_base.values('calificacion').annotate(count=Count('id'))
+    conteo_map = {item['calificacion']: item['count'] for item in conteo_estrellas}
+    conteo_total = reseñas_base.count()
+
+    # 4. Aplicamos el filtro si el usuario seleccionó uno.
+    if calificacion_filtro and calificacion_filtro.isdigit():
+        reseñas_a_mostrar = reseñas_base.filter(calificacion=int(calificacion_filtro))
+    else:
+        reseñas_a_mostrar = reseñas_base
+    
+    # 5. Paginamos los resultados para obtener solo la PRIMERA página de reseñas.
+    #    Mostraremos 6 reseñas inicialmente. Puedes cambiar este número.
+    paginator = Paginator(reseñas_a_mostrar, 6)
+    reseñas_iniciales = paginator.get_page(1)
+    
+    # ================================================================
+    
     calificacion_promedio = servicio.reseñas.aggregate(Avg('calificacion'))['calificacion__avg']
     
     context = {
         'servicio': servicio,
         'form': form,
-        'reseñas': reseñas,
         'calificacion_promedio': calificacion_promedio,
+        # DATOS NUEVOS PARA LA PLANTILLA
+        'reseñas': reseñas_iniciales, # Le pasamos solo la primera página.
+        'tiene_mas_paginas': reseñas_iniciales.has_next(), # True/False, para saber si mostrar el botón "Cargar más".
+        'conteo_total_reseñas': conteo_total,
+        'conteo_estrellas': conteo_map,
+        'google_maps_api_key': settings.GOOGLE_MAPS_API_KEY,
+        'filtro_activo': int(calificacion_filtro) if calificacion_filtro and calificacion_filtro.isdigit() else 0
     }
     return render(request, 'servicio_detail.html', context)
 
@@ -171,12 +202,40 @@ def dashboard_turnos(request):
     turnos_pendientes = turnos_proximos.filter(estado='pendiente').order_by('fecha', 'hora').prefetch_related('sub_servicios_solicitados')
     turnos_confirmados = turnos_proximos.filter(estado='confirmado').order_by('fecha', 'hora').prefetch_related('sub_servicios_solicitados')
     
+    # ================================================================
+    # ========== NUEVA LÓGICA PARA EL HISTORIAL FILTRADO Y PAGINADO ==========
+    # ================================================================
+
+    # 1. Obtenemos el filtro activo desde la URL. Por defecto, mostramos los que están "para finalizar".
+    filtro_historial_activo = request.GET.get('filtro_historial', 'por_finalizar')
+
+    # 2. Creamos la consulta base para TODOS los turnos pasados.
+    turnos_pasados_base = Turno.objects.filter(
+        servicio=servicio_activo
+    ).filter(
+        Q(fecha__lt=hoy) | Q(fecha=hoy, hora__lt=ahora.time())
+    ).select_related('cliente')
+
+    # 3. Aplicamos el filtro correspondiente.
+    if filtro_historial_activo == 'finalizados':
+        # Mostramos los que ya están completados o cancelados, ordenados del más reciente al más antiguo.
+        turnos_a_mostrar = turnos_pasados_base.filter(estado__in=['completado', 'cancelado']).order_by('-fecha', '-hora')
+    else: # Por defecto, 'por_finalizar'
+        # Mostramos los que pasaron pero siguen pendientes o confirmados, del más antiguo al más reciente.
+        turnos_a_mostrar = turnos_pasados_base.filter(estado__in=['pendiente', 'confirmado']).order_by('fecha', 'hora')
+
+    # 4. Aplicamos la paginación a la lista de turnos que hemos decidido mostrar.
+    paginator = Paginator(turnos_a_mostrar, 10) # Mostraremos 10 turnos por página. Puedes cambiar este número.
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
     context = {
         'servicio_activo': servicio_activo,
         'onboarding_completo': servicio_activo.configuracion_inicial_completa,
-        'turnos_pendientes': turnos_pendientes,
-        'turnos_confirmados': turnos_confirmados,
-        'turnos_pasados': turnos_pasados
+        'turnos_pendientes': turnos_pendientes, # Esto no cambia
+        'turnos_confirmados': turnos_confirmados, # Esto no cambia
+        'historial_page_obj': page_obj, # Pasamos el objeto de la página a la plantilla
+        'filtro_historial_activo': filtro_historial_activo, # Le decimos a la plantilla qué botón resaltar
     }
     return render(request, 'dashboard_turnos.html', context)
 
@@ -849,6 +908,43 @@ def mis_favoritos(request):
     # Podemos reusar la plantilla index.html para mostrar las tarjetas
     return render(request, 'index.html', context)
 
+def api_get_reseñas(request, servicio_slug):
+    """
+    Devuelve una página de reseñas para un servicio específico en formato JSON.
+    Acepta parámetros GET para filtrar por calificación y para paginación.
+    """
+    servicio = get_object_or_404(Servicio, slug=servicio_slug)
+    
+    # Obtenemos todos los filtros de la URL
+    calificacion_filtro = request.GET.get('calificacion')
+    page_number = request.GET.get('page', 1)
+
+    # Creamos la consulta base
+    reseñas_list = servicio.reseñas.all().select_related('usuario').order_by('-fecha_creacion')
+
+    # Aplicamos el filtro si existe
+    if calificacion_filtro and calificacion_filtro.isdigit():
+        reseñas_list = reseñas_list.filter(calificacion=int(calificacion_filtro))
+
+    # Paginamos los resultados
+    paginator = Paginator(reseñas_list, 4) # Mostraremos 4 reseñas por cada "Cargar más"
+    page_obj = paginator.get_page(page_number)
+
+    # Preparamos los datos para convertirlos a JSON
+    data = {
+        'reseñas': [
+            {
+                'usuario': reseña.usuario.username,
+                'fecha_creacion': reseña.fecha_creacion.strftime('%d/%m/%Y'),
+                'calificacion': reseña.calificacion,
+                'comentario': reseña.comentario,
+            } for reseña in page_obj
+        ],
+        'has_next_page': page_obj.has_next()
+    }
+    
+    return JsonResponse(data)
+
 @login_required
 def crear_reseña(request, turno_id):
     turno = get_object_or_404(Turno, id=turno_id, cliente=request.user)
@@ -870,7 +966,7 @@ def crear_reseña(request, turno_id):
             reseña.usuario = request.user
             reseña.save()
             messages.success(request, "¡Gracias por tu reseña!")
-            return redirect('servicio_detail', servicio_id=turno.servicio.id)
+            return redirect('servicio_detail', servicio_slug=turno.servicio.slug)
     else:
         form = ReseñaForm()
 

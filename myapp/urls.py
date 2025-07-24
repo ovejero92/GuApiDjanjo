@@ -13,6 +13,7 @@ urlpatterns = [
     path('', views.index, name='index'),
     path('about/', views.about, name='about'),
     path('s/<slug:servicio_slug>/', views.servicio_detail, name='servicio_detail'),
+    path('api/reseñas/<slug:servicio_slug>/', views.api_get_reseñas, name='api_get_reseñas'),
 
     # Dashboards
     path('dashboard/', views.dashboard_turnos, name='dashboard_propietario'),
