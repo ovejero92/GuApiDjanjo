@@ -6,10 +6,15 @@
     <div class="landing-page">
 
         <!-- Hero Principal -->
-        <section class="hero text-center">
-            <h1>Reservá Turnos Online al Instante</h1>
-            <p class="subtitle">Peluquerías, barberías, manicuras y más. Encontrá tu servicio ideal o llevá tu negocio al siguiente nivel.</p>
-            <a href="{% url 'account_signup' %}" class="btn-primary">Registrate Gratis</a>
+        <section class="hero">
+            <div class="hero-content">
+              <h1>Organizá tus turnos y hacé crecer tu negocio</h1>
+              <p>Reservá online, automatizá citas y ganá tiempo para lo importante. Todo en un solo lugar.</p>
+              <a href="{% url 'account_signup' %}" class="btn-gradient">¡Registrate Gratis!</a>
+            </div>
+            <div class="hero-image">
+              <img src="{% static 'image/Turnos-online.gif' %}" alt="Turnos Online">
+            </div>
         </section>
 
         <!-- Beneficios para Negocios -->
@@ -82,34 +87,246 @@
 {% endif %}
 
 <style>
-.landing-page { font-family: 'Segoe UI', sans-serif; color: #333; }
-.hero { background: linear-gradient(135deg, #007bff, #00c6ff); color: white; padding: 80px 20px; }
-.hero h1 { font-size: 3em; margin-bottom: 10px; }
-.hero .subtitle { font-size: 1.2em; margin-bottom: 30px; }
-.benefits { display: flex; justify-content: center; gap: 40px; padding: 40px 20px; flex-wrap: wrap; }
-.benefit-card { background: #f8f9fa; padding: 30px; border-radius: 10px; width: 300px; text-align: center; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-.featured { background: #f1f1f1; padding: 50px 20px; text-align: center; }
-.services-grid { display: flex; justify-content: center; gap: 30px; flex-wrap: wrap; }
-.service-card { background: white; padding: 20px; border-radius: 10px; width: 250px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
-.cta-final { background: #007bff; color: white; padding: 60px 20px; }
-.btn-primary, .btn-secondary, .btn-tertiary { padding: 10px 20px; border-radius: 5px; text-decoration: none; display: inline-block; margin-top: 10px; }
-.btn-primary { background: #ffc107; color: black; font-weight: bold; }
-.btn-secondary { background: white; color: #007bff; border: 2px solid #007bff; }
-.btn-tertiary { background: #e0e0e0; color: #333; }
-.btn-primary:hover, .btn-secondary:hover, .btn-tertiary:hover { opacity: 0.9; }
-.text-center { text-align: center; }
-.landing-section { padding: 40px 20px; text-align: center; }
-.hero-section { padding: 80px 20px; background-color: #2a2a2a; }
-.category-filters { text-align: center; margin-bottom: 30px; }
-.category-filters a {
-    display: inline-block; padding: 8px 15px; margin: 5px;
-    background-color: #444; color: #ccc; text-decoration: none;
-    border-radius: 20px; transition: all 0.2s;
-}
-.category-filters a:hover, .category-filters a.active {
-    background-color: #007bff; color: white; transform: scale(1.05);
+.landing-page {
+  font-family: 'Segoe UI', sans-serif;
+  color: #333;
 }
 
+/* HERO principal */
+.hero {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  padding: 60px 20px;
+  background: linear-gradient(135deg, #F9F8FF, #E0E7FF);
+  border-radius: 20px;
+  overflow: hidden;
+  gap: 40px;
+}
+.hero-content {
+  flex: 1 1 400px;
+  padding: 20px;
+  text-align: left;
+}
+.hero-content h1 {
+  font-size: 2.5em;
+  margin-bottom: 20px;
+  color: #2c3e50;
+}
+.hero-content p {
+  font-size: 1.2em;
+  color: #555;
+  margin-bottom: 30px;
+}
+.hero-image {
+  flex: 1 1 300px;
+  text-align: center;
+}
+.hero-image img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 10px;
+}
+.hero .subtitle {
+  font-size: 1.2em;
+  margin-bottom: 30px;
+}
+
+/* Botón principal degradado */
+.btn-gradient {
+  display: inline-block;
+  padding: 12px 30px;
+  background: linear-gradient(135deg, #6C63FF, #00B4DB);
+  border: 2px black solid;
+  color: white;
+  border-radius: 50px;
+  text-decoration: none;
+  font-weight: bold;
+  font-size: 1em;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+.btn-gradient:hover {
+  transform: scale(1.05);
+  opacity: 0.95;
+}
+
+/* Botones secundarios unificados */
+.btn-primary,
+.btn-secondary,
+.btn-tertiary {
+  padding: 10px 25px;
+  border-radius: 50px;
+  text-decoration: none;
+  display: inline-block;
+  margin-top: 10px;
+  font-weight: bold;
+  border: 2px black solid;
+  transition: all 0.3s ease;
+}
+.btn-primary {
+  background: linear-gradient(135deg, #6C63FF, #00B4DB);
+  color: rgb(255, 255, 255);
+  text-shadow: black 1px 1px 2px ;
+}
+.btn-primary:hover {
+  opacity: 0.9;
+}
+.btn-secondary {
+  background: transparent;
+  border: 2px solid #6C63FF;
+  color: #6C63FF;
+}
+.btn-secondary:hover {
+  background: #6C63FF;
+  color: white;
+}
+.btn-tertiary {
+  background: transparent;
+  border: 2px solid #00B4DB;
+  color: #00B4DB;
+}
+.btn-tertiary:hover {
+  background: #00B4DB;
+  color: white;
+}
+
+/* Cards de beneficios */
+.benefits {
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  padding: 40px 20px;
+  flex-wrap: wrap;
+}
+.benefit-card {
+  background: white;
+  border-radius: 20px;
+  padding: 30px;
+  text-align: center;
+  width: 300px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.benefit-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 25px rgba(0, 0, 0, 0.12);
+}
+.benefit-card h2 {
+  color: #2c3e50;
+  margin-bottom: 15px;
+  font-size: 1.5em;
+}
+.benefit-card p {
+  color: #555;
+  font-size: 1em;
+  margin-bottom: 20px;
+}
+
+/* Sección servicios */
+.services-grid {
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+  flex-wrap: wrap;
+}
+.service-card {
+  background: white;
+  border-radius: 20px;
+  padding: 30px;
+  text-align: center;
+  width: 300px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.service-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 25px rgba(0, 0, 0, 0.12);
+}
+.service-card h3 {
+  color: #2c3e50;
+  margin-bottom: 15px;
+  font-size: 1.4em;
+}
+.service-card p {
+  color: #555;
+  font-size: 1em;
+  margin-bottom: 20px;
+}
+
+/* Sección destacada (fondo claro) */
+.featured {
+  background: #F9F8FF;
+  padding: 60px 20px;
+  text-align: center;
+}
+
+/* CTA final potente */
+.cta-final {
+  background: linear-gradient(135deg, #6C63FF, #00B4DB);
+  color: white;
+  padding: 60px 20px;
+  text-align: center;
+}
+.cta-final h2 {
+  font-size: 2em;
+  margin-bottom: 10px;
+}
+.cta-final p {
+  font-size: 1.2em;
+  margin-bottom: 30px;
+}
+
+/* Filtros de categorías */
+.category-filters {
+  text-align: center;
+  margin-bottom: 30px;
+}
+.category-filters a {
+  display: inline-block;
+  padding: 8px 15px;
+  margin: 5px;
+  background-color: #444;
+  color: #ccc;
+  text-decoration: none;
+  border-radius: 20px;
+  transition: all 0.2s;
+}
+.category-filters a:hover,
+.category-filters a.active {
+  background-color: #6C63FF;
+  color: white;
+  transform: scale(1.05);
+}
+
+/* Utilidades */
+.text-center {
+  text-align: center;
+}
+.landing-section {
+  padding: 40px 20px;
+  text-align: center;
+}
+.hero-section {
+  padding: 80px 20px;
+  background-color: #2a2a2a;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .hero {
+    flex-direction: column;
+    text-align: center;
+    padding: 40px 20px;
+  }
+  .hero-content h1 {
+    font-size: 2em;
+  }
+  .hero-content p {
+    font-size: 1em;
+  }
+}
 </style>
 
 
