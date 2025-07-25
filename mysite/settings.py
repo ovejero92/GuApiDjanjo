@@ -200,3 +200,20 @@ else:
     # --- En Local, seguimos usando el disco duro ---
     MEDIA_URL = '/media/'
     MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+    
+# ========== 8. CONFIGURACIÓN DE LOGGING PARA PRODUCCIÓN ==========
+# Esto fuerza a Django a mostrar los errores en los logs de Render.
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": "INFO", # Cambia a "DEBUG" para ver aún más detalle si es necesario
+    },
+}
