@@ -21,7 +21,7 @@
     }
     .banner-servicio {
         width: 100%; height: 300px;
-        background-image: url('{% if servicio.imagen_banner %}{{ servicio.imagen_banner.url }}{% else %}{% static "image/default-banner.png" %}{% endif %}');
+        /* background-image: url('{% if servicio.imagen_banner %}{{ servicio.imagen_banner.url }}{% else %}{% static "image/default-banner.png" %}{% endif %}'); */
         background-size: cover; background-position: center;
     }
     .turno-form-container, .reseñas-container { background-color: var(--color-fondo-servicio); color: var(--color-texto-servicio);}
@@ -31,7 +31,7 @@
 </style>
 
 {% if servicio.imagen_banner %}
-<div class="banner-servicio"></div>
+    <div class="banner-servicio" style="background-image: url('{{ servicio.imagen_banner.url }}');"></div>
 {% endif %}
 
 
