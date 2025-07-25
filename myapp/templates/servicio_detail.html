@@ -5,6 +5,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Lato&family=Montserrat&family=Open+Sans&family=Playfair+Display&family=Roboto&display=swap" rel="stylesheet">
+{% block styles_extra %}
 <style>
     :root {
         --color-primario-servicio: {{ servicio.color_primario|default:'#007bff' }};
@@ -29,6 +30,7 @@
     .slot-button.selected, .subservicio-item.selected { background-color: #28a745 !important; }
     .btn-submit.is-disabled { background-color: #555 !important; }
 </style>
+{% endblock %}
 
 {% if servicio.imagen_banner %}
     <div class="banner-servicio" style="background-image: url('{{ servicio.imagen_banner.url }}');"></div>
