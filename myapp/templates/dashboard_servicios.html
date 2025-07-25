@@ -96,33 +96,87 @@
         </div>
     {% endif %}
 
-     <style>
-        .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        @media (max-width: 992px) { .dashboard-grid { grid-template-columns: 1fr; } }
-        .form-section { min-width: 0; }
-        .form-section fieldset { border: 1px solid #555; padding: 20px; margin-bottom: 20px; border-radius: 8px; }
-        .form-section legend { padding: 0 10px; font-weight: bold; color: #ccc; }
-        .form-group { margin-bottom: 15px; }
-        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 0.9em; color: #bbb; }
-        .form-group input[type="color"], .form-group input[type="file"], .form-group input[type="text"], .form-group input[type="email"], .form-group input[type="url"], .form-group select, .form-group textarea { width: 100%; padding: 10px; box-sizing: border-box; background-color: #333; color: white; border: 1px solid #666; border-radius: 4px; }
-        form { margin: 0; }
-        .btn-submit { background-color: #007bff; color: white; padding: 12px 20px; border: none; border-radius: 5px; cursor: pointer; width: 100%; font-size: 1.1em; }
-        .colores-fieldset { width: 400px; }
-        .preview-container { border: 2px dashed #555; border-radius: 8px; padding: 15px; overflow: hidden; }
-        .preview-banner { height: 150px; background-color: #555; background-size: cover; background-position: center; border-radius: 5px; margin-bottom: 15px; transition: background-image 0.3s; }
-        .preview-card { border-radius: 5px; padding: 20px; text-align: center; transition: all 0.3s; }
-        .preview-card h3, .preview-card p { transition: font-family 0.3s, color 0.3s; }
-        .preview-button { color: white; padding: 10px 15px; border: none; border-radius: 5px; transition: background-color 0.3s; }
-          .url-preview { display: flex; align-items: center; background-color: #2c2c2c; border: 1px solid #555; border-radius: 5px; padding: 5px; }
-        .url-preview span { padding: 0 10px; color: #888; white-space: nowrap; }
-        .url-preview input { border: none !important; background: none !important; flex-grow: 1; padding: 5px !important; }
-        .form-help-text { font-size: 0.8em; color: #888; }
-        .form-error { color: #ff6b6b; font-size: 0.9em; margin-top: 5px; background-color: #5d1a1a; padding: 8px; border-radius: 4px; }
-        .input-url{padding: 0 !important;}
-        .input-url input{
-            margin: 0;
+    <style>
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 30px;
+    }
+    @media (min-width: 992px) {
+        .dashboard-grid {
+            grid-template-columns: 1fr 1fr;
         }
-    </style>
+    }
+
+    .form-section fieldset {
+        border: 1px solid #555;
+        padding: 20px;
+        margin-bottom: 20px;
+        border-radius: 8px;
+    }
+    .form-section legend {
+        padding: 0 10px;
+        font-weight: bold;
+        color: #ccc;
+    }
+    .form-group {
+        margin-bottom: 15px;
+    }
+    .form-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+        font-size: 0.9em;
+        color: #bbb;
+    }
+    
+    .form-group input, .form-group select, .form-group textarea {
+        width: 100%;
+        padding: 10px;
+        box-sizing: border-box; 
+        background-color: #333;
+        color: white;
+        border: 1px solid #666;
+        border-radius: 4px;
+    }
+    
+    .url-preview {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        background-color: #2c2c2c;
+        border: 1px solid #555;
+        border-radius: 5px;
+        padding: 5px;
+    }
+    .url-preview .host-prefix {
+        padding: 0 10px;
+        color: #888;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+    .url-preview .input-url {
+        flex-grow: 1; 
+        min-width: 150px; 
+    }
+    .url-preview input {
+        border: none !important;
+        background: none !important;
+        padding: 5px !important;
+        margin: 0;
+        width: 100%; 
+    }
+    /* ======================================================= */
+
+    .form-help-text { font-size: 0.8em; color: #888; }
+    .form-error { color: #ff6b6b; font-size: 0.9em; margin-top: 5px; background-color: #5d1a1a; padding: 8px; border-radius: 4px; }
+    
+    .preview-container { border: 2px dashed #555; border-radius: 8px; padding: 15px; overflow: hidden; position: sticky; top: 20px; /* Fija la preview al hacer scroll */ }
+    .preview-banner { height: 150px; background-color: #555; background-size: cover; background-position: center; border-radius: 5px; margin-bottom: 15px; transition: background-image 0.3s; }
+    .preview-card { border-radius: 5px; padding: 20px; text-align: center; transition: all 0.3s; }
+    .preview-card h3, .preview-card p { transition: font-family 0.3s, color 0.3s; }
+    .preview-button { color: white; padding: 10px 15px; border: none; border-radius: 5px; transition: background-color 0.3s; }
+</style>
 {% endblock %}
 
 
