@@ -98,8 +98,17 @@ def get_servicio_activo(request):
     return servicio_activo
 
 def precios(request):
-    planes = Plan.objects.filter(precio_mensual__gte=0).order_by('precio_mensual')
-    return render(request, 'precios.html', {'planes': planes})
+    try:
+        context = {
+            'plan_free': Plan.objects.get(slug='free'),
+            'plan_pro': Plan.objects.get(slug='pro'),
+            'plan_prime': Plan.objects.get(slug='prime'),
+        }
+    except Plan.DoesNotExist:
+        messages.error(request, "Aún no se han configurado todos los planes de suscripción.")
+        context = {'planes_no_configurados': True}
+
+    return render(request, 'precios.html', context)
 
 @login_required
 def crear_servicio_paso2(request):
