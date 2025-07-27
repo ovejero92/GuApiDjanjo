@@ -1,5 +1,7 @@
 {% extends 'layouts/navbar.html' %}
 {% load static %}
+{% block title %}{{ servicio.nombre }} en Turnos Online{% endblock %}
+{% block meta_description %}Reserva tu turno en {{ servicio.nombre }}. {{ servicio.descripcion|truncatewords:20 }}{% endblock %}
 {% load custom_filters %}
 {% block content %}
 <link rel="preconnect" href="https://fonts.googleapis.com">

@@ -4,9 +4,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ servicio.nombre | default:"Turnos Online" }}</title>     <link rel="preconnect" href="https://fonts.googleapis.com">
+    <title>{% block title %}Turnos Online - Gestiona tu Negocio Fácilmente{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Lato&family=Montserrat&family=Open+Sans&family=Playfair+Display&family=Roboto&display=swap" rel="stylesheet">
+    <meta name="description" content="{% block meta_description %}La plataforma ideal para que profesionales y pequeños negocios gestionen sus turnos y clientes de forma sencilla y eficiente.{% endblock %}">    <link href="https://fonts.googleapis.com/css2?family=Lato&family=Montserrat&family=Open+Sans&family=Playfair+Display&family=Roboto&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="{% static 'styles/main.css' %}">
     <link rel="shortcut icon" href="{% static 'image/phonebook_notebook_14401.ico' %}" type="image/x-icon">

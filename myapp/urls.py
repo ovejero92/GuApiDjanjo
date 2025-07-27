@@ -21,7 +21,8 @@ urlpatterns = [
     path('dashboard/servicios/', views.dashboard_servicios, name='dashboard_servicios'),
     path('turno/reseña/crear/<int:turno_id>/', views.crear_reseña, name='crear_reseña'),
     path('mis-turnos/', views.mis_turnos, name='mis_turnos'),
-    path('mis-favoritos/', views.mis_favoritos, name='mis_favoritos'), path("googleef49e9e659c3e137.html", TemplateView.as_view(
+    path('mis-favoritos/', views.mis_favoritos, name='mis_favoritos'), 
+    path("googleef49e9e659c3e137.html", TemplateView.as_view(
         template_name="googleef49e9e659c3e137.html",
         content_type="text/html"
     )),

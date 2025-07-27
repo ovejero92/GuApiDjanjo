@@ -1,5 +1,6 @@
 {% extends 'layouts/navbar.html' %}
 {% load static %}
+{% block title %}{% block dashboard_title %}Dashboard{% endblock %} - Turnos Online{% endblock %}
 
 {% block content %}
 <div class="dashboard-wrapper" data-onboarding-completo="{{ onboarding_completo|yesno:'True,False' }}">

@@ -1,6 +1,7 @@
 {% extends 'layouts/navbar.html' %}
 {% load static %}
-
+{% block title %}Turnos Online - La Plataforma para Gestionar tus Turnos{% endblock %}
+{% block meta_description %}Reserva turnos online de forma fácil y gestiona tu negocio de manera eficiente. Ideal para peluquerías, barberías, consultorios y más.{% endblock %}
 {% block content %}
 {% if not user.is_authenticated %}
     <div class="landing-page">
