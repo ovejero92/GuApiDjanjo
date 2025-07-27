@@ -3,8 +3,8 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth import login
 from django.contrib import messages
 from django.forms import inlineformset_factory
-from .models import Servicio, Turno, HorarioLaboral, SubServicio, Categoria
-from .forms import BloqueoForm, TurnoForm, UserUpdateForm, IngresoTurnoForm, ReseñaForm, ServicioPersonalizacionForm, ServicioUpdateForm
+from .models import Servicio, Turno, HorarioLaboral, SubServicio, Categoria, Plan, Suscripcion
+from .forms import BloqueoForm, TurnoForm, UserUpdateForm, IngresoTurnoForm, ReseñaForm, ServicioPersonalizacionForm, ServicioUpdateForm, ServicioCreateForm
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from django.http import JsonResponse
@@ -21,12 +21,12 @@ import json
 from django.db.models import Q
 from django.core.serializers import serialize
 from django.core.mail import send_mail
-# ========== INICIO DE LA MODIFICACIÓN ==========
-# Importaciones necesarias para la nueva vista de Login
 from django.contrib.auth.views import LoginView
-from django.urls import reverse_lazy
+from django.urls import reverse_lazy, reverse
 from django.conf import settings
-# ========== FIN DE LA MODIFICACIÓN ==========
+import mercadopago
+from django.views.decorators.csrf import csrf_exempt
+
 
 def index(request):
     categorias = Categoria.objects.all()
@@ -46,6 +46,16 @@ def index(request):
     }
     return render(request, 'index.html', context)
 
+def crear_servicio_paso1(request):
+    if request.user.is_authenticated:
+        # Si ya está logueado, lo mandamos a crear el servicio
+        return redirect('crear_servicio_paso2')
+    else:
+        # Si no, lo mandamos a registrarse primero.
+        # El ?next=/crear-servicio/paso2/ le dice a Django que, después del login/signup,
+        # lo redirija a la página de creación de servicio.
+        return redirect(f"{reverse('account_signup')}?next={reverse('crear_servicio_paso2')}")
+
 def about(request):
     return render(request, 'about.html')
 
@@ -55,7 +65,6 @@ def terminos_y_condiciones(request):
 def politica_de_privacidad(request):
     return render(request, 'privacidad.html')
 
-# --- AÑADE ESTA NUEVA VISTA PARA LA ACTIVACIÓN ---
 def activate(request, uidb64, token):
     try:
         uid = force_str(urlsafe_base64_decode(uidb64))
@@ -72,7 +81,6 @@ def activate(request, uidb64, token):
     else:
         return render(request, 'registration/activacion_invalida.html')
 
-# --- VISTAS DEL DASHBOARD DEL PROPIETARIO (MODIFICADAS) ---
 def get_servicio_activo(request):
     servicios_propietario = request.user.servicios_propios.all()
     if not servicios_propietario.exists():
@@ -88,6 +96,82 @@ def get_servicio_activo(request):
     else:
         servicio_activo = servicios_propietario.first()
     return servicio_activo
+
+def precios(request):
+    planes = Plan.objects.filter(precio_mensual__gte=0).order_by('precio_mensual')
+    return render(request, 'precios.html', {'planes': planes})
+
+@login_required
+def crear_servicio_paso2(request):
+    # Comprobamos si el usuario ya tiene un servicio para no dejarle crear otro
+    if request.user.servicios_propios.exists():
+        messages.info(request, "Ya tienes un servicio gestionado. Aquí está tu dashboard.")
+        return redirect('dashboard_propietario')
+
+    if request.method == 'POST':
+        form = ServicioCreateForm(request.POST)
+        if form.is_valid():
+            nuevo_servicio = form.save(commit=False)
+            nuevo_servicio.propietario = request.user
+            nuevo_servicio.save()
+            
+            messages.success(request, f"¡Felicidades! Tu negocio '{nuevo_servicio.nombre}' ha sido creado.")
+            # Lo enviamos al onboarding o al dashboard
+            return redirect('dashboard_propietario')
+    else:
+        form = ServicioCreateForm()
+
+    return render(request, 'crear_servicio.html', {'form': form})
+
+@login_required
+def crear_suscripcion_mp(request, plan_slug):
+    plan = get_object_or_404(Plan, slug=plan_slug)
+    
+    sdk = mercadopago.SDK(settings.MERCADOPAGO_ACCESS_TOKEN)
+
+    # El plan DEBE estar creado en tu dashboard de Mercado Pago > Suscripciones
+    # Y debes pegar el ID de ese plan en el campo 'mp_plan_id' de tu modelo Plan en el admin.
+    if not plan.mp_plan_id:
+        messages.error(request, "Este plan no está configurado para pagos.")
+        return redirect('precios')
+
+    preference_data = {
+        "preapproval_plan_id": plan.mp_plan_id,
+        "reason": f"Suscripción al plan {plan.get_nombre_display()} de TurnosOK",
+        "payer_email": request.user.email,
+        "back_urls": {
+            "success": request.build_absolute_uri(reverse('pago_exitoso')),
+            "failure": request.build_absolute_uri(reverse('precios')),
+            "pending": request.build_absolute_uri(reverse('precios')),
+        },
+        "auto_recurring": {
+            "frequency": 1,
+            "frequency_type": "months",
+            "transaction_amount": int(plan.precio_mensual),
+            "currency_id": "ARS" # O USD si operas en dólares
+        }
+    }
+    
+    result = sdk.preapproval().create(preference_data)
+    
+    if result["status"] == 201:
+        init_point = result["response"]["init_point"]
+        return redirect(init_point)
+    else:
+        messages.error(request, "Hubo un error al procesar tu pago. Por favor, intenta de nuevo.")
+        return redirect('precios')
+
+@login_required
+def pago_exitoso(request):
+    messages.success(request, "¡Gracias por tu suscripción! Tu plan ha sido activado.")
+    return redirect('dashboard_propietario') # O donde quieras
+
+@csrf_exempt
+def webhook_mp(request):
+    # Esta vista es para que Mercado Pago nos notifique.
+    # Es más avanzada y la implementaremos en un segundo paso si es necesario.
+    # Por ahora, la activación es manual o al hacer el pago.
+    return JsonResponse({"status": "ok"})
 
 @login_required
 def servicio_detail(request, servicio_slug):
@@ -485,6 +569,15 @@ def dashboard_horarios(request):
 
 @login_required
 def dashboard_metricas(request):
+    try:
+        tiene_acceso = request.user.suscripcion.plan.allow_metrics
+    except (Suscripcion.DoesNotExist, AttributeError):
+        tiene_acceso = False
+    
+    if not tiene_acceso and request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        # Si no tiene acceso, no le devolvemos datos para los gráficos.
+        return JsonResponse({'error': 'Acceso denegado'}, status=403)
+    
     servicio_activo = get_servicio_activo(request)
     if not servicio_activo:
         return render(request, 'dashboard_metricas.html', {'no_hay_servicio': True})
@@ -493,7 +586,8 @@ def dashboard_metricas(request):
         context = {
             'servicio': servicio_activo,
             'onboarding_completo': True, # Le decimos a la plantilla que el tour YA se hizo.
-            'servicio_activo': servicio_activo # Es buena práctica pasarlo también
+            'servicio_activo': servicio_activo,
+            'tiene_acceso': tiene_acceso
         }
         return render(request, 'servicio_suspendido.html', context)
     
@@ -577,6 +671,15 @@ def dashboard_metricas(request):
 
 @login_required
 def dashboard_servicios(request): # Apariencia
+    try:
+        tiene_acceso = request.user.suscripcion.plan.allow_customization
+    except (Suscripcion.DoesNotExist, AttributeError):
+        tiene_acceso = False
+    
+    if not tiene_acceso and request.method == 'POST':
+        # Si no tiene acceso, no le permitimos guardar cambios.
+        return redirect('precios')
+    
     servicio_activo = get_servicio_activo(request)
     if not servicio_activo:
         return render(request, 'dashboard_servicios.html', {'no_hay_servicio': True})
@@ -601,7 +704,8 @@ def dashboard_servicios(request): # Apariencia
     context = {
         'servicio_activo': servicio_activo,
         'onboarding_completo': servicio_activo.configuracion_inicial_completa,
-        'form': form
+        'form': form,
+        'tiene_acceso': tiene_acceso
     }
     return render(request, 'dashboard_servicios.html', context)
 

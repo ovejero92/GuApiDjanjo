@@ -9,15 +9,11 @@ router.register(r'servicios', ServicioViewSet, basename='servicios')
 router.register(r'turnos', TurnoViewSet, basename='turnos')
 
 urlpatterns = [
-    # Vistas principales
     path('', views.index, name='index'),
     path('about/', views.about, name='about'),
     path('s/<slug:servicio_slug>/', views.servicio_detail, name='servicio_detail'),
     path('api/reseñas/<slug:servicio_slug>/', views.api_get_reseñas, name='api_get_reseñas'),
-
-    # Dashboards
     path('dashboard/', views.dashboard_turnos, name='dashboard_propietario'),
-     # URLs específicas para cada sección del dashboard
     path('dashboard/turnos/', views.dashboard_turnos, name='dashboard_turnos'),
     path('dashboard/horarios/', views.dashboard_horarios, name='dashboard_horarios'),
     path('dashboard/metricas/', views.dashboard_metricas, name='dashboard_metricas'),
@@ -29,27 +25,22 @@ urlpatterns = [
     path('activate/<slug:uidb64>/<slug:token>/', views.activate, name='activate'),
     path('dashboard/catalogo/', views.dashboard_catalogo, name='dashboard_catalogo'),
     path('terminos-y-condiciones/', views.terminos_y_condiciones, name='terminos'),
+    path('empezar/', views.crear_servicio_paso1, name='crear_servicio_paso1'),
+    path('crear-servicio/', views.crear_servicio_paso2, name='crear_servicio_paso2'),
     path('politica-de-privacidad/', views.politica_de_privacidad, name='privacidad'),
     path('onboarding/marcar-completo/', views.marcar_onboarding_completo, name='marcar_onboarding_completo'),
     path('dashboard/detalles/', views.dashboard_detalles_negocio, name='dashboard_detalles_negocio'),
     path('dashboard/calendario/', views.dashboard_calendario, name='dashboard_calendario'),
     path('api/turnos-por-dia/', views.api_turnos_por_dia, name='api_turnos_por_dia'),
-    # ========== INICIO DE LA MODIFICACIÓN: URLs para gestionar turnos ==========
     path('turno/confirmar/<int:turno_id>/', views.confirmar_turno, name='confirmar_turno'),
     path('turno/cancelar/<int:turno_id>/', views.cancelar_turno, name='cancelar_turno'),
     path('turno/finalizar/<int:turno_id>/', views.finalizar_turno, name='finalizar_turno'),
-    # ========== FIN DE LA MODIFICACIÓN ==========
-    
-    # ========== INICIO DE LA MODIFICACIÓN: URL para editar perfil ==========
+    path('precios/', views.precios, name='precios'),
+    path('crear-suscripcion/<slug:plan_slug>/', views.crear_suscripcion_mp, name='crear_suscripcion'),
+    path('pago-exitoso/', views.pago_exitoso, name='pago_exitoso'),
+    path('webhooks/mp/', views.webhook_mp, name='webhook_mp'),
     path('editar-perfil/', views.editar_perfil, name='editar_perfil'),
-    # ========== FIN DE LA MODIFICACIÓN ==========
-    
-    # API REST
     path('api/', include(router.urls)),
-    # ========== INICIO DE LA MODIFICACIÓN ==========
     path('api/notificaciones/', views.obtener_notificaciones, name='obtener_notificaciones'),
-    # ========== FIN DE LA MODIFICACIÓN ==========
-    # ========== INICIO DE LA MODIFICACIÓN: API para slots de tiempo ==========
     path('api/slots-disponibles/<int:servicio_id>/', views.obtener_slots_disponibles, name='obtener_slots_disponibles'),
-    # ========== FIN DE LA MODIFICACIÓN ==========
 ]

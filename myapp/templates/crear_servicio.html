@@ -1,0 +1,12 @@
+{% extends 'layouts/navbar.html' %}
+{% block content %}
+<div class="container auth-container">
+    <h1>¡Bienvenido! Un último paso...</h1>
+    <p>Cuéntanos un poco sobre el negocio que quieres registrar.</p>
+    <form method="post" class="auth-form">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="btn-submit">Crear mi Servicio</button>
+    </form>
+</div>
+{% endblock %}

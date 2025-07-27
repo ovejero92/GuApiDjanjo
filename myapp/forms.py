@@ -196,6 +196,12 @@ class ServicioUpdateForm(forms.ModelForm):
             'categoria': forms.Select(attrs={'class': 'form-control'}),
         }
 
+class ServicioCreateForm(forms.ModelForm):
+    class Meta:
+        model = Servicio
+        # Pedimos solo los campos básicos para empezar
+        fields = ['nombre', 'categoria', 'descripcion']
+
 class BloqueoForm(forms.ModelForm):
     class Meta:
         model = DiaNoDisponible

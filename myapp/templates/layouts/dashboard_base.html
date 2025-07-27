@@ -179,6 +179,64 @@
         width: 30px; height: 30px; font-size: 1.1em; font-weight: bold;
         cursor: pointer;  vertical-align: middle;
     }
+    .premium-blocker-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(40, 40, 40, 0.85); /* Fondo oscuro semitransparente */
+    backdrop-filter: blur(5px); /* Efecto de desenfoque del fondo */
+    z-index: 999; /* Se asegura de que esté por encima de todo */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    border-radius: 8px; /* Mismo borde que tus tarjetas */
+}
+
+.premium-blocker-content {
+    text-align: center;
+    color: #fff;
+    max-width: 500px;
+}
+
+.premium-icon {
+    font-size: 4em;
+    display: block;
+    margin-bottom: 20px;
+}
+
+.premium-blocker-content h2 {
+    font-size: 2em;
+    margin-bottom: 15px;
+}
+
+.premium-blocker-content p {
+    font-size: 1.1em;
+    color: #ccc;
+    line-height: 1.6;
+    margin-bottom: 30px;
+}
+
+.btn-upgrade {
+    background-color: #28a745; /* Verde para la acción de mejorar */
+    color: white;
+    padding: 15px 30px;
+    text-decoration: none;
+    font-weight: bold;
+    border-radius: 5px;
+    transition: background-color 0.2s;
+}
+
+.btn-upgrade:hover {
+    background-color: #218838;
+}
+
+/* Y un pequeño ajuste para el contenedor principal */
+.dashboard-section, .dashboard-grid {
+    position: relative; /* Necesario para que el overlay se posicione correctamente */
+}
     @media (max-width: 992px) {
         .dashboard-wrapper {
             height: auto; 

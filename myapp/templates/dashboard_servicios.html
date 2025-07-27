@@ -1,6 +1,21 @@
 {% extends 'layouts/dashboard_base.html' %}
 
 {% block dashboard_content %}
+
+{% if not tiene_acceso %}
+    <div class="premium-blocker-overlay">
+        <div class="premium-blocker-content">
+            <span class="premium-icon">👑</span>
+            <h2>Esta es una Función Premium</h2>
+            <p>
+                Personaliza la apariencia de tu página y dale a tu negocio una identidad única.
+                ¡Mejora tu plan para desbloquear esta y otras funcionalidades!
+            </p>
+            <a href="{% url 'precios' %}" class="btn-upgrade">Ver Planes</a>
+        </div>
+    </div>
+{% endif %}
+
     <h1>Mis Servicios y Apariencia</h1>
     <p>Personaliza cómo los clientes ven la página de tu servicio.</p>
 
@@ -97,6 +112,7 @@
     {% endif %}
 
     <style>
+        
     .dashboard-grid {
         display: grid;
         grid-template-columns: 1fr;

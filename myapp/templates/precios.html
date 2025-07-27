@@ -1,0 +1,97 @@
+{% extends 'layouts/navbar.html' %}
+{% load static %}
+{% block content %}
+
+<style>
+    .pricing-header { text-align: center; margin: 50px 0; }
+    .pricing-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; max-width: 1200px; margin: 0 auto; }
+    .pricing-card { background-color: #2c2c2c; border: 1px solid #444; border-radius: 10px; padding: 30px; text-align: center; transition: transform 0.2s, box-shadow 0.2s; }
+    .pricing-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.3); }
+    .pricing-card.featured { border-color: #00aaff; border-width: 2px; position: relative; }
+    .featured-badge { position: absolute; top: -15px; left: 50%; transform: translateX(-50%); background-color: #00aaff; color: white; padding: 5px 15px; border-radius: 15px; font-size: 0.9em; font-weight: bold; }
+    .pricing-card h3 { font-size: 1.5em; margin-bottom: 10px; }
+    .price { font-size: 2.5em; font-weight: bold; margin: 20px 0; }
+    .price span { font-size: 0.5em; font-weight: normal; }
+    .btn-select { display: block; background-color: #00aaff; color: white; padding: 15px; border-radius: 5px; text-decoration: none; margin-top: 20px; font-weight: bold; }
+    .features-list { list-style: none; padding: 0; margin-top: 20px; text-align: left; }
+    .features-list li { margin-bottom: 10px; color: #ccc; }
+
+    /* Tabla de Comparación */
+    .comparison-section { margin-top: 80px; }
+    .comparison-table { width: 100%; max-width: 1200px; margin: 0 auto; border-collapse: collapse; background-color: #2c2c2c; }
+    .comparison-table th, .comparison-table td { padding: 15px; border-bottom: 1px solid #444; text-align: left; }
+    .comparison-table th { font-size: 1.2em; }
+    .check { color: #28a745; font-size: 1.5em; }
+    .cross { color: #666; font-size: 1.5em; }
+
+    @media (max-width: 992px) { .pricing-grid { grid-template-columns: 1fr; } }
+</style>
+
+<div class="pricing-header">
+    <h1>Elige el Plan Perfecto para tu Negocio</h1>
+    <p>Empieza gratis y escala a medida que creces. Sin contratos, cancela cuando quieras.</p>
+</div>
+
+<div class="pricing-grid">
+    <!-- Plan Gratis -->
+    <div class="pricing-card">
+        <h3>Gratis</h3>
+        <div class="price">$ {{ plan.precio_mensual|floatformat:2 }}<span>/Mes</span></div>
+        <p>Ideal para empezar y gestionar tus turnos de forma sencilla.</p>
+        <a href="{% url 'account_signup' %}" class="btn-select">Empezar Gratis</a>
+        <ul class="features-list">
+            <li>✅ Gestión de Turnos</li>
+            <li>✅ Calendario Interactivo</li>
+            <li>✅ Catálogo de Servicios</li>
+        </ul>
+    </div>
+
+    <!-- Plan Pro -->
+    <div class="pricing-card featured">
+        <div class="featured-badge">Más Popular</div>
+        <h3>Profesional</h3>
+        <div class="price">$ {{ plan.precio_mensual|floatformat:2 }}<span>/Mes</span></div>
+        <p>Personaliza tu página y entiende tu negocio con métricas.</p>
+        <a href="{% url 'crear_suscripcion' 'pro' %}" class="btn-select">Seleccionar Pro</a>
+        <ul class="features-list">
+            <li>✅ Todo lo del plan Gratis</li>
+            <li>✅ Personalización de Apariencia</li>
+            <li>✅ Dashboard de Métricas</li>
+        </ul>
+    </div>
+
+    <!-- Plan Prime -->
+    <div class="pricing-card">
+        <h3>Prime</h3>
+        <div class="price">$ {{ plan.precio_mensual|floatformat:2 }}<span>/Mes</span></div>
+        <p>Para negocios que buscan soporte prioritario y todas las funcionalidades.</p>
+        <a href="{% url 'crear_suscripcion' 'prime' %}" class="btn-select">Seleccionar Prime</a>
+        <ul class="features-list">
+            <li>✅ Todo lo del plan Profesional</li>
+            <li>✅ Soporte Prioritario por WhatsApp</li>
+            <li>✅ Futuras funcionalidades Prime</li>
+        </ul>
+    </div>
+</div>
+
+<div class="comparison-section">
+    <h2 style="text-align: center; margin-bottom: 30px;">Compara las Funcionalidades</h2>
+    <table class="comparison-table">
+        <thead>
+            <tr>
+                <th>Funcionalidad</th>
+                <th>Gratis</th>
+                <th>Profesional</th>
+                <th>Prime</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td>Gestión de Turnos</td><td class="check">✔</td><td class="check">✔</td><td class="check">✔</td></tr>
+            <tr><td>Personalización de Apariencia</td><td class="cross">✖</td><td class="check">✔</td><td class="check">✔</td></tr>
+            <tr><td>Dashboard de Métricas</td><td class="cross">✖</td><td class="check">✔</td><td class="check">✔</td></tr>
+            <tr><td>Soporte Prioritario</td><td class="cross">✖</td><td class="cross">✖</td><td class="check">✔</td></tr>
+        </tbody>
+    </table>
+</div>
+
+{% endblock %}

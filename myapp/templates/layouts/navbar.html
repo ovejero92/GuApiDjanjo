@@ -223,6 +223,26 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 {% endif %}
 
+{% if messages %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    {% for message in messages %}
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: '{{ message.tags }}', // success, error, warning, info
+            title: '{{ message }}',
+            showConfirmButton: false,
+            timer: 4000,
+            timerProgressBar: true
+        });
+    {% endfor %}
+});
+</script>
+{% endif %}
+
+
+
 {% block scripts_extra %}{% endblock %}
 </body>
 </html>

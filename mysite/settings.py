@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     'allauth.socialaccount.providers.google',
     'myapp',
     'rest_framework',
+    
 ]
 
 MIDDLEWARE = [
@@ -135,6 +136,8 @@ else:
 # --- GOOGLE MAPS ---
 GOOGLE_MAPS_API_KEY = env('GOOGLE_MAPS_API_KEY')
 
+# --- MERCADO PAGO ---
+MERCADOPAGO_ACCESS_TOKEN = env('MERCADOPAGO_ACCESS_TOKEN')
 
 # ========== 6. CONFIGURACIÓN DE ALLAUTH ==========
 

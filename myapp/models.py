@@ -179,3 +179,35 @@ class Reseña(models.Model):
 
     def __str__(self):
         return f"Reseña de {self.usuario.username} para {self.servicio.nombre} ({self.calificacion} estrellas)"
+
+class Plan(models.Model):
+    PLAN_CHOICES = (
+        ('free', 'Gratis'),
+        ('pro', 'Profesional'),
+        ('prime', 'Prime'),
+    )
+    nombre = models.CharField(max_length=50, choices=PLAN_CHOICES, unique=True)
+    slug = models.SlugField(unique=True, help_text="Se usa en las URLs. Ej: 'pro'")
+    precio_mensual = models.DecimalField(max_digits=8, decimal_places=2, default=0.00)
+    
+    # IDs de suscripción de Mercado Pago (¡Importante!)
+    mp_plan_id = models.CharField(max_length=100, blank=True, null=True, 
+                                  help_text="El ID del Plan de Suscripción creado en Mercado Pago")
+
+    # --- Límites de las Funcionalidades ---
+    allow_customization = models.BooleanField(default=False, help_text="Permite personalizar colores y banner.")
+    allow_metrics = models.BooleanField(default=False, help_text="Permite acceder al dashboard de métricas.")
+    # Puedes añadir más aquí en el futuro
+
+    def __str__(self):
+        return self.get_nombre_display()
+
+class Suscripcion(models.Model):
+    usuario = models.OneToOneField(User, on_delete=models.CASCADE, related_name="suscripcion")
+    plan = models.ForeignKey(Plan, on_delete=models.SET_NULL, null=True, related_name="suscripciones")
+    is_active = models.BooleanField(default=False)
+    mp_subscription_id = models.CharField(max_length=100, blank=True, null=True)
+    fecha_fin = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.usuario.username} - {self.plan.nombre if self.plan else 'Sin Plan'}"
