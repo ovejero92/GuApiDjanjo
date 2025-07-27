@@ -136,38 +136,62 @@ def crear_servicio_paso2(request):
 def crear_suscripcion_mp(request, plan_slug):
     plan = get_object_or_404(Plan, slug=plan_slug)
     
-    sdk = mercadopago.SDK(settings.MERCADOPAGO_ACCESS_TOKEN)
-
-    # El plan DEBE estar creado en tu dashboard de Mercado Pago > Suscripciones
-    # Y debes pegar el ID de ese plan en el campo 'mp_plan_id' de tu modelo Plan en el admin.
     if not plan.mp_plan_id:
         messages.error(request, "Este plan no está configurado para pagos.")
         return redirect('precios')
 
+    sdk = mercadopago.SDK(settings.MERCADOPAGO_ACCESS_TOKEN)
+
+    # Definimos el dominio base para las URLs de retorno
+    base_url = "https://turnosok.com"
+    if settings.DEBUG:
+        base_url = "http://127.0.0.1:8000"
+
     preference_data = {
-        "preapproval_plan_id": plan.mp_plan_id,
-        "reason": f"Suscripción al plan {plan.get_nombre_display()} de TurnosOK",
-        "payer_email": request.user.email,
-        "back_urls": {
-            "success": request.build_absolute_uri(reverse('pago_exitoso')),
-            "failure": request.build_absolute_uri(reverse('precios')),
-            "pending": request.build_absolute_uri(reverse('precios')),
+        "items": [
+            {
+                "id": plan.slug,
+                "title": f"Suscripción Plan {plan.get_nombre_display()}",
+                "description": f"Acceso mensual al plan {plan.get_nombre_display()} de TurnosOK.",
+                "quantity": 1,
+                "unit_price": float(plan.precio_mensual),
+                "currency_id": "ARS",
+            }
+        ],
+        "payer": {
+            "email": request.user.email,
+            "name": request.user.first_name,
+            "surname": request.user.last_name,
         },
-        "auto_recurring": {
-            "frequency": 1,
-            "frequency_type": "months",
-            "transaction_amount": int(plan.precio_mensual),
-            "currency_id": "ARS" # O USD si operas en dólares
-        }
+        "back_urls": {
+            "success": f"{base_url}{reverse('pago_exitoso')}",
+            "failure": f"{base_url}{reverse('precios')}",
+            "pending": f"{base_url}{reverse('precios')}",
+        },
+        # ========== HEMOS ELIMINADO LA LÍNEA 'auto_return' ==========
+        "preapproval_plan_id": plan.mp_plan_id,
     }
     
-    result = sdk.preapproval().create(preference_data)
+    # La llamada a la API sigue siendo la misma, pero ahora sin el parámetro conflictivo
+    result = sdk.preference().create(preference_data)
     
-    if result["status"] == 201:
-        init_point = result["response"]["init_point"]
+    print("Respuesta de Mercado Pago:", result)
+    
+    if result and result.get("status") == 201:
+        suscripcion_usuario, created = Suscripcion.objects.get_or_create(usuario=request.user)
+        suscripcion_usuario.plan = plan
+        suscripcion_usuario.is_active = False
+        suscripcion_usuario.save()
+        
+        if settings.DEBUG:
+            init_point = result["response"]["sandbox_init_point"]
+        else:
+            init_point = result["response"]["init_point"]
+            
         return redirect(init_point)
     else:
-        messages.error(request, "Hubo un error al procesar tu pago. Por favor, intenta de nuevo.")
+        error_message = result.get("response", {}).get("message", "Intenta de nuevo.")
+        messages.error(request, f"Hubo un error al crear la preferencia de pago: {error_message}")
         return redirect('precios')
 
 @login_required
