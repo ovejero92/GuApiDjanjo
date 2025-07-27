@@ -249,8 +249,8 @@ def dashboard_calendario(request):
     if not servicio_activo.esta_activo:
         context = {
             'servicio': servicio_activo,
-            'onboarding_completo': True, # Le decimos a la plantilla que el tour YA se hizo.
-            'servicio_activo': servicio_activo # Es buena práctica pasarlo también
+            'onboarding_completo': True,
+            'servicio_activo': servicio_activo
         }
         return render(request, 'servicio_suspendido.html', context)
     
@@ -260,7 +260,6 @@ def dashboard_calendario(request):
 
     primer_dia, num_dias = calendar.monthrange(año, mes)
     
-    # --- Toda la lógica de obtención de turnos y cálculo de colores se mantiene EXACTAMENTE IGUAL ---
     turnos_del_mes = Turno.objects.filter(
         servicio=servicio_activo,
         fecha__year=año,
@@ -273,10 +272,15 @@ def dashboard_calendario(request):
         fecha_actual = datetime(año, mes, dia_num).date()
         turnos_del_dia = [t for t in turnos_del_mes if t.fecha == fecha_actual]
         
+        # Obtenemos el conteo de turnos para este día
+        conteo_turnos_dia = len(turnos_del_dia)
+
         if not turnos_del_dia:
-            estado_dias[dia_num] = 'vacio'
+            # Si no hay turnos, guardamos un diccionario con el estado y conteo 0
+            estado_dias[dia_num] = {'estado': 'vacio', 'conteo': 0}
             continue
 
+        # ==================== LÓGICA DE CÁLCULO DE OCUPACIÓN (SIN CAMBIOS) ====================
         try:
             horario_laboral = servicio_activo.horarios.get(dia_semana=fecha_actual.weekday(), activo=True)
             minutos_laborales = (datetime.combine(datetime.min, horario_laboral.horario_cierre) - 
@@ -285,30 +289,31 @@ def dashboard_calendario(request):
             minutos_laborales = 0
 
         if minutos_laborales > 0:
-            # Corrección aquí: Usamos duracion_total del modelo Turno si existe, si no, calculamos.
             minutos_reservados = sum(turno.duracion_total for turno in turnos_del_dia)
             porcentaje_ocupacion = (minutos_reservados / minutos_laborales) * 100
         else:
             porcentaje_ocupacion = 100
+        # ====================================================================================
 
+        # Determinamos el estado basado en la ocupación
+        estado_css = 'con-turnos' # Valor por defecto si hay al menos un turno
         if porcentaje_ocupacion >= 90:
-            estado_dias[dia_num] = 'lleno'
+            estado_css = 'lleno'
         elif porcentaje_ocupacion >= 50:
-            estado_dias[dia_num] = 'casi-lleno'
-        else:
-            estado_dias[dia_num] = 'con-turnos'
+            estado_css = 'casi-lleno'
+        
+        # Guardamos un diccionario con el estado CSS y el conteo de turnos
+        estado_dias[dia_num] = {'estado': estado_css, 'conteo': conteo_turnos_dia}
 
-    # 1. Obtenemos el nombre del mes para usarlo en varias partes
+
     nombre_del_mes = calendar.month_name[mes]
 
-    # 2. Creamos un diccionario específico para pasar datos al JavaScript de forma segura
     calendar_data_for_js = {
         'año': año,
         'mes': mes,
         'mes_nombre': nombre_del_mes,
     }
 
-    # 3. Construimos el contexto final que se enviará a la plantilla
     context = {
         'servicio_activo': servicio_activo,
         'onboarding_completo': servicio_activo.configuracion_inicial_completa,
@@ -316,8 +321,7 @@ def dashboard_calendario(request):
         'mes_nombre': nombre_del_mes,
         'rango_dias': range(1, num_dias + 1),
         'offset_dias': range(primer_dia),
-        'estado_dias': estado_dias,
-        # 4. Añadimos el diccionario para JS al contexto. Esto alimentará al tag `json_script`.
+        'estado_dias': estado_dias, # Ahora estado_dias contiene diccionarios
         'calendar_data': calendar_data_for_js,
     }
     
@@ -953,10 +957,6 @@ def mis_favoritos(request):
     return render(request, 'index.html', context)
 
 def api_get_reseñas(request, servicio_slug):
-    """
-    Devuelve una página de reseñas para un servicio específico en formato JSON.
-    Acepta parámetros GET para filtrar por calificación y para paginación.
-    """
     servicio = get_object_or_404(Servicio, slug=servicio_slug)
     
     # Obtenemos todos los filtros de la URL

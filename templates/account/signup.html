@@ -35,7 +35,17 @@
         border: 1px solid #777; color: white; border-radius: 4px; box-sizing: border-box;
     }
     .form-error { color: #ff6b6b; background-color: #5d1a1a; padding: 10px; border-radius: 5px; margin-bottom: 15px; text-align: center; }
-    
+    .password-toggle-icon {
+        position: absolute;
+        top: 35%;
+        right: 15px;
+        transform: translateY(-50%);
+        cursor: pointer;
+        color: aqua;
+    }
+    .fa-eye-slash{
+        color: #444;
+    }
     .helptext ul {
         list-style: none; padding: 0; margin: 10px 0 15px 0;
         color: #ccc; font-size: 0.9em;
@@ -70,8 +80,54 @@
         font-weight: bold; font-size: 15px; width: 100%;
         box-sizing: border-box; transition: background-color 0.2s;
     }
+    .errorlist, .non-field-errors {
+        display: none;
+    }
     .google-btn:hover { background-color: #f5f5f5; }
     .google-btn img { width: 20px; margin-right: 12px; }
     /* ========== FIN DE LA MODIFICACIÓN ========== */
 </style>
+{% endblock %}
+
+{% block scripts_extra %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const errorList = document.querySelector('.errorlist, .non-field-errors');
+    if (errorList && errorList.innerText.trim() !== '') {
+        Swal.fire({
+            icon: 'error',
+            title: '¡Ups! Algo salió mal',
+            html: errorList.innerHTML, // Usamos innerHTML para mantener el formato si hay varios errores
+            confirmButtonColor: '#007bff'
+        });
+    }
+});
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Buscamos todos los inputs de tipo contraseña
+    document.querySelectorAll('input[type="password"]').forEach(passwordInput => {
+        // Creamos el ícono del ojo
+        const eyeIcon = document.createElement('i');
+        eyeIcon.classList.add('fas', 'fa-eye', 'password-toggle-icon');
+        
+        // Creamos un contenedor para posicionar el input y el ícono
+        const wrapper = document.createElement('div');
+        wrapper.style.position = 'relative';
+
+        // Metemos el input dentro del contenedor
+        passwordInput.parentNode.insertBefore(wrapper, passwordInput);
+        wrapper.appendChild(passwordInput);
+        wrapper.appendChild(eyeIcon);
+
+        // Añadimos el evento de clic al ícono
+        eyeIcon.addEventListener('click', function() {
+            const isPassword = passwordInput.type === 'password';
+            passwordInput.type = isPassword ? 'text' : 'password';
+            this.classList.toggle('fa-eye');
+            this.classList.toggle('fa-eye-slash');
+        });
+    });
+});
+</script>
 {% endblock %}

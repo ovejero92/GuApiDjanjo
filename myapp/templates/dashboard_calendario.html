@@ -19,19 +19,23 @@
     .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); display: none; justify-content: center; align-items: center; z-index: 1000; }
     .modal-content { background-color: #252525; padding: 30px; border-radius: 8px; width: 90%; max-width: 600px; max-height: 80vh; overflow-y: auto; position: relative; }
     .modal-close { position: absolute; top: 15px; right: 15px; font-size: 1.5em; cursor: pointer; color: #aaa; }
-    .turno-card { background-color: #333; border-left: 4px solid var(--color-primario, #033f63); padding: 15px; margin-bottom: 15px; border-radius: 5px; }
-
+    .turno-card { background-color: #333; border-left: 4px solid var(--color-primario, #033f63); padding: 15px; margin-bottom: 15px; border-radius: 5px; }    
+    .turnos-count {
+        font-size: 0.85em;
+        color: #d1d1d1;
+        margin: 5px auto;
+    }
     @media (max-width: 768px) {
         .calendario-grid {
-            gap: 2px; /* Reducimos el espacio entre días */
+            gap: 2px;
         }
         .calendario-dia {
-            min-height: 60px; /* Hacemos los cuadrados más pequeños */
+            min-height: 60px;
             padding: 5px;
-            font-size: 0.9em; /* Achicamos un poco la letra */
+            font-size: 0.9em;
         }
         .calendario-header-dia {
-            font-size: 0.8em; /* Achicamos los encabezados de los días */
+            font-size: 0.8em;
             padding: 8px 0;
         }
         .dia-numero {
@@ -61,9 +65,16 @@
         {% for _ in offset_dias %}<div class="calendario-dia-vacio"></div>{% endfor %}
         
         {% for dia in rango_dias %}
-            <div class="calendario-dia cal-dia--{{ estado_dias|get_item:dia }}" data-dia="{{ dia }}" id="bloque">
-                <span class="dia-numero" id="dia">{{ dia }}</span>
-            </div>
+        {% with dia_info=estado_dias|get_item:dia %}
+        <div class="calendario-dia cal-dia--{{ dia_info.estado }}" data-dia="{{ dia }}">
+            <span class="dia-numero">{{ dia }}</span>
+            
+            {# AÑADIMOS EL CONTEO SOLO SI ES MAYOR A CERO #}
+            {% if dia_info.conteo > 0 %}
+                <span class="turnos-count">Reservados: {{ dia_info.conteo }}</span>
+            {% endif %}
+        </div>
+        {% endwith %}
         {% endfor %}
     </div>
 </div>
