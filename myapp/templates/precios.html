@@ -36,7 +36,7 @@
     <!-- Plan Gratis -->
     <div class="pricing-card">
         <h3>Gratis</h3>
-        <div class="price">$ {{ plan.precio_mensual|floatformat:2 }}<span>/Mes</span></div>
+        <div class="price">Gratis</div>
         <p>Ideal para empezar y gestionar tus turnos de forma sencilla.</p>
         <a href="{% url 'account_signup' %}" class="btn-select">Empezar Gratis</a>
         <ul class="features-list">
@@ -50,7 +50,7 @@
     <div class="pricing-card featured">
         <div class="featured-badge">Más Popular</div>
         <h3>Profesional</h3>
-        <div class="price">$ {{ plan.precio_mensual|floatformat:2 }}<span>/Mes</span></div>
+        <div class="price"> $ {{ plan.precio_mensual|floatformat:"0" }}<span>/Mes</span></div>
         <p>Personaliza tu página y entiende tu negocio con métricas.</p>
         <a href="{% url 'crear_suscripcion' 'pro' %}" class="btn-select">Seleccionar Pro</a>
         <ul class="features-list">
@@ -63,7 +63,7 @@
     <!-- Plan Prime -->
     <div class="pricing-card">
         <h3>Prime</h3>
-        <div class="price">$ {{ plan.precio_mensual|floatformat:2 }}<span>/Mes</span></div>
+        <div class="price"> $ {{ plan.precio_mensual|floatformat:"0" }}<span>/Mes</span></div>
         <p>Para negocios que buscan soporte prioritario y todas las funcionalidades.</p>
         <a href="{% url 'crear_suscripcion' 'prime' %}" class="btn-select">Seleccionar Prime</a>
         <ul class="features-list">

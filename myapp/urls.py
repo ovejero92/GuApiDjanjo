@@ -1,5 +1,6 @@
 from django.urls import path, include
 from rest_framework import routers
+from django.views.generic import TemplateView
 from django.contrib.auth import views as auth_views 
 from . import views
 from .api import ServicioViewSet, TurnoViewSet
@@ -20,7 +21,10 @@ urlpatterns = [
     path('dashboard/servicios/', views.dashboard_servicios, name='dashboard_servicios'),
     path('turno/reseña/crear/<int:turno_id>/', views.crear_reseña, name='crear_reseña'),
     path('mis-turnos/', views.mis_turnos, name='mis_turnos'),
-    path('mis-favoritos/', views.mis_favoritos, name='mis_favoritos'),
+    path('mis-favoritos/', views.mis_favoritos, name='mis_favoritos'), path("googleef49e9e659c3e137.html", TemplateView.as_view(
+        template_name="googleef49e9e659c3e137.html",
+        content_type="text/html"
+    )),
     path('servicio/toggle-favorito/<int:servicio_id>/', views.toggle_favorito, name='toggle_favorito'),
     path('activate/<slug:uidb64>/<slug:token>/', views.activate, name='activate'),
     path('dashboard/catalogo/', views.dashboard_catalogo, name='dashboard_catalogo'),

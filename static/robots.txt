@@ -1,0 +1,5 @@
+# static/robots.txt
+User-agent: *
+Disallow: /admin/
+
+Sitemap: https://turnosok.com/sitemap.xml
