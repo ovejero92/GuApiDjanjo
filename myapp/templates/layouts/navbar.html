@@ -17,6 +17,16 @@
     <meta name="theme-color" content="#007bff">
       {% block styles_extra %}{% endblock %}
     <style>
+        .plan-badge {
+        font-size: 0.7em;
+        font-weight: bold;
+        padding: 2px 6px;
+        margin-left: 8px;
+        border-radius: 10px;
+        background-color: #c9b037; /* Dorado */
+        color: #1a1a1a;
+        vertical-align: middle;
+    }
         .notificacion-circulo {
             background-color: #e63946; color: white; border-radius: 50%;
             padding: 2px 6px; font-size: 12px; font-weight: bold;
@@ -80,6 +90,9 @@
                         <button id="userButton" class="user-button">
                             <span class="user-fullname">{{ user.first_name|default:user.username|title }}</span>
                             <span class="user-initial">{{ user.first_name.0|default:user.username.0|upper }}</span>
+                            {% if user.is_authenticated and user.suscripcion.is_active and user.suscripcion.plan.slug != 'free' %}
+                                <span class="plan-badge">{{ user.suscripcion.plan.get_nombre_display }}</span>
+                            {% endif %}
                         </button>
                         <div id="userDropdown" class="user-dropdown hidden">
                             <a href="{% url 'editar_perfil' %}">Editar perfil</a>

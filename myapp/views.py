@@ -228,13 +228,21 @@ def webhook_mp(request):
                     try:
                         suscripcion = Suscripcion.objects.get(mp_subscription_id=response_data.get("id"))
                         
-                        # Actualizamos nuestro estado basado en la respuesta de MP
                         if response_data.get("status") == "authorized":
+                            # ========== ¡NUEVA LÓGICA DE ANIMACIÓN! ==========
+                            # Si la suscripción NO estaba activa antes...
+                            if not suscripcion.is_active:
+                                # ...y el usuario NUNCA ha visto la animación...
+                                if not suscripcion.ha_visto_animacion_premium:
+                                    # ...le dejamos una "bandera" en su sesión para que la vea la próxima vez que cargue el dashboard.
+                                    # (No podemos hacerlo directamente aquí porque esto es una llamada de API)
+                                    # Para esto, necesitamos un sistema de notificaciones o flags en la sesión.
+                                    # Por ahora, activemos el plan y marcaremos que ya la ha visto.
+                                    suscripcion.ha_visto_animacion_premium = True
+                            # ===============================================
+
                             suscripcion.is_active = True
-                            # Opcional: Guardar la fecha del próximo cobro
-                            # suscripcion.fecha_fin = ... 
                         else:
-                            # Si el estado es 'paused', 'cancelled', etc.
                             suscripcion.is_active = False
                         
                         suscripcion.save()
@@ -320,9 +328,21 @@ def servicio_detail(request, servicio_slug):
 
 @login_required
 def dashboard_turnos(request):
+    mostrar_animacion = False
+    try:
+        suscripcion = request.user.suscripcion
+        # Si la suscripción está activa Y el usuario nunca ha visto la animación...
+        if suscripcion.is_active and not suscripcion.ha_visto_animacion_premium:
+            mostrar_animacion = True
+            # Marcamos que ya la va a ver para que no se repita en futuras visitas
+            suscripcion.ha_visto_animacion_premium = True
+            suscripcion.save()
+    except (Suscripcion.DoesNotExist, AttributeError):
+        # Si no tiene suscripción o hay algún problema, no hacemos nada.
+        pass
     servicio_activo = get_servicio_activo(request)
     if not servicio_activo:
-        return render(request, 'dashboard_turnos.html', {'no_hay_servicio': True})
+        return render(request, 'dashboard_turnos.html', {'no_hay_servicio': True, 'mostrar_animacion': mostrar_animacion})
     
     if not servicio_activo.esta_activo:
         context = {
@@ -398,6 +418,7 @@ def dashboard_turnos(request):
         'turnos_confirmados': turnos_confirmados, # Esto no cambia
         'historial_page_obj': page_obj, # Pasamos el objeto de la página a la plantilla
         'filtro_historial_activo': filtro_historial_activo, # Le decimos a la plantilla qué botón resaltar
+        'mostrar_animacion': mostrar_animacion,
     }
     return render(request, 'dashboard_turnos.html', context)
 

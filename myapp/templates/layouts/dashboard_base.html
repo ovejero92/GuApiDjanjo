@@ -3,7 +3,7 @@
 {% block title %}{% block dashboard_title %}Dashboard{% endblock %} - Turnos Online{% endblock %}
 
 {% block content %}
-<div class="dashboard-wrapper" data-onboarding-completo="{{ onboarding_completo|yesno:'True,False' }}">
+<div class="dashboard-wrapper dashboard-container {% if user.suscripcion.is_active %}is-premium{% endif %} {% if mostrar_animacion %}premium-unlock-animation{% endif %}" data-onboarding-completo="{{ onboarding_completo|yesno:'True,False' }}">
     <div class="dashboard-layout">
         <aside class="dashboard-sidebar" id="dashboardSidebar">
             <nav class="sidebar-nav">
@@ -192,6 +192,35 @@
         width: 30px; height: 30px; font-size: 1.1em; font-weight: bold;
         cursor: pointer;  vertical-align: middle;
     }
+    .dashboard-container.is-premium .dashboard-sidebar {
+            background-color: #2a2a2a;
+            border-right: 1px solid #c9b037;
+            border-bottom: 1px solid #c9b037;
+        }
+        .dashboard-container.is-premium .sidebar-link.active {
+            background-color: #c9b037;
+            color: #1a1a1a;
+            font-weight: bold;
+        }
+        .dashboard-container.is-premium .dashboard-main-content h1 {
+            color: #c9b037; /* Títulos en dorado */
+        }
+        .dashboard-container.is-premium .premium-badge {
+            background-color: #6c757d; /* Hacemos el badge gris si ya es premium */
+            color: #fff;
+        }
+
+        /* Animación de Desbloqueo */
+        @keyframes gold-flash {
+            0% { box-shadow: 0 0 0px rgba(201, 176, 55, 0); }
+            50% { box-shadow: 0 0 25px 12px rgba(201, 176, 55, 0.7); }
+            100% { box-shadow: 0 0 0px rgba(201, 176, 55, 0); }
+        }
+
+        .premium-unlock-animation {
+            /* Aplicamos la animación al contenedor principal */
+            animation: gold-flash 1.8s ease-out;
+        }
     .premium-blocker-overlay {
     position: absolute;
     top: 0;

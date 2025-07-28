@@ -226,6 +226,8 @@ class Suscripcion(models.Model):
     is_active = models.BooleanField(default=False)
     mp_subscription_id = models.CharField(max_length=100, blank=True, null=True)
     fecha_fin = models.DateTimeField(null=True, blank=True)
+    
+    ha_visto_animacion_premium = models.BooleanField(default=False)
 
     def __str__(self):
         return f"{self.usuario.username} - {self.plan.nombre if self.plan else 'Sin Plan'}"
