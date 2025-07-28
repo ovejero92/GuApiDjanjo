@@ -40,9 +40,9 @@
     <!-- Plan Gratis -->
     <div class="pricing-card">
         <h3>Gratis</h3>
-        <div class="price">Gratis</div>
+        <div class="price">$ 0<span>/Mes</span></div>
         <p>Ideal para empezar y gestionar tus turnos de forma sencilla.</p>
-        <a href="{% url 'account_signup' %}" class="btn-select">Empezar Gratis</a>
+        <a href="{% url 'crear_servicio_paso1' %}" class="btn-select">Empezar Gratis</a>
         <ul class="features-list">
             <li>✅ Gestión de Turnos</li>
             <li>✅ Calendario Interactivo</li>
@@ -56,7 +56,11 @@
         <h3>Profesional</h3>
         <div class="price">$ {{ plan_pro.precio_mensual|floatformat:"0" }}<span>/Mes</span></div>
         <p>Personaliza tu página y entiende tu negocio con métricas.</p>
-        <a href="{% url 'crear_suscripcion' 'pro' %}" class="btn-select">Seleccionar Pro</a>
+        {% if user.is_authenticated %}
+            <a href="{% url 'crear_suscripcion' plan_pro.slug %}" class="btn-select">Seleccionar Pro</a>
+        {% else %}
+            <a href="{% url 'account_login' %}?next={% url 'precios' %}" class="btn-select">Iniciar Sesión para Seleccionar</a>
+        {% endif %}
         <ul class="features-list">
             <li>✅ Todo lo del plan Gratis</li>
             <li>✅ Personalización de Apariencia</li>
@@ -69,7 +73,11 @@
         <h3>Prime</h3>
         <div class="price">$ {{ plan_prime.precio_mensual|floatformat:"0" }}<span>/Mes</span></div>
         <p>Para negocios que buscan soporte prioritario y todas las funcionalidades.</p>
-        <a href="{% url 'crear_suscripcion' 'prime' %}" class="btn-select">Seleccionar Prime</a>
+        {% if user.is_authenticated %}
+            <a href="{% url 'crear_suscripcion' plan_prime.slug %}" class="btn-select">Seleccionar Prime</a>
+        {% else %}
+            <a href="{% url 'account_login' %}?next={% url 'precios' %}" class="btn-select">Iniciar Sesión para Seleccionar</a>
+        {% endif %}
         <ul class="features-list">
             <li>✅ Todo lo del plan Profesional</li>
             <li>✅ Soporte Prioritario por WhatsApp</li>

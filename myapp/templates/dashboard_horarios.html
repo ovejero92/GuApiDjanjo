@@ -83,6 +83,43 @@
     {% endif %}
 
     <style>
+        .horarios-form-container {
+        background-color: #2c2c2c;
+        padding: 25px;
+        border-radius: 8px;
+    }
+    .horarios-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+    }
+    .horarios-table th, .horarios-table td {
+        padding: 12px;
+        text-align: left;
+        border-bottom: 1px solid #444;
+    }
+    .horarios-table th {
+        color: #ccc;
+        font-size: 0.9em;
+        text-transform: uppercase;
+    }
+    .horarios-table td {
+        vertical-align: middle;
+    }
+    /* ¡LA SOLUCIÓN! Le damos estilo a nuestros inputs */
+    .form-control {
+        width: 100%;
+        padding: 8px;
+        background-color: #3a3a3a;
+        border: 1px solid #555;
+        color: #fff;
+        border-radius: 4px;
+        min-width: 100px; /* Ancho mínimo para que no se colapse */
+    }
+    .form-check-input {
+        width: 20px;
+        height: 20px;
+    }
         .schedule-table { width: 100%; margin-top: 20px; border-collapse: collapse; }
         .schedule-table th, .schedule-table td { padding: 12px; border: 1px solid #444; text-align: center; }
         .schedule-table th { background-color: #3a3a3a; }

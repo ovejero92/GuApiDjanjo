@@ -180,6 +180,7 @@ def crear_suscripcion_mp(request, plan_slug):
     if result and result.get("status") == 201:
         suscripcion_usuario, created = Suscripcion.objects.get_or_create(usuario=request.user)
         suscripcion_usuario.plan = plan
+        suscripcion_usuario.mp_subscription_id = result["response"]["preapproval_id"]
         suscripcion_usuario.is_active = False
         suscripcion_usuario.save()
         
@@ -197,14 +198,57 @@ def crear_suscripcion_mp(request, plan_slug):
 @login_required
 def pago_exitoso(request):
     messages.success(request, "¡Gracias por tu suscripción! Tu plan ha sido activado.")
-    return redirect('dashboard_propietario') # O donde quieras
+    
+    # Comprobamos si el usuario ya tiene un servicio
+    if request.user.servicios_propios.exists():
+        # Si ya tiene, lo mandamos al dashboard
+        return redirect('dashboard_propietario')
+    else:
+        # Si no tiene, lo mandamos a la página para crearlo
+        return redirect('crear_servicio_paso2')
 
 @csrf_exempt
 def webhook_mp(request):
-    # Esta vista es para que Mercado Pago nos notifique.
-    # Es más avanzada y la implementaremos en un segundo paso si es necesario.
-    # Por ahora, la activación es manual o al hacer el pago.
-    return JsonResponse({"status": "ok"})
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        
+        # Tipo de notificación que nos interesa: "preapproval" (suscripciones)
+        if data.get("type") == "preapproval":
+            mp_subscription_id = data.get("data", {}).get("id")
+            
+            # Usamos el SDK para obtener el estado real de la suscripción desde Mercado Pago
+            try:
+                sdk = mercadopago.SDK(settings.MERCADOPAGO_ACCESS_TOKEN)
+                subscription_data = sdk.preapproval().get(mp_subscription_id)
+                
+                if subscription_data and subscription_data.get("status") == 200:
+                    response_data = subscription_data.get("response", {})
+                    
+                    # Buscamos nuestra suscripción interna usando el ID de MP
+                    try:
+                        suscripcion = Suscripcion.objects.get(mp_subscription_id=response_data.get("id"))
+                        
+                        # Actualizamos nuestro estado basado en la respuesta de MP
+                        if response_data.get("status") == "authorized":
+                            suscripcion.is_active = True
+                            # Opcional: Guardar la fecha del próximo cobro
+                            # suscripcion.fecha_fin = ... 
+                        else:
+                            # Si el estado es 'paused', 'cancelled', etc.
+                            suscripcion.is_active = False
+                        
+                        suscripcion.save()
+
+                    except Suscripcion.DoesNotExist:
+                        # Ocurrió un pago para una suscripción que no tenemos registrada.
+                        # Aquí podrías registrar un log de error.
+                        pass
+
+            except Exception as e:
+                # Registrar el error si la llamada a la API de MP falla
+                print(f"Error al procesar webhook de MP: {e}")
+
+    return JsonResponse({"status": "received"})
 
 @login_required
 def servicio_detail(request, servicio_slug):
@@ -554,11 +598,12 @@ def dashboard_horarios(request):
         return render(request, 'servicio_suspendido.html', context)
     
     HorarioFormSet = inlineformset_factory(
-        Servicio,           # Modelo Padre
-        HorarioLaboral,     # Modelo Hijo
-        fields=('dia_semana','activo', 'horario_apertura', 'horario_cierre'), # Campos a editar
-        extra=1,            # No mostrar formularios extra para añadir (ya deberían existir los 7)
-        can_delete=True,   # No permitir borrar horarios (solo desactivar)
+        Servicio,
+        HorarioLaboral,
+        fields=('dia_semana','activo', 'horario_apertura', 'horario_cierre'),
+        extra=5,
+        max_num=7,
+        can_delete=True,
         widgets={
             'horario_apertura': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
             'horario_cierre': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
@@ -603,7 +648,8 @@ def dashboard_horarios(request):
 @login_required
 def dashboard_metricas(request):
     try:
-        tiene_acceso = request.user.suscripcion.plan.allow_metrics
+        suscripcion = request.user.suscripcion
+        tiene_acceso = suscripcion.is_active and suscripcion.plan.allow_metrics
     except (Suscripcion.DoesNotExist, AttributeError):
         tiene_acceso = False
     
@@ -698,6 +744,7 @@ def dashboard_metricas(request):
         'labels_servicios_json': json.dumps(labels_servicios),
         'data_servicios_json': json.dumps(data_servicios),
         'titulo_periodo': titulo_periodo,
+        'tiene_acceso': tiene_acceso,
         'periodo_seleccionado': periodo,
     }
     return render(request, 'dashboard_metricas.html', context)
@@ -705,12 +752,13 @@ def dashboard_metricas(request):
 @login_required
 def dashboard_servicios(request): # Apariencia
     try:
-        tiene_acceso = request.user.suscripcion.plan.allow_customization
+        suscripcion = request.user.suscripcion
+        tiene_acceso = suscripcion.is_active and suscripcion.plan.allow_customization
     except (Suscripcion.DoesNotExist, AttributeError):
         tiene_acceso = False
     
     if not tiene_acceso and request.method == 'POST':
-        # Si no tiene acceso, no le permitimos guardar cambios.
+        messages.error(request, "Necesitas un plan activo para realizar esta acción.")
         return redirect('precios')
     
     servicio_activo = get_servicio_activo(request)

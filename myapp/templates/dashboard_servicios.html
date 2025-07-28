@@ -12,7 +12,10 @@
                 Personaliza la apariencia de tu página y dale a tu negocio una identidad única.
                 ¡Mejora tu plan para desbloquear esta y otras funcionalidades!
             </p>
-            <a href="{% url 'precios' %}" class="btn-upgrade">Ver Planes</a>
+            <div class="blocker-actions">
+        <a href="{% url 'precios' %}" class="btn-upgrade">Ver Planes</a>
+        <a href="{% url 'dashboard_propietario' %}" class="btn-back">Volver al Dashboard</a>
+    </div>
         </div>
     </div>
 {% endif %}

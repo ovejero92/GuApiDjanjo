@@ -19,17 +19,29 @@
                     <li class="{% if request.resolver_match.url_name == 'dashboard_horarios' %}active{% endif %}">
                         <a href="{% url 'dashboard_horarios' %}"><i class="fas fa-calendar-alt"></i> <span>Horarios y Bloqueos</span></a>
                     </li>
-                    <li class="{% if request.resolver_match.url_name == 'dashboard_metricas' %}active{% endif %}">
-                        <a href="{% url 'dashboard_metricas' %}"><i class="fas fa-chart-line"></i> <span>Métricas y Reportes</span></a>
-                    </li>
                     <li class="{% if request.resolver_match.url_name == 'dashboard_catalogo' %}active{% endif %}">
                         <a href="{% url 'dashboard_catalogo' %}"><i class="fas fa-book-open"></i> <span>Catálogo de Servicios</span></a>
                     </li>
-                    <li class="{% if request.resolver_match.url_name == 'dashboard_servicios' %}active{% endif %}">
-                        <a href="{% url 'dashboard_servicios' %}"><i class="fas fa-cut"></i> <span>Apariencia</span></a>
-                    </li>
                     <li class="{% if request.resolver_match.url_name == 'dashboard_detalles_negocio' %}active{% endif %}">
                     <a href="{% url 'dashboard_detalles_negocio' %}"><i class="fas fa-store"></i> <span>Detalles del Negocio</span></a>
+                    </li>
+                    <li class="{% if request.resolver_match.url_name == 'dashboard_metricas' %}active{% endif %}">
+                        <a href="{% url 'dashboard_metricas' %}" class="sidebar-link {% if request.resolver_match.url_name == 'dashboard_metricas' %}active{% endif %}" title="{% if not user.suscripcion.plan.allow_metrics %}Función Premium{% endif %}">
+                            <i class="fas fa-chart-line"></i>
+                            <span>Métricas y Reportes</span>
+                            {% if not user.suscripcion.plan.allow_metrics %}
+                                <span class="premium-badge">👑</span>
+                            {% endif %}
+                        </a>
+                    </li>
+                    <li class="{% if request.resolver_match.url_name == 'dashboard_servicios' %}active{% endif %}">
+                        <a href="{% url 'dashboard_servicios' %}" class="sidebar-link {% if request.resolver_match.url_name == 'dashboard_servicios' %}active{% endif %}" title="{% if not user.suscripcion.plan.allow_customization %}Función Premium{% endif %}">
+                            <i class="fas fa-paint-brush"></i>
+                            <span>Apariencia</span>
+                            {% if not user.suscripcion.plan.allow_customization %}
+                                <span class="premium-badge">👑</span>
+                            {% endif %}
+                        </a>
                     </li>
                 </ul>
             </nav>
@@ -238,6 +250,42 @@
 .dashboard-section, .dashboard-grid {
     position: relative; /* Necesario para que el overlay se posicione correctamente */
 }
+
+.blocker-actions {
+    display: flex;
+    justify-content: center;
+    gap: 15px; /* Espacio entre los botones */
+    margin-top: 30px;
+}
+
+.btn-upgrade, .btn-back {
+    padding: 12px 25px;
+    text-decoration: none;
+    font-weight: bold;
+    border-radius: 5px;
+    transition: all 0.2s;
+    border: none;
+    cursor: pointer;
+}
+
+.btn-upgrade {
+    background-color: #28a745; /* Verde para la acción principal */
+    color: white;
+}
+.btn-upgrade:hover {
+    background-color: #218838;
+}
+
+.btn-back {
+    background-color: transparent;
+    color: #ccc;
+    border: 1px solid #555; /* Borde sutil para el botón secundario */
+}
+.btn-back:hover {
+    background-color: #444;
+    color: white;
+}
+
     @media (max-width: 992px) {
         .dashboard-wrapper {
             height: auto; 
@@ -358,27 +406,27 @@ document.addEventListener('DOMContentLoaded', function() {
             buttons: [{ text: 'Siguiente', action: tour.next }]
         });
         tour.addStep({
-            title:'Métricas y Reportes',
-            text:'En esta sección podés ver <strong>los números más importantes de tu negocio</strong>, como las ventas, servicios más vendidos y resultados generales.',
-            attachTo:{element:'a[href$="dashboard/metricas/"]',on:posicionTooltip},
-            buttons:[{text:'Siguiente',action:tour.next}]
-        });
-        tour.addStep({
             title: 'Catálogo de Servicios',
             text: 'Aquí podes <strong>crear y editar la lista de servicios</strong> que ofreces (Ej: "Corte de pelo"). Cada servicio requiere completar precio y duración.',
             attachTo: { element: 'a[href*="catalogo"]', on:posicionTooltip },
             buttons: [{ text: 'Siguiente', action: tour.next }]
         });
         tour.addStep({
-            title:'Apariencia',
-            text:'En esta sección podés <strong>personalizar la apariencia de tu tienda</strong>, como los colores, logo y diseño.',
-            attachTo:{element:'a[href*="{% url "dashboard_servicios" %}"]',on:posicionTooltip},
-            buttons:[{ text: 'Siguiente', action: tour.next }]
-        });
-        tour.addStep({
             title:'Detalles del negocio',
             text:'En esta sección podés <strong>editar la información</strong>, podes modificar el nombre del servicio , la dirección , categoria.',
             attachTo:{element:'a[href*="{% url "dashboard_detalles_negocio" %}"]',on:posicionTooltip},
+            buttons:[{ text: 'Siguiente', action: tour.next }]
+        });
+        tour.addStep({
+            title:'Métricas y Reportes',
+            text:'En esta sección podés ver <strong>los números más importantes de tu negocio</strong>, como las ventas, servicios más vendidos y resultados generales.',
+            attachTo:{element:'a[href$="dashboard/metricas/"]',on:posicionTooltip},
+            buttons:[{text:'Siguiente',action:tour.next}]
+        });
+        tour.addStep({
+            title:'Apariencia',
+            text:'En esta sección podés <strong>personalizar la apariencia de tu tienda</strong>, como los colores, logo y diseño.',
+            attachTo:{element:'a[href*="{% url "dashboard_servicios" %}"]',on:posicionTooltip},
             buttons:[{ text: 'Siguiente', action: tour.next }]
         });
         tour.addStep({
