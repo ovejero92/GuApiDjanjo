@@ -88,6 +88,24 @@ class Servicio(models.Model):
         
     def __str__(self):
         return self.nombre
+    
+    @property
+    def tiene_apariencia_premium_activa(self):
+        """
+        Comprueba si el propietario tiene una suscripción activa
+        que le permita usar la personalización de apariencia.
+        """
+        try:
+            # Buscamos la suscripción del propietario de este servicio
+            suscripcion = self.propietario.suscripcion
+            # Devolvemos True SOLO SI la suscripción está activa Y el plan lo permite
+            return suscripcion.is_active and suscripcion.plan.allow_customization
+        except Suscripcion.DoesNotExist:
+            # Si el usuario no tiene un objeto de suscripción, no tiene acceso.
+            return False
+        except AttributeError:
+            # Si la suscripción no tiene un plan asignado, no tiene acceso.
+            return False
 
 class SubServicio(models.Model):
     # Vinculado al negocio principal

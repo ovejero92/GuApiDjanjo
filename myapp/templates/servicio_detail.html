@@ -10,11 +10,11 @@
 {% block styles_extra %}
 <style>
     :root {
-        --color-primario-servicio: {{ servicio.color_primario|default:'#007bff' }};
-        --color-fondo-servicio: {{ servicio.color_fondo|default:'#f0f2f5' }};
-        --color-texto-servicio: {{ servicio.color_texto|default:'#FFFFFF' }};
-        --fuente-titulos: {{ servicio.fuente_titulos|default:'Montserrat, sans-serif' }};
-        --fuente-cuerpo: {{ servicio.fuente_cuerpo|default:'Roboto, sans-serif' }};
+        --color-primario-servicio: {% if servicio.tiene_apariencia_premium_activa %}{{ servicio.color_primario }}{% else %}#007bff{% endif %};
+        --color-fondo-servicio: {% if servicio.tiene_apariencia_premium_activa %}{{ servicio.color_fondo }}{% else %}#343a40{% endif %};
+        --color-texto-servicio: {% if servicio.tiene_apariencia_premium_activa %}{{ servicio.color_texto }}{% else %}#ffffff{% endif %};
+        --fuente-titulos: {% if servicio.tiene_apariencia_premium_activa %}{{ servicio.fuente_titulos }}{% else %}'Montserrat', sans-serif{% endif %};
+        --fuente-cuerpo: {% if servicio.tiene_apariencia_premium_activa %}{{ servicio.fuente_cuerpo }}{% else %}'Roboto', sans-serif{% endif %};
     }
     .turno-form-container h1, .reseñas-container h2 {
         font-family: var(--fuente-titulos);
@@ -33,7 +33,7 @@
 </style>
 {% endblock %}
 
-{% if servicio.imagen_banner %}
+{% if servicio.imagen_banner and servicio.tiene_apariencia_premium_activa %}
     <div class="banner-servicio" style="background-image: url('{{ servicio.imagen_banner.url }}');"></div>
 {% endif %}
 
