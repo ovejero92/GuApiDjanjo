@@ -23,7 +23,8 @@ body {
 
 .logo {
     height: 40px;
-    transform: scale(2.5);
+    transform: scale(4.5);
+    margin-left: 20px;
 }
 
 .nav-links {

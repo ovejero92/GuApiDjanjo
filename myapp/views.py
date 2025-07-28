@@ -622,7 +622,7 @@ def dashboard_horarios(request):
         Servicio,
         HorarioLaboral,
         fields=('dia_semana','activo', 'horario_apertura', 'horario_cierre'),
-        extra=5,
+        extra=7,
         max_num=7,
         can_delete=True,
         widgets={

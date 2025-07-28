@@ -43,6 +43,16 @@
         .pagination-container a:hover {
             background-color: #444;
         }
+        @media (max-width: 992px){
+            .historial-filtros{
+                display: flex;
+                flex-direction: column;
+                width: 70%;
+            }
+            .historial-filtros a{
+                margin-top: 10px;
+            }
+        }
     </style>
     
     {% if no_hay_servicio %}

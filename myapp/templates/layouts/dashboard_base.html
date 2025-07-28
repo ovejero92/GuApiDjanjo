@@ -45,9 +45,15 @@
                     </li>
                 </ul>
             </nav>
-            <button id="sidebarToggleBtn" class="sidebar-toggle-btn" title="Ocultar menú">
-                <i class="fas fa-chevron-left"></i>
-            </button>
+            <!-- Botón para DESKTOP -->
+                <button id="sidebarToggleBtn" class="sidebar-toggle-btn" title="Ocultar menú">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+
+                <!-- ¡NUEVO BOTÓN PARA MÓVIL! -->
+                <button id="mobileSidebarToggleBtn" class="mobile-sidebar-toggle">
+                    <i class="fas fa-chevron-down"></i>
+                </button>
         </aside>
 
          <main class="dashboard-content">
@@ -112,8 +118,10 @@
         border-radius: 8px;
         position: relative;
         transition: all 0.3s ease; 
-        overflow: hidden; 
+display: flex; /* Para controlar el botón de abajo */
+        flex-direction: column; /* Para apilar el nav y el botón */
     }
+    .sidebar-nav { flex-grow: 1; /* Ocupa todo el espacio disponible */ }
     .sidebar-nav ul { list-style: none; padding: 0; margin: 0; }
     .sidebar-nav li a {
         display: flex; align-items: center; gap: 10px;
@@ -314,6 +322,9 @@
     background-color: #444;
     color: white;
 }
+   .mobile-sidebar-toggle { /* Botón Móvil (oculto por defecto) */
+        display: none;
+    }
 
     @media (max-width: 992px) {
         .dashboard-wrapper {
@@ -326,6 +337,10 @@
         }
         .dashboard-sidebar {
             flex-shrink: 0; 
+            height: 400px;
+        }
+        .sidebar-nav ul{
+            height: 100%;
         }
         .dashboard-content {
             overflow-y: visible; 
@@ -339,9 +354,28 @@
         .responsive-table td .data-value { text-align: right; overflow-wrap: break-word; word-wrap: break-word; flex: 1; }
         .responsive-table td[data-label="Acciones"] { display: block; text-align: center; }
         .responsive-table td[data-label="Acciones"]::before { display: none; }
+        
         .sidebar-toggle-btn {
             display: none;
         }
+        
+        
+        /* ESTA ES LA CORRECCIÓN CLAVE: El `span` con el texto se ve */
+        .dashboard-sidebar .sidebar-nav span,
+        .dashboard-sidebar .premium-badge {
+            display: inline-block !important;
+        }
+
+        /* Posicionamos el botón de móvil abajo */
+        .mobile-sidebar-toggle {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            border-top: 1px solid #555;
+        }
+        
+        .dashboard-content { overflow-y: visible; padding-right: 0; }
     }
 </style>
 
@@ -364,6 +398,20 @@ document.addEventListener('DOMContentLoaded', function() {
             } else {
                 toggleIcon.className = 'fas fa-chevron-left';
                 toggleBtn.title = "Ocultar menú";
+            }
+        });
+    }
+
+    // --- ¡NUEVA LÓGICA para el botón de MÓVIL! ---
+    const mobileToggleBtn = document.getElementById('mobileSidebarToggleBtn');
+    if (sidebar && mobileToggleBtn) {
+        mobileToggleBtn.addEventListener('click', function() {
+            sidebar.classList.toggle('expanded');
+            const icon = this.querySelector('i');
+            if (sidebar.classList.contains('expanded')) {
+                icon.className = 'fas fa-chevron-up'; // Flecha hacia arriba
+            } else {
+                icon.className = 'fas fa-chevron-down'; // Flecha hacia abajo
             }
         });
     }
