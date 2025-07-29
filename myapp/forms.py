@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth.models import User
-from .models import Turno, HorarioLaboral, DiaNoDisponible, Reseña, Servicio, SubServicio
+from .models import Turno, HorarioLaboral, DiaNoDisponible, Reseña, Servicio, SubServicio, MedioDePago
 from django.utils import timezone
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from datetime import datetime, timedelta
@@ -8,19 +8,25 @@ from PIL import Image
 from django.utils.text import slugify
 from io import BytesIO
 import os
+from django.shortcuts import  get_object_or_404
+
 
 class CustomSignupForm(forms.Form):
     first_name = forms.CharField(max_length=30, label="Tu Nombre", required=True)
-
-    # allauth añadirá automáticamente los campos de email, password y password2.
-    # Nosotros solo añadimos los campos "extra".
+    telefono = forms.CharField(max_length=25, label="Teléfono (Opcional)", required=False)
 
     def signup(self, request, user):
-        """
-        Guarda los datos extra (el nombre) en el objeto de usuario.
-        """
         user.first_name = self.cleaned_data['first_name']
+        telefono_ingresado = self.cleaned_data.get('telefono')
+
+        # 2. Guardamos el nombre en el modelo User principal.
         user.save()
+
+        if telefono_ingresado:
+            user.perfil.telefono = telefono_ingresado
+            user.perfil.save()
+        
+        # 4. Devolvemos el usuario. allauth se encarga del resto.
         return user
 
 class CustomSocialSignupForm(forms.Form):
@@ -42,6 +48,10 @@ class TurnoForm(forms.ModelForm):
         label="Selecciona los servicios que deseas",
         required=True
     )
+    medio_de_pago = forms.ChoiceField(
+        label="¿Cómo deseas pagar?",
+        required=True
+    )
     class Meta:
         model = Turno
         fields = ['fecha', 'hora', 'medio_de_pago']
@@ -52,7 +62,14 @@ class TurnoForm(forms.ModelForm):
     def __init__(self, *args, servicio_id=None, **kwargs):
         super().__init__(*args, **kwargs)
         if servicio_id:
+            servicio = get_object_or_404(Servicio, id=servicio_id)
             self.fields['sub_servicios_solicitados'].queryset = SubServicio.objects.filter(servicio_padre_id=servicio_id)
+            opciones_disponibles = [
+                (mdp.slug, mdp.nombre_visible) 
+                for mdp in servicio.medios_de_pago_aceptados.all()
+            ]
+            # 3. Asignamos esas opciones al campo 'medio_de_pago'
+            self.fields['medio_de_pago'].choices = opciones_disponibles
 
     def clean(self):
         cleaned_data = super().clean()
@@ -70,6 +87,7 @@ class TurnoForm(forms.ModelForm):
     def save(self, commit=True):
         turno = super().save(commit=False)
         turno.duracion_total = self.cleaned_data['duracion_total']
+        turno.medio_de_pago = self.cleaned_data['medio_de_pago']
         turno.servicio = self.cleaned_data['sub_servicios_solicitados'].first().servicio_padre
         if commit:
             turno.save()
@@ -77,15 +95,31 @@ class TurnoForm(forms.ModelForm):
         return turno
 
 class IngresoTurnoForm(forms.ModelForm):
+    medio_de_pago_final = forms.ChoiceField(
+        label="Método de Pago Final",
+        required=True
+    )
+
     class Meta:
         model = Turno
-        fields = ['ingreso_real']
+        fields = ['ingreso_real', 'medio_de_pago_final']
         labels = {
             'ingreso_real': 'Monto Final Cobrado ($)'
         }
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        
+        turno = self.instance
+        if turno and turno.servicio:
+            opciones = [
+                (mdp.slug, mdp.nombre_visible)
+                for mdp in turno.servicio.medios_de_pago_aceptados.all()
+            ]
+            self.fields['medio_de_pago_final'].choices = opciones
+            
+            self.fields['medio_de_pago_final'].initial = turno.medio_de_pago
+            
         self.fields['ingreso_real'].required = True
 
 class UserUpdateForm(forms.ModelForm):
@@ -112,32 +146,20 @@ class ReseñaForm(forms.ModelForm):
         }
 
 class ServicioPersonalizacionForm(forms.ModelForm):
-    # ================================================================
-    # ========== LÓGICA DE BORRADO DEFINITIVA DENTRO DEL FORMULARIO ==========
-    # ================================================================
-    
     def save(self, commit=True):
-        # 1. Obtenemos la instancia del servicio ANTES de que se guarde cualquier cambio.
-        #    Guardamos su estado original.
+
         try:
             original_instance = Servicio.objects.get(pk=self.instance.pk)
             original_banner = original_instance.imagen_banner
         except Servicio.DoesNotExist:
             original_banner = None
 
-        # 2. Llamamos al método save del padre para que procese los datos del formulario,
-        #    pero sin guardarlos aún en la base de datos (commit=False).
-        #    Esto nos da la instancia con los nuevos valores.
         new_instance = super().save(commit=False)
 
-        # 3. Comparamos la imagen original con la nueva.
-        #    La casilla "Limpiar" habrá hecho que `new_instance.imagen_banner` esté vacío.
         if original_banner and original_banner != new_instance.imagen_banner:
-            # Si había una imagen original y es diferente de la nueva (o la nueva no existe),
-            # BORRAMOS EL ARCHIVO FÍSICO.
+
             original_banner.delete(save=False)
 
-        # 4. Si el argumento `commit` es True, guardamos la instancia final en la BD.
         if commit:
             new_instance.save()
             
@@ -145,9 +167,8 @@ class ServicioPersonalizacionForm(forms.ModelForm):
 
     def clean_slug(self):
         slug_ingresado = self.cleaned_data.get('slug')
-        slug_limpio = slugify(slug_ingresado) # Limpiamos el slug por si el usuario puso espacios
+        slug_limpio = slugify(slug_ingresado)
 
-        # Comprobamos si ya existe otro servicio con ese slug (excluyéndonos a nosotros mismos)
         if Servicio.objects.filter(slug=slug_limpio).exclude(pk=self.instance.pk).exists():
             raise forms.ValidationError("¡Oh no! Esta URL ya está en uso. Por favor, elige otra.")
         
@@ -174,7 +195,7 @@ class ServicioPersonalizacionForm(forms.ModelForm):
             'footer_facebook_url': forms.URLInput(attrs={'placeholder': 'https://facebook.com/tu-pagina'}),
             'footer_tiktok_url': forms.URLInput(attrs={'placeholder': 'https://tiktok.com/@tu.usuario'}),
         }
-        help_texts = { # <-- NUEVO DICCIONARIO
+        help_texts = { 
             'slug': "Esta será la URL de tu negocio. Usa solo letras, números y guiones. Sin espacios."
         }
 
@@ -183,7 +204,7 @@ class ServicioUpdateForm(forms.ModelForm):
         model = Servicio
         # ========== INICIO DE LA CORRECCIÓN ==========
         # Reemplazamos 'direccion_texto' por 'direccion', que es el nombre real de tu campo.
-        fields = ['nombre', 'descripcion', 'direccion', 'categoria']
+        fields = ['nombre', 'descripcion', 'direccion', 'categoria', 'medios_de_pago_aceptados']
         # ========== FIN DE LA CORRECCIÓN ==========
         labels = {
             'nombre': 'Nombre del Negocio',
@@ -199,8 +220,18 @@ class ServicioUpdateForm(forms.ModelForm):
 class ServicioCreateForm(forms.ModelForm):
     class Meta:
         model = Servicio
-        # Pedimos solo los campos básicos para empezar
-        fields = ['nombre', 'categoria', 'descripcion']
+        # 2. Añadimos el nuevo campo a la lista de campos que se mostrarán.
+        #    También podemos añadir la dirección aquí si tiene sentido en tu flujo.
+        fields = ['nombre', 'categoria', 'descripcion', 'direccion', 'medios_de_pago_aceptados']
+        labels = {
+            'nombre': '¿Cómo se llama tu negocio?',
+            'categoria': '¿A qué categoría pertenece?',
+            'descripcion': 'Describe brevemente tu servicio',
+            'direccion': 'Dirección de tu negocio',
+        }
+        widgets = {
+            'descripcion': forms.Textarea(attrs={'rows': 3}),
+        }
 
 class BloqueoForm(forms.ModelForm):
     class Meta:

@@ -52,7 +52,7 @@
                 <label>1. Elige los servicios que deseas:</label>
                 <div id="subservicios-list">
                     {% for subservicio in servicio.sub_servicios.all %}
-                        <div class="subservicio-item" data-id="{{ subservicio.id }}" data-duracion="{{ subservicio.duracion }}" data-precio="{{ subservicio.precio }}">
+                        <div class="subservicio-item" data-id="{{ subservicio.id }}" data-duracion="{{ subservicio.duracion }}" data-precio="{{ subservicio.precio }}" title="{{ subservicio.descripcion }}" >
                             <strong>{{ subservicio.nombre }}</strong> 
                             <span>({{ subservicio.duracion }} min) - ${{ subservicio.precio|floatformat:2 }}</span>
                         </div>
@@ -205,7 +205,18 @@
     .reseña-usuario { font-weight: bold; }
     .reseña-fecha { font-size: 0.9em; color: #999; }
     .reseña-calificacion { color: #ffc107; margin-bottom: 10px; }
-
+#id_medio_de_pago {
+        width: 100%;
+        padding: 10px;
+        background-color: #fff; /* O el color que corresponda a tu diseño */
+        color: #333;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        -webkit-appearance: none; /* Quita la flecha por defecto en algunos navegadores */
+        -moz-appearance: none;
+        appearance: none;
+        /* Puedes añadir una imagen de flecha de fondo si quieres */
+    }
     .footer-estructurado { background-color: var(--color-fondo-servicio, #222); color: var(--color-texto-servicio, #ccc); padding: 40px 0 20px 0; margin-top: 50px; border-top: 3px solid var(--color-primario-servicio, #007bff); }
     .footer-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 30px; }
     .footer-columna h4 { font-family: var(--fuente-titulos);  color: var(--color-texto-servicio);  margin-bottom: 15px; border-bottom: 1px solid #555; padding-bottom: 10px; }
@@ -223,6 +234,7 @@
         width: 100%;
         height: 200px; 
     }
+    
     .subservicio-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; background-color: #444; padding: 12px; border-radius: 5px; cursor: pointer; transition: background-color 0.2s; border-left: 4px solid transparent; }
     .subservicio-item:hover { background-color: #555; }
     .subservicio-item.selected { font-weight: bold; border-left-color: var(--color-primario-servicio); }

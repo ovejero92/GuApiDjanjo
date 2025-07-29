@@ -8,11 +8,22 @@ from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import InMemoryUploadedFile
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
 def validar_tamaño_maximo_img(value):
     limite = 2 * 1024 * 1024
     if value.size > limite:
         raise ValidationError('¡El archivo es demasiado grande! El tamaño máximo es de 2 MB.')
+
+class MedioDePago(models.Model):
+    # El identificador que guardaremos en la base de datos (ej: "efectivo")
+    slug = models.SlugField(max_length=50, unique=True, help_text="Identificador único para el código, ej: 'efectivo'")
+    # El nombre que verá el usuario (ej: "Efectivo")
+    nombre_visible = models.CharField(max_length=100, help_text="El nombre que verá el usuario en el formulario")
+
+    def __str__(self):
+        return self.nombre_visible
 
 class Categoria(models.Model):
     nombre = models.CharField(max_length=100, unique=True)
@@ -33,6 +44,11 @@ class Servicio(models.Model):
     favoritos = models.ManyToManyField(User, related_name='servicios_favoritos', blank=True)
     color_primario = models.CharField(max_length=7, default='#007bff', help_text="Color principal")
     color_fondo = models.CharField(max_length=7, default='#333333', help_text="Color de fondo")
+    medios_de_pago_aceptados = models.ManyToManyField(
+        MedioDePago,
+        blank=True, # Un servicio puede no tener ninguno seleccionado al principio
+        help_text="Selecciona los medios de pago que aceptas en tu negocio."
+    )
     imagen_banner = models.ImageField(upload_to='banners/', null=True, blank=True, help_text="Banner (máx 2MB)", validators=[validar_tamaño_maximo_img])
     footer_personalizado = models.TextField(blank=True, help_text="Texto o HTML simple para el footer")
     configuracion_inicial_completa = models.BooleanField(default=False)
@@ -174,6 +190,12 @@ class Turno(models.Model):
         default='efectivo', # Un valor por defecto seguro
         help_text="El medio de pago elegido por el cliente."
     )
+    medio_de_pago_final = models.CharField(
+        max_length=50,
+        blank=True, # Puede estar vacío hasta que se finalice el turno.
+        null=True,
+        help_text="El medio de pago real con el que se cobró el turno."
+    )
     # ¡NUEVO CAMPO! La duración total calculada de todos los sub-servicios reservados.
     duracion_total = models.PositiveIntegerField(default=30, help_text="Duración total calculada en minutos")
     
@@ -243,3 +265,18 @@ class Suscripcion(models.Model):
 
     def __str__(self):
         return f"{self.usuario.username} - {self.plan.nombre if self.plan else 'Sin Plan'}"
+    
+class PerfilUsuario(models.Model):
+    usuario = models.OneToOneField(User, on_delete=models.CASCADE, related_name='perfil')
+    telefono = models.CharField(max_length=25, blank=True, null=True, help_text="Número de teléfono de contacto")
+
+    def __str__(self):
+        return f'Perfil de {self.usuario.username}'
+
+
+
+@receiver(post_save, sender=User)
+def crear_o_actualizar_perfil_usuario(sender, instance, created, **kwargs):
+    if created:
+        PerfilUsuario.objects.create(usuario=instance)
+    instance.perfil.save()

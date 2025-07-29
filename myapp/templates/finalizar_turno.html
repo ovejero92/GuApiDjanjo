@@ -33,6 +33,10 @@
                 <div class="form-error">{{ form.ingreso_real.errors|join:", " }}</div>
             {% endif %}
         </div>
+        <div class="form-group" style="margin-top: 20px;">
+            <label for="{{ form.medio_de_pago_final.id_for_label }}">{{ form.medio_de_pago_final.label }}</label>
+            {{ form.medio_de_pago_final }}
+        </div>
         
         <div class="action-buttons" style="margin-top: 20px;">
             <button type="submit" class="btn-confirmar">Guardar Ingreso</button>

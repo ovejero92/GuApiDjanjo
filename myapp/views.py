@@ -31,18 +31,22 @@ from django.views.decorators.csrf import csrf_exempt
 def index(request):
     categorias = Categoria.objects.all()
     categoria_seleccionada_slug = request.GET.get('categoria')
+    
+    search_query = request.GET.get('q', None) # Usamos 'q' como es estándar para "query"
+
+    servicios = Servicio.objects.filter(esta_activo=True)
 
     if categoria_seleccionada_slug:
-        # Filtramos los servicios por el slug de la categoría
-        servicios = Servicio.objects.filter(categoria__slug=categoria_seleccionada_slug)
-    else:
-        # Si no hay filtro, mostramos todos
-        servicios = Servicio.objects.all()
+        servicios = servicios.filter(categoria__slug=categoria_seleccionada_slug)
+
+    if search_query:
+        servicios = servicios.filter(nombre__icontains=search_query)
 
     context = {
         'servicios': servicios,
         'categorias': categorias,
-        'categoria_activa': categoria_seleccionada_slug
+        'categoria_activa': categoria_seleccionada_slug,
+        'search_query': search_query,
     }
     return render(request, 'index.html', context)
 
@@ -123,6 +127,7 @@ def crear_servicio_paso2(request):
             nuevo_servicio = form.save(commit=False)
             nuevo_servicio.propietario = request.user
             nuevo_servicio.save()
+            form.save_m2m()
             
             messages.success(request, f"¡Felicidades! Tu negocio '{nuevo_servicio.nombre}' ha sido creado.")
             # Lo enviamos al onboarding o al dashboard
@@ -1218,13 +1223,8 @@ def crear_reseña(request, turno_id):
         form = ReseñaForm()
 
     return render(request, 'crear_reseña.html', {'form': form, 'turno': turno})
-# ========== INICIO DE LA MODIFICACIÓN ==========
-# Vista de Login personalizada para tener control total sobre la redirección.
-# Esto soluciona de forma definitiva el problema de redirección a /accounts/profile/
+
 class CustomLoginView(LoginView):
     template_name = 'registration/login.html'
-    # Forzamos la redirección a la página de inicio ('index') después de un login exitoso.
-    success_url = reverse_lazy('index') 
-    # Si un usuario ya logueado intenta ir a la página de login, lo redirigimos.
+    success_url = reverse_lazy('index')
     redirect_authenticated_user = True
-# ========== FIN DE LA MODIFICACIÓN ==========

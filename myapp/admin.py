@@ -1,5 +1,7 @@
 from django.contrib import admin
-from .models import Servicio, SubServicio, Turno, HorarioLaboral, DiaNoDisponible, Reseña,Plan,Suscripcion
+from .models import Servicio, SubServicio, Turno, HorarioLaboral, DiaNoDisponible, Reseña,Plan,Suscripcion, MedioDePago
+
+admin.site.register(MedioDePago)
 
 @admin.action(description="Desactivar servicios seleccionados (pago vencido)")
 def desactivar_servicios(modeladmin, request, queryset):

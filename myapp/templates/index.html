@@ -54,7 +54,19 @@
 
 {% else %}
     {# Página cuando el usuario está autenticado (dejé tu código intacto) #}
-    <h1>Servicios Disponibles</h1>
+    <div class="contendor-titulo">
+      <h1>Servicios Disponibles</h1>
+      <form method="GET" action="{% url 'index' %}" class="search-form">
+            <!-- Este input oculto es MAGIA. Se asegura de que si ya estás en una categoría,
+                 la búsqueda se mantenga dentro de esa categoría y no pierda el filtro. -->
+            {% if categoria_activa %}
+                <input type="hidden" name="categoria" value="{{ categoria_activa }}">
+            {% endif %}
+            
+            <input type="text" name="q" placeholder="Buscar negocio por nombre..." value="{{ search_query|default:'' }}">
+            <button type="submit"><i class="fas fa-search"></i></button>
+        </form>
+    </div>
     <div class="category-filters">
         <a href="{% url 'index' %}" class="{% if not categoria_activa %}active{% endif %}">Todos</a>
         {% for cat in categorias %}
@@ -299,7 +311,43 @@
   padding: 80px 20px;
   background-color: #2a2a2a;
 }
+.contendor-titulo{
+  display: flex;
+}
+.search-form {
+        display: flex;
+        flex-grow: 1; /* Permite que el buscador ocupe el espacio disponible */
+        max-width: 300px; /* Un ancho máximo para que no sea gigante en pantallas grandes */
+        align-items: center;
+    }
 
+    .search-form input[type="text"] {
+        width: 100%;
+        padding: 10px 15px;
+        border: 1px solid #555;
+        border-radius: 5px 0 0 5px; /* Bordes redondeados a la izquierda */
+        background-color: #333;
+        color: #fff;
+        margin-top: 15px;
+        height: 40%;
+    }
+
+    .search-form button {
+        padding: 10px 15px;
+        height: 40%;
+        border: 1px solid #555;
+        border-left: none;
+        background-color: var(--color-primario-servicio, #007bff); /* Usamos tu color primario */
+        color: white;
+        cursor: pointer;
+        border-radius: 0 5px 5px 0; /* Bordes redondeados a la derecha */
+    }
+
+    .no-results-message {
+        text-align: center;
+        padding: 40px;
+        font-size: 1.2em;
+    }
 @media (max-width: 768px) {
   .hero {
     flex-direction: column;
