@@ -69,9 +69,20 @@
     </div>
     <div class="category-filters">
         <a href="{% url 'index' %}" class="{% if not categoria_activa %}active{% endif %}">Todos</a>
+        
         {% for cat in categorias %}
-            <a href="?categoria={{ cat.slug }}" class="{% if categoria_activa == cat.slug %}active{% endif %}">{{ cat.nombre }}</a>
+            {# Usamos forloop.counter para saber la posición del filtro en el bucle #}
+            {# Si es el 5to o más, le añadimos la clase 'extra-filter' para ocultarlo en mobile #}
+            <a href="?categoria={{ cat.slug }}" 
+               class="{% if categoria_activa == cat.slug %}active{% endif %} {% if forloop.counter > 4 %}extra-filter{% endif %}">
+               {{ cat.nombre }}
+            </a>
         {% endfor %}
+
+        {# Solo mostramos el botón "Ver más" si hay más de 4 categorías #}
+        {% if categorias|length > 4 %}
+            <button id="toggle-filters-btn" class="btn-toggle-filters">Ver más</button>
+        {% endif %}
     </div>
 
     <div class="contenedor-servicios">
@@ -348,6 +359,17 @@
         padding: 40px;
         font-size: 1.2em;
     }
+    .btn-toggle-filters {
+        display: none; /* Oculto por defecto en la vista de computadora */
+        background: transparent;
+        border: 1px solid #6C63FF;
+        color: #6C63FF;
+        padding: 8px 15px;
+        margin: 5px;
+        border-radius: 20px;
+        cursor: pointer;
+        font-weight: bold;
+    }
 @media (max-width: 768px) {
   .hero {
     flex-direction: column;
@@ -360,6 +382,45 @@
   .hero-content p {
     font-size: 1em;
   }
+   /* Ocultamos los filtros extra por defecto en mobile */
+        .category-filters a.extra-filter {
+            display: none;
+        }
+
+        /* Mostramos los filtros extra cuando se añade la clase 'is-visible' con JS */
+        .category-filters a.extra-filter.is-visible {
+            display: inline-block;
+        }
+        
+        /* Mostramos el botón "Ver más" solo en mobile */
+        .btn-toggle-filters {
+            display: inline-block;
+        }
 }
 </style>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const toggleBtn = document.getElementById('toggle-filters-btn');
+    
+    // Si el botón existe en la página...
+    if (toggleBtn) {
+        toggleBtn.addEventListener('click', function() {
+            // Buscamos todos los filtros que están ocultos
+            const extraFilters = document.querySelectorAll('.category-filters a.extra-filter');
+            
+            // Les añadimos o quitamos la clase 'is-visible' para mostrarlos/ocultarlos
+            extraFilters.forEach(filter => {
+                filter.classList.toggle('is-visible');
+            });
+
+            // Cambiamos el texto del botón
+            if (toggleBtn.textContent === 'Ver más') {
+                toggleBtn.textContent = 'Ver menos';
+            } else {
+                toggleBtn.textContent = 'Ver más';
+            }
+        });
+    }
+});
+</script>
 {% endblock %}

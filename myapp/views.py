@@ -27,13 +27,14 @@ from django.conf import settings
 import mercadopago
 from django.views.decorators.csrf import csrf_exempt
 
-
 def index(request):
-    categorias = Categoria.objects.all()
-    categoria_seleccionada_slug = request.GET.get('categoria')
-    
-    search_query = request.GET.get('q', None) # Usamos 'q' como es estándar para "query"
+    categorias_con_servicios = Categoria.objects.annotate(
+        num_servicios=Count('servicios')
+    ).filter(num_servicios__gt=0)
 
+    categoria_seleccionada_slug = request.GET.get('categoria')
+    search_query = request.GET.get('q', None)
+    
     servicios = Servicio.objects.filter(esta_activo=True)
 
     if categoria_seleccionada_slug:
@@ -44,7 +45,7 @@ def index(request):
 
     context = {
         'servicios': servicios,
-        'categorias': categorias,
+        'categorias': categorias_con_servicios,
         'categoria_activa': categoria_seleccionada_slug,
         'search_query': search_query,
     }
