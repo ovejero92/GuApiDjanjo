@@ -36,12 +36,12 @@
                                         <strong>{{ form.instance.get_dia_semana_display }}</strong>
                                         <div style="display:none;">{{ form.dia_semana }}</div>
                                     {% else %}
-                                        {{ form.dia_semana }}
+                                        <span class="inp">{{ form.dia_semana }}</span>
                                     {% endif %}
                                 </td>
                                 <td data-label="Abierto">{{ form.activo }}</td>
-                                <td data-label="Apertura">{{ form.horario_apertura }}</td>
-                                <td data-label="Cierre">{{ form.horario_cierre }}</td>
+                                <td class="inp" data-label="Apertura">{{ form.horario_apertura }}</td>
+                                <td class="inp" data-label="Cierre">{{ form.horario_cierre }}</td>
                                 {% if formset.can_delete %}<td data-label="Eliminar">{% if form.instance.pk %}{{ form.DELETE }}{% endif %}</td>{% endif %}
                             </tr>
                         {% endfor %}
@@ -128,6 +128,7 @@
         .bloqueo-form p { margin-bottom: 15px; }
         .lista-bloqueos { list-style: none; padding-left: 0; }
         .lista-bloqueos li { background-color: #444; padding: 10px; border-radius: 4px; margin-bottom: 8px; }
+        .inp input{width: 30px;}
         @media (max-width: 768px) {
             .schedule-table thead { display: none; }
             .schedule-table, .schedule-table tbody, .schedule-table tr, .schedule-table td { display: block; }

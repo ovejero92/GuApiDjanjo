@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Lato&family=Montserrat&family=Open+Sans&family=Playfair+Display&family=Roboto&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 {% block styles_extra %}
 <style>
     :root {
@@ -229,6 +230,9 @@
 {% endblock %}
 
 {% block scripts_extra %}
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://npmcdn.com/flatpickr/dist/l10n/es.js"></script>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const subserviciosItems = document.querySelectorAll('.subservicio-item');
@@ -318,6 +322,52 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+
+    // 1. Obtenemos la información que pasamos desde Django.
+    const fechasOcupadas = JSON.parse('{{ fechas_ocupadas_json|safe }}');
+    const horarioTrabajo = JSON.parse('{{ horario_trabajo_json|safe }}');
+
+    // 2. Inicializamos Flatpickr en el campo de fecha.
+    flatpickr(fechaInput, {
+        altInput: true,
+        altFormat: "F j, Y",
+        dateFormat: "Y-m-d",
+        minDate: "today",
+        locale: "es",
+
+        // ### LA MAGIA ESTÁ AQUÍ ###
+        // En lugar de deshabilitar, vamos a HABILITAR días específicos.
+        // 'enable' recibe una función que se ejecuta para cada día del calendario.
+        // La función debe devolver 'true' si el día es válido, o 'false' si no lo es.
+        enable: [
+            function(date) {
+                // Regla 1: ¿El negocio trabaja este día de la semana?
+                // `date.getDay()` devuelve el día (0=Domingo, 1=Lunes...).
+                // Buscamos en nuestro objeto `horarioTrabajo`.
+                const esDiaLaborable = horarioTrabajo[String(date.getDay())];
+
+                // Regla 2: ¿El día completo ya está marcado como ocupado?
+                // Esto es útil si un día se llena por completo.
+                const fechaFormateada = date.toISOString().split('T')[0];
+                const estaOcupado = fechasOcupadas.includes(fechaFormateada);
+                
+                // Un día está habilitado si es un día laborable Y NO está en la lista de ocupados.
+                return esDiaLaborable && !estaOcupado;
+            }
+        ],
+
+        // Tu lógica para cargar los slots cuando se elige una fecha se mantiene igual.
+        onChange: function(selectedDates, dateStr, instance) {
+            submitButton.classList.add('is-disabled');
+            if (dateStr && duracionTotalCalculada > 0) {
+                cargarSlots(dateStr, duracionTotalCalculada);
+            }
+        },
+    });
+
+    // --- FIN DE LA LÓGICA DE CALENDARIO ---
+
+    // El resto de tu código (listeners de subservicios, etc.) se queda igual.
     subserviciosItems.forEach(item => {
         item.addEventListener('click', function() {
             this.classList.toggle('selected');
@@ -325,12 +375,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    fechaInput.addEventListener('change', function() {
-        submitButton.classList.add('is-disabled');
-        if (this.value && duracionTotalCalculada > 0) {
-            cargarSlots(this.value, duracionTotalCalculada);
-        }
-    });
     actualizarResumenYPasos();
 });
 </script>

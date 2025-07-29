@@ -63,7 +63,7 @@ class Servicio(models.Model):
         null=True,
         help_text="Generado automáticamente a partir del nombre para la URL."
     )
-
+    
     # --- Campos para el Footer Estructurado ---
     footer_direccion = models.CharField(max_length=255, blank=True, null=True, help_text="Ej: Av. Siempreviva 742, Springfield")
     footer_telefono = models.CharField(max_length=20, blank=True, null=True, help_text="Ej: +54 9 11 1234-5678")
@@ -121,13 +121,13 @@ class SubServicio(models.Model):
 
 class HorarioLaboral(models.Model):
     DIA_SEMANA_CHOICES = [
-        (0, 'Lunes'),
-        (1, 'Martes'),
-        (2, 'Miércoles'),
-        (3, 'Jueves'),
-        (4, 'Viernes'),
-        (5, 'Sábado'),
-        (6, 'Domingo'),
+        (1, 'Lunes'),
+        (2, 'Martes'),
+        (3, 'Miércoles'),
+        (4, 'Jueves'),
+        (5, 'Viernes'),
+        (6, 'Sábado'),
+        (0, 'Domingo'),
     ]
     servicio = models.ForeignKey(Servicio, on_delete=models.CASCADE, related_name='horarios')
     dia_semana = models.IntegerField(choices=DIA_SEMANA_CHOICES)

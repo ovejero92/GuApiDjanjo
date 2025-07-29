@@ -261,68 +261,65 @@ def webhook_mp(request):
 @login_required
 def servicio_detail(request, servicio_slug):
     servicio = get_object_or_404(Servicio, slug=servicio_slug)
-    
+    turnos_reservados = Turno.objects.filter(servicio=servicio)
+    fechas_ocupadas = [turno.fecha.strftime('%Y-%m-%d') for turno in turnos_reservados]
+    # 1. Creamos un diccionario para los 7 días de la semana, todos desactivados por defecto.
+    #    Usamos strings para las claves ("0", "1", etc.) para que coincida con el JavaScript.
+    dias_laborables = {str(i): False for i in range(7)}
+
+    # 2. Consultamos TU TABLA DE HORARIOS para este servicio, trayendo solo los días que el propietario marcó como "activos".
+    #    Si tu campo se llama `esta_abierto=True`, cámbialo aquí.
+    horarios_activos = HorarioLaboral.objects.filter(servicio=servicio, activo=True)
+
+    # 3. Recorremos los horarios que el propietario SÍ configuró y los marcamos como "True" en nuestro diccionario.
+    for horario in horarios_activos:
+        # `horario.dia_semana` debe ser el número del día (0 para Domingo, 1 para Lunes, etc.)
+        dias_laborables[str(horario.dia_semana)] = True
     if request.method == 'POST':
-        # Al procesar el POST, le pasamos los datos del request.
-        # El formulario se encargará de validar todo.
         form = TurnoForm(request.POST, servicio_id=servicio.id)
         if form.is_valid():
-            # El método save() del formulario ahora hace todo el trabajo.
             sub_servicios_ids = request.POST.getlist('sub_servicios_solicitados')
             turno = form.save(commit=False)
-            turno.cliente = request.user # Asignamos el cliente logueado
+            turno.cliente = request.user
             turno.save()
-            #form.save_m2m()  ¡Importante para guardar los sub-servicios!
             if sub_servicios_ids:
                 turno.sub_servicios_solicitados.set(sub_servicios_ids)
             
             messages.success(request, "¡Turno solicitado con éxito!")
             return redirect('index')
     else:
-        # Al mostrar la página por primera vez (GET)...
-        # ========== INICIO DE LA CORRECCIÓN ==========
-        # Ya no pasamos 'servicio=servicio', sino 'servicio_id=servicio.id'
         form = TurnoForm(servicio_id=servicio.id, initial={'fecha': timezone.localdate()})
-        # ========== FIN DE LA CORRECCIÓN ==========
 
-    # 1. Leemos el filtro de calificación desde la URL (ej: ?calificacion=5).
     calificacion_filtro = request.GET.get('calificacion')
 
-    # 2. Creamos la consulta base para TODAS las reseñas de este servicio.
     reseñas_base = servicio.reseñas.all().select_related('usuario').order_by('-fecha_creacion')
     
-    # 3. Contamos cuántas reseñas hay para cada estrella ANTES de aplicar el filtro.
-    #    Esto es para poder mostrar "(10)" en el botón del filtro de 5 estrellas, etc.
     conteo_estrellas = reseñas_base.values('calificacion').annotate(count=Count('id'))
     conteo_map = {item['calificacion']: item['count'] for item in conteo_estrellas}
     conteo_total = reseñas_base.count()
 
-    # 4. Aplicamos el filtro si el usuario seleccionó uno.
     if calificacion_filtro and calificacion_filtro.isdigit():
         reseñas_a_mostrar = reseñas_base.filter(calificacion=int(calificacion_filtro))
     else:
         reseñas_a_mostrar = reseñas_base
     
-    # 5. Paginamos los resultados para obtener solo la PRIMERA página de reseñas.
-    #    Mostraremos 6 reseñas inicialmente. Puedes cambiar este número.
     paginator = Paginator(reseñas_a_mostrar, 6)
     reseñas_iniciales = paginator.get_page(1)
-    
-    # ================================================================
-    
+        
     calificacion_promedio = servicio.reseñas.aggregate(Avg('calificacion'))['calificacion__avg']
     
     context = {
         'servicio': servicio,
         'form': form,
         'calificacion_promedio': calificacion_promedio,
-        # DATOS NUEVOS PARA LA PLANTILLA
-        'reseñas': reseñas_iniciales, # Le pasamos solo la primera página.
-        'tiene_mas_paginas': reseñas_iniciales.has_next(), # True/False, para saber si mostrar el botón "Cargar más".
+        'reseñas': reseñas_iniciales,
+        'tiene_mas_paginas': reseñas_iniciales.has_next(),
         'conteo_total_reseñas': conteo_total,
         'conteo_estrellas': conteo_map,
         'google_maps_api_key': settings.GOOGLE_MAPS_API_KEY,
-        'filtro_activo': int(calificacion_filtro) if calificacion_filtro and calificacion_filtro.isdigit() else 0
+        'filtro_activo': int(calificacion_filtro) if calificacion_filtro and calificacion_filtro.isdigit() else 0,
+        'fechas_ocupadas_json': json.dumps(fechas_ocupadas),
+        'horario_trabajo_json': json.dumps(dias_laborables),
     }
     return render(request, 'servicio_detail.html', context)
 
