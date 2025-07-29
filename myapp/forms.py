@@ -44,7 +44,7 @@ class TurnoForm(forms.ModelForm):
     )
     class Meta:
         model = Turno
-        fields = ['fecha', 'hora']
+        fields = ['fecha', 'hora', 'medio_de_pago']
         widgets = {
             'fecha': forms.DateInput(format='%Y-%m-%d', attrs={'type': 'date'}),
             'hora': forms.TimeInput(attrs={'type': 'time'}),

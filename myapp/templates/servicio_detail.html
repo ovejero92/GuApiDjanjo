@@ -77,6 +77,10 @@
                     <label>3. Elige un horario disponible:</label>
                     <div id="slotsContainer" class="slots-container"></div>
                 </div>
+                <div class="form-group">
+                    <label for="id_medio_de_pago">4. ¿Cómo deseas pagar?</label>
+                    {{ form.medio_de_pago }}
+                </div>
             </div>
             
             {{ form.hora.as_hidden }}
@@ -385,7 +389,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (!loadMoreButton) return;
 
-        let currentPage = 2; 
+        let currentPage = 2;
         const urlParams = new URLSearchParams(window.location.search);
         const calificacionFiltro = urlParams.get('calificacion') || '';
 

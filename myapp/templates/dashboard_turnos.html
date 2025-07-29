@@ -77,6 +77,7 @@
                                 <th>Cliente</th>
                                 <th>Servicios Solicitados</th>
                                 <th>Fecha y Hora</th>
+                                <th>Medio de pago</th>
                                 <th>Acciones</th>
                             </tr>
                         </thead>
@@ -97,6 +98,7 @@
                                     </div>
                                 </td>
                                 <td data-label="Fecha y Hora"><span class="data-value">{{ turno.fecha|date:"d/m/Y" }} - {{ turno.hora|time:"H:i" }}</span></td>
+                                <td>{{ turno.get_medio_de_pago_display }}</td>
                                 <td data-label="Acciones">
                                     <div class="action-buttons">
                                         <form action="{% url 'confirmar_turno' turno.id %}" method="post" style="display:inline;"><input type="hidden" name="servicio_id" value="{{ servicio_activo.id }}">{% csrf_token %}<button type="submit" class="btn-confirmar">Confirmar</button></form>
@@ -122,6 +124,7 @@
                             <tr>
                                 <th>Cliente</th>
                                 <th>Servicios Solicitados</th>
+                                <th>Medio de pago</th>
                                 <th>Fecha y Hora</th>
                             </tr>
                         </thead>
@@ -138,6 +141,7 @@
                                         {% endfor %}
                                     </div>
                                 </td>
+                                <td>{{ turno.get_medio_de_pago_display }}</td>
                                 <td data-label="Fecha y Hora"><span class="data-value">{{ turno.fecha|date:"d/m/Y" }} - {{ turno.hora|time:"H:i" }}</span></td>
                             </tr>
                             {% endfor %}
@@ -167,6 +171,7 @@
                                 <th>Fecha y Hora</th>
                                 <th>Estado</th>
                                 <th>Ingreso</th>
+                                <th>Medio de pago</th>
                                 <th>Acciones</th>
                             </tr>
                         </thead>
@@ -178,6 +183,7 @@
                                 <td data-label="Fecha y Hora">{{ turno.fecha|date:"d/m/Y" }} - {{ turno.hora|time:"H:i" }}</td>
                                 <td data-label="Estado">{{ turno.get_estado_display }}</td>
                                 <td data-label="Ingreso">{% if turno.ingreso_real %}${{ turno.ingreso_real|floatformat:2 }}{% else %}-{% endif %}</td>
+                                <td>{{ turno.get_medio_de_pago_display }}</td>
                                 <td data-label="Acciones">
                                     {% if turno.estado == 'pendiente' or turno.estado == 'confirmado' %}
                                         <a href="{% url 'finalizar_turno' turno.id %}" class="btn-confirmar"  style="color: #033f63; background-color:#b5b682; padding: 4px 3px; text-decoration: none; border-radius: 4px;">Finalizar Turno</a>

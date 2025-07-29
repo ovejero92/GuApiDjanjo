@@ -161,7 +161,19 @@ class Turno(models.Model):
     cliente = models.ForeignKey(User, on_delete=models.CASCADE, related_name='turnos_solicitados')
     fecha = models.DateField()
     hora = models.TimeField()
-    
+    MEDIO_DE_PAGO_CHOICES = [
+        ('efectivo', 'Efectivo'),
+        ('transferencia', 'Transferencia / Alias / Mercado Pago'),
+        ('tarjeta_debito', 'Tarjeta de Débito'),
+        ('tarjeta_credito', 'Tarjeta de Crédito'),
+    ]
+
+    medio_de_pago = models.CharField(
+        max_length=20,
+        choices=MEDIO_DE_PAGO_CHOICES,
+        default='efectivo', # Un valor por defecto seguro
+        help_text="El medio de pago elegido por el cliente."
+    )
     # ¡NUEVO CAMPO! La duración total calculada de todos los sub-servicios reservados.
     duracion_total = models.PositiveIntegerField(default=30, help_text="Duración total calculada en minutos")
     
