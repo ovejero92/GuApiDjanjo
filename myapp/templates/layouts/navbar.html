@@ -72,6 +72,12 @@
         .btn-instalar i {
             margin-right: 8px;
         }
+           .logo-mobile {
+        display: block; 
+    }
+    .logo-desktop {
+        display: none;
+    }
         @media (min-width: 768px) {
      
             .user-fullname {
@@ -81,13 +87,37 @@
             .user-initial {
                 display: none;
             }
+
+            .logo-mobile {
+            display: none;
+        }
+        .logo-desktop {
+            display: block;
+        }
+    
+    /* Ajuste opcional para el tamaño del logo en el navbar de mobile */
+
+    .navbar .logo-mobile {
+        max-height: 40px; /* Ajusta este valor si es necesario */
+        width: auto;
+        
+    }
+
+    /* Ajuste opcional para el tamaño del logo en el footer de mobile */
+    .footer .logo-mobile {
+        max-width: 120px; /* Ajusta este valor si es necesario */
+        height: auto;
+    }
         }
     </style>
 </head>
 <body data-servicio-id="{{ servicio.id }}" data-servicio-slug="{{ servicio.slug }}">
     <nav class="navbar">
         <div class="nav-content">
-            <a href="{% url 'index' %}" class="logo-link"><img src="{% static 'image/logo-nab.png' %}" alt="Logo" class="logo"></a>
+            <a href="{% url 'index' %}" class="logo-link">
+                <img src="{% static 'image/logo-nab.png' %}" alt="Logo" class="logo logo-desktop">
+                <img src="{% static 'image/logo-footer.png' %}" alt="Logo TurnosOK Mobile" class="logo logo-mobile">
+            </a>
             <div class="nav-links">
                 <a href="{% url 'index' %}">Home</a>
                 <a href="{% url 'about' %}">About</a>
@@ -138,7 +168,12 @@
             <div class="footer-section about">
                 <h3>Turnos Online</h3>
                 <div style="display: flex; ">
-                <div><img src="{% static 'image/logo-footer.png' %}" alt="logo en el footer" width="140" style="transform: scale(2);"></div>
+                <div>
+                    <img src="{% static 'image/logo-footer.png' %}" alt="Logo TurnosOK Footer" width="140" class="logo-desktop">
+
+            <!-- Logo para la vista de celular (el del navbar) -->
+            <img src="{% static 'image/logo-nab.png' %}" alt="Logo TurnosOK Footer Mobile" width="140" class="logo-mobile">
+                </div>
                 <p>Simplificando la forma en que conectas con servicios locales. Reserva fácil, gestiona mejor.</p>
                 </div>
                 <div class="social-links">

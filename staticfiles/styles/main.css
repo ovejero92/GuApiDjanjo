@@ -303,8 +303,8 @@ form button {
     .nav-content img{
         position: absolute;
         transform: scale(3.5);
-        top: 12px;
-        left: 30px;
+        top: 22px;
+        left: 3px;
     }
 
     .nav-content .user-menu{
@@ -332,10 +332,6 @@ form input, form select, form textarea {
     width: 100%;
     max-width: 100%;
 }
-
-    .logo {
-        height: 35px;
-    }
 }
 
 @media (max-width: 480px) {
