@@ -22,8 +22,8 @@ body {
 }
 
 .logo {
-    height: 40px;
-    transform: scale(4.5);
+    height: 60px;
+     transform: scale(6.5);
     margin-left: 20px;
 }
 
@@ -245,6 +245,9 @@ form button {
 }
 .footer-section ul li a:hover {
     color: aqua;
+}
+.social-links {
+    text-align: center;
 }
 .social-links a {
     font-size: 1.5rem;

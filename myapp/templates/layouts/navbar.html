@@ -9,14 +9,20 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <link rel="icon" type="image/png" href="{% static 'favicon-96x96.png' %}" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="{% static 'favicon.svg' %}" />
+    <link rel="shortcut icon" href="{% static 'favicon.ico' %}" />
+    <link rel="apple-touch-icon" sizes="180x180" href="{% static 'apple-touch-icon.png' %}" />
+    <meta name="apple-mobile-web-app-title" content="TurnosOk" />
+    <link rel="manifest" href="{% static 'site.webmanifest' %}" />
+
     <meta name="description" content="{% block meta_description %}La plataforma ideal para que profesionales y pequeños negocios gestionen sus turnos y clientes de forma sencilla y eficiente.{% endblock %}">    
     <link href="https://fonts.googleapis.com/css2?family=Lato&family=Montserrat&family=Open+Sans&family=Playfair+Display&family=Roboto&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="{% static 'styles/main.css' %}">
-    <link rel="shortcut icon" href="{% static 'image/phonebook_notebook_14401.ico' %}" type="image/x-icon">
     <script src="https://kit.fontawesome.com/76e20a326e.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <link rel="manifest" href="{% static 'manifest.json' %}">
     <meta name="theme-color" content="#007bff">
       {% block styles_extra %}{% endblock %}
     <style>
@@ -81,7 +87,7 @@
 <body data-servicio-id="{{ servicio.id }}" data-servicio-slug="{{ servicio.slug }}">
     <nav class="navbar">
         <div class="nav-content">
-            <a href="{% url 'index' %}" class="logo-link"><img src="{% static 'image/logo2.png' %}" alt="Logo" class="logo"></a>
+            <a href="{% url 'index' %}" class="logo-link"><img src="{% static 'image/logo-nab.png' %}" alt="Logo" class="logo"></a>
             <div class="nav-links">
                 <a href="{% url 'index' %}">Home</a>
                 <a href="{% url 'about' %}">About</a>
@@ -131,7 +137,10 @@
         <div class="footer-content">
             <div class="footer-section about">
                 <h3>Turnos Online</h3>
+                <div style="display: flex; ">
+                <div><img src="{% static 'image/logo-footer.png' %}" alt="logo en el footer" width="140" style="transform: scale(2);"></div>
                 <p>Simplificando la forma en que conectas con servicios locales. Reserva fácil, gestiona mejor.</p>
+                </div>
                 <div class="social-links">
                     <a href="#"><i class="fab fa-facebook"></i></a>
                     <a href="https://www.instagram.com/turnos.ok" style="color: red;"><i class="fab fa-instagram"></i></a>
