@@ -277,6 +277,4 @@ class PerfilUsuario(models.Model):
 
 @receiver(post_save, sender=User)
 def crear_o_actualizar_perfil_usuario(sender, instance, created, **kwargs):
-    if created:
-        PerfilUsuario.objects.create(usuario=instance)
-    instance.perfil.save()
+    PerfilUsuario.objects.get_or_create(usuario=instance)
