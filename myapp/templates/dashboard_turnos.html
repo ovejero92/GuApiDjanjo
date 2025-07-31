@@ -157,8 +157,8 @@
             <div class="historial-header">
                 <h2>Historial de Turnos Pasados</h2>
                 <div class="historial-filtros">
-                    <a href="{% url 'dashboard_turnos' %}?filtro_historial=por_finalizar" class="{% if filtro_historial_activo == 'por_finalizar' %}active{% endif %}">Para Finalizar</a>
-                    <a href="{% url 'dashboard_turnos' %}?filtro_historial=finalizados" class="{% if filtro_historial_activo == 'finalizados' %}active{% endif %}">Finalizados</a>
+                    <a href="{% url 'dashboard_turnos' %}?filtro_historial=por_finalizar#historial" class="{% if filtro_historial_activo == 'por_finalizar' %}active{% endif %}">Para Finalizar</a>
+                    <a href="{% url 'dashboard_turnos' %}?filtro_historial=finalizados#historial" class="{% if filtro_historial_activo == 'finalizados' %}active{% endif %}">Finalizados</a>
                 </div>
             </div>
 
@@ -183,7 +183,16 @@
                                 <td data-label="Fecha y Hora">{{ turno.fecha|date:"d/m/Y" }} - {{ turno.hora|time:"H:i" }}</td>
                                 <td data-label="Estado">{{ turno.get_estado_display }}</td>
                                 <td data-label="Ingreso">{% if turno.ingreso_real %}${{ turno.ingreso_real|floatformat:2 }}{% else %}-{% endif %}</td>
-                                <td>{{ turno.get_medio_de_pago_display }}</td>
+                                <td data-label="Medio de pago">
+                                    {% if turno.medio_de_pago_final %}
+                                        {# Si ya se finalizó, MOSTRAMOS EL VALOR FINAL #}
+                                        {# Buscamos el nombre visible en la lista de opciones del modelo #}
+                                        {{ turno.get_medio_de_pago_final_display|default:turno.medio_de_pago_final|capfirst }}
+                                    {% else %}
+                                        {# Si todavía no se finalizó, mostramos el que eligió el cliente #}
+                                        {{ turno.get_medio_de_pago_display }}
+                                    {% endif %}
+                                </td>
                                 <td data-label="Acciones">
                                     {% if turno.estado == 'pendiente' or turno.estado == 'confirmado' %}
                                         <a href="{% url 'finalizar_turno' turno.id %}" class="btn-confirmar"  style="color: #033f63; background-color:#b5b682; padding: 4px 3px; text-decoration: none; border-radius: 4px;">Finalizar Turno</a>

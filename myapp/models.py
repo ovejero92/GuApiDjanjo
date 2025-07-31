@@ -41,6 +41,10 @@ class Servicio(models.Model):
     nombre = models.CharField(max_length=100)
     descripcion = models.TextField(default="Sin descripción")
     direccion = models.CharField(max_length=200, default="Sin dirección")
+    duracion_buffer_minutos = models.PositiveIntegerField(
+        default=15, # Un default razonable de 15 minutos
+        help_text="Minutos de 'colchón' que se añadirán después de cada turno para preparación."
+    )
     favoritos = models.ManyToManyField(User, related_name='servicios_favoritos', blank=True)
     color_primario = models.CharField(max_length=7, default='#007bff', help_text="Color principal")
     color_fondo = models.CharField(max_length=7, default='#333333', help_text="Color de fondo")

@@ -102,7 +102,7 @@ class IngresoTurnoForm(forms.ModelForm):
 
     class Meta:
         model = Turno
-        fields = ['ingreso_real', 'medio_de_pago_final']
+        fields = ['ingreso_real']
         labels = {
             'ingreso_real': 'Monto Final Cobrado ($)'
         }
@@ -113,14 +113,23 @@ class IngresoTurnoForm(forms.ModelForm):
         turno = self.instance
         if turno and turno.servicio:
             opciones = [
-                (mdp.slug, mdp.nombre_visible)
+                (mdp.slug, mdp.nombre_visible) 
                 for mdp in turno.servicio.medios_de_pago_aceptados.all()
             ]
             self.fields['medio_de_pago_final'].choices = opciones
-            
-            self.fields['medio_de_pago_final'].initial = turno.medio_de_pago
+            self.fields['medio_de_pago_final'].initial = turno.medio_de_pago_final or turno.medio_de_pago
             
         self.fields['ingreso_real'].required = True
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        
+        instance.medio_de_pago_final = self.cleaned_data.get('medio_de_pago_final')
+        
+        if commit:
+            instance.save()
+            
+        return instance
 
 class UserUpdateForm(forms.ModelForm):
     email = forms.EmailField()
@@ -202,10 +211,7 @@ class ServicioPersonalizacionForm(forms.ModelForm):
 class ServicioUpdateForm(forms.ModelForm):
     class Meta:
         model = Servicio
-        # ========== INICIO DE LA CORRECCIÓN ==========
-        # Reemplazamos 'direccion_texto' por 'direccion', que es el nombre real de tu campo.
-        fields = ['nombre', 'descripcion', 'direccion', 'categoria', 'medios_de_pago_aceptados']
-        # ========== FIN DE LA CORRECCIÓN ==========
+        fields = ['nombre', 'descripcion', 'direccion', 'categoria', 'medios_de_pago_aceptados', 'duracion_buffer_minutos']
         labels = {
             'nombre': 'Nombre del Negocio',
             'descripcion': 'Descripción corta',
@@ -222,7 +228,7 @@ class ServicioCreateForm(forms.ModelForm):
         model = Servicio
         # 2. Añadimos el nuevo campo a la lista de campos que se mostrarán.
         #    También podemos añadir la dirección aquí si tiene sentido en tu flujo.
-        fields = ['nombre', 'categoria', 'descripcion', 'direccion', 'medios_de_pago_aceptados']
+        fields = ['nombre', 'categoria', 'descripcion', 'direccion', 'medios_de_pago_aceptados', 'duracion_buffer_minutos']
         labels = {
             'nombre': '¿Cómo se llama tu negocio?',
             'categoria': '¿A qué categoría pertenece?',

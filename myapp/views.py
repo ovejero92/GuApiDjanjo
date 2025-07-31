@@ -11,8 +11,8 @@ from django.http import JsonResponse
 from django.core.paginator import Paginator
 from datetime import datetime, timedelta
 import calendar
-from django.db.models import Count, Sum,Avg,F, ExpressionWrapper, fields
-from django.db.models.functions import TruncDay,TruncWeek, TruncMonth, TruncHour
+from django.db.models import Count, Sum,Avg
+from django.db.models.functions import TruncDay, TruncMonth, TruncHour
 from django.utils.http import urlsafe_base64_decode
 from django.utils.encoding import force_str
 from django.contrib.auth.tokens import default_token_generator
@@ -1050,14 +1050,9 @@ def obtener_notificaciones(request):
 
 @login_required
 def obtener_slots_disponibles(request, servicio_id):
-    """
-    Calcula y devuelve los huecos de tiempo disponibles.
-    Ahora acepta un parámetro 'duracion' para ser flexible.
-    """
     fecha_str = request.GET.get('fecha')
-    duracion_str = request.GET.get('duracion') # Recibimos la duración total calculada
+    duracion_str = request.GET.get('duracion')
 
-    # Validación de que los parámetros necesarios llegaron
     if not fecha_str or not duracion_str:
         return JsonResponse({'error': 'Faltan parámetros de fecha o duración.'}, status=400)
 
@@ -1070,51 +1065,64 @@ def obtener_slots_disponibles(request, servicio_id):
     except (ValueError, TypeError):
         return JsonResponse({'error': 'Parámetros inválidos.'}, status=400)
 
-    # Lógica de cálculo de slots
     slots_disponibles = []
     
     try:
         horario_laboral = servicio.horarios.get(dia_semana=fecha.weekday(), activo=True)
     except HorarioLaboral.DoesNotExist:
-        return JsonResponse({'slots': []}) # Día no laborable
+        return JsonResponse({'slots': []})
 
-    # Usamos la FK 'servicio' del modelo Turno para filtrar
     turnos_del_dia = Turno.objects.filter(servicio=servicio, fecha=fecha, estado__in=['pendiente', 'confirmado'])
     bloqueos_del_dia = servicio.dias_no_disponibles.filter(fecha=fecha)
-
-    # ¡CORRECCIÓN CLAVE! Usamos la duración que nos llega por parámetro
-    duracion_td = timedelta(minutes=duracion_requerida)
     
-    hora_actual_dt = datetime.combine(fecha, horario_laboral.horario_apertura)
-    hora_cierre_dt = datetime.combine(fecha, horario_laboral.horario_cierre)
+    duracion_requerida_td = timedelta(minutes=duracion_requerida)
 
-    while hora_actual_dt + duracion_td <= hora_cierre_dt:
-        slot_inicio = hora_actual_dt.time()
-        slot_fin = (hora_actual_dt + duracion_td).time()
+    hora_de_inicio_busqueda = horario_laboral.horario_apertura
+
+    if fecha == timezone.localdate():
+        hora_minima_reserva = (timezone.localtime() + timedelta(minutes=15)).time()
+        
+        if hora_minima_reserva > hora_de_inicio_busqueda:
+            hora_de_inicio_busqueda = hora_minima_reserva
+
+    hora_actual_dt = datetime.combine(fecha, hora_de_inicio_busqueda)
+    hora_cierre_dt = datetime.combine(fecha, horario_laboral.horario_cierre)
+    
+    if hora_actual_dt.minute % 15 != 0:
+        minutos_para_sumar = 15 - (hora_actual_dt.minute % 15)
+        hora_actual_dt += timedelta(minutes=minutos_para_sumar)
+
+    while hora_actual_dt + duracion_requerida_td <= hora_cierre_dt:
+        slot_inicio_dt = hora_actual_dt
+        slot_fin_dt = hora_actual_dt + duracion_requerida_td
         
         slot_esta_disponible = True
 
-        if fecha == timezone.localdate() and slot_inicio < timezone.localtime().time():
-            slot_esta_disponible = False
+        for bloqueo in bloqueos_del_dia:
+            if bloqueo.hora_inicio is None:
+                slot_esta_disponible = False
+                break
+            bloqueo_inicio_dt = datetime.combine(fecha, bloqueo.hora_inicio)
+            bloqueo_fin_dt = datetime.combine(fecha, bloqueo.hora_fin)
+            if slot_inicio_dt < bloqueo_fin_dt and slot_fin_dt > bloqueo_inicio_dt:
+                slot_esta_disponible = False
+                break
+        if not slot_esta_disponible:
+            hora_actual_dt += timedelta(minutes=15)
+            continue
+        for turno in turnos_del_dia:
+            duracion_total_ocupacion = timedelta(minutes=(turno.duracion_total + servicio.duracion_buffer_minutos))
+            
+            turno_inicio_dt = datetime.combine(fecha, turno.hora)
+            turno_fin_con_buffer_dt = turno_inicio_dt + duracion_total_ocupacion
 
-        if slot_esta_disponible:
-            for bloqueo in bloqueos_del_dia:
-                if bloqueo.hora_inicio is None or (slot_inicio < bloqueo.hora_fin and slot_fin > bloqueo.hora_inicio):
-                    slot_esta_disponible = False
-                    break
+            if slot_inicio_dt < turno_fin_con_buffer_dt and slot_fin_dt > turno_inicio_dt:
+                slot_esta_disponible = False
+                break
         
         if slot_esta_disponible:
-            for turno in turnos_del_dia:
-                duracion_existente = timedelta(minutes=turno.duracion_total)
-                turno_fin_existente = (datetime.combine(fecha, turno.hora) + duracion_existente).time()
-                if slot_inicio < turno_fin_existente and slot_fin > turno.hora:
-                    slot_esta_disponible = False
-                    break
+            slots_disponibles.append(slot_inicio_dt.strftime('%H:%M'))
         
-        if slot_esta_disponible:
-            slots_disponibles.append(slot_inicio.strftime('%H:%M'))
-        
-        # Avanzamos en intervalos de 15 minutos para buscar más huecos. Puedes ajustar este valor.
         hora_actual_dt += timedelta(minutes=15)
 
     return JsonResponse({'slots': slots_disponibles})
