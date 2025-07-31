@@ -31,8 +31,25 @@
     .slot-button, .btn-submit { background-color: var(--color-primario-servicio); }
     .slot-button.selected, .subservicio-item.selected { background-color: #28a745 !important; }
     .btn-submit.is-disabled { background-color: #555 !important; }
+    .subservicio-info {
+    display: flex;
+    align-items: center;
+    gap: 8px; /* Espacio entre el nombre y el ícono */
+}
+
+/* Estilo del ícono de información */
+.info-icon {
+    color: #ccc; /* Un color sutil */
+    cursor: pointer;
+    display: none; /* ¡Oculto por defecto en la vista de computadora! */
+}
     @media (max-width: 768px) {
         .banner-servicio {height: 40vh;}
+        .subservicio-info{position: relative;}
+        .info-icon {
+        display: inline-block;
+        margin: 0 15px ;
+    }
     }
 </style>
 {% endblock %}
@@ -55,8 +72,13 @@
                 <label>1. Elige los servicios que deseas:</label>
                 <div id="subservicios-list">
                     {% for subservicio in servicio.sub_servicios.all %}
-                        <div class="subservicio-item" data-id="{{ subservicio.id }}" data-duracion="{{ subservicio.duracion }}" data-precio="{{ subservicio.precio }}" title="{{ subservicio.descripcion }}" >
-                            <strong>{{ subservicio.nombre }}</strong> 
+                        <div class="subservicio-item" data-id="{{ subservicio.id }}" data-duracion="{{ subservicio.duracion }}" data-precio="{{ subservicio.precio }}" title="{{ subservicio.descripcion }}">
+                            <div class="subservicio-info">
+                                <strong>{{ subservicio.nombre }}</strong>
+                                <i class="fas fa-info-circle info-icon" 
+                                   data-descripcion="{{ subservicio.descripcion|escapejs }}"
+                                   data-nombre="{{ subservicio.nombre|escapejs }}"></i>
+                            </div>
                             <span>({{ subservicio.duracion }} min) - ${{ subservicio.precio|floatformat:2 }}</span>
                         </div>
                     {% empty %}
