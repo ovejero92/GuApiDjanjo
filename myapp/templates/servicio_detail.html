@@ -52,7 +52,7 @@
     @media (max-width: 768px) {
         .banner-servicio {
             /* Hacemos que el banner sea más bajo en mobile */
-            height: 45vh; /* 45% de la altura de la pantalla */
+            height: 30vh; /* 45% de la altura de la pantalla */
             
             /* LA MAGIA: Hacemos que ocupe el 100% del ancho de la VENTANA,
                ignorando el padding del contenedor padre. */
@@ -110,7 +110,7 @@
                 <div style="display:none;">{{ form.sub_servicios_solicitados }}</div>
             </div>
 
-            <div id="resumen-turno" style="display: none;">
+            <div id="resumen-turno"  style="display: none;">
                 <p><strong>Duración Total:</strong> <span id="duracion-total">0</span> minutos</p>
                 <p><strong>Precio Total Estimado:</strong> $<span id="precio-total">0.00</span></p>
             </div>
@@ -285,10 +285,9 @@
     .subservicio-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; background-color: #444; padding: 12px; border-radius: 5px; cursor: pointer; transition: background-color 0.2s; border-left: 4px solid transparent; }
     .subservicio-item:hover { background-color: #555; }
     .subservicio-item.selected { font-weight: bold; border-left-color: var(--color-primario-servicio); }
-    #resumen-turno { background: #2a2a2a; padding: 15px; border-radius: 5px; margin-top: 15px; border-left: 4px solid aqua; }
     .subservicio-item input[type="checkbox"] { display: none; } 
     .subservicio-item label { cursor: pointer; width: 100%; } 
-    #resumen-turno { background: #2a2a2a; padding: 15px; border-radius: 5px; margin-top: 15px; border-left: 4px solid aqua; }
+    #resumen-turno { background: var(--color-slot-servicio); padding: 15px; border-radius: 5px; margin-top: 15px; border-left: 4px solid aqua; }
     @media (max-width: 768px) {
         .turno-form-container {
             padding:10px ; /* Quitamos el margen superior si hay banner */
