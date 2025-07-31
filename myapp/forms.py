@@ -13,7 +13,7 @@ from django.shortcuts import  get_object_or_404
 
 class CustomSignupForm(forms.Form):
     first_name = forms.CharField(max_length=30, label="Tu Nombre", required=True)
-    telefono = forms.CharField(max_length=25, label="Teléfono (Opcional)", required=False)
+    telefono = forms.CharField(max_length=25, label="Teléfono", required=True)
 
     def signup(self, request, user):
         user.first_name = self.cleaned_data['first_name']
@@ -132,12 +132,29 @@ class IngresoTurnoForm(forms.ModelForm):
         return instance
 
 class UserUpdateForm(forms.ModelForm):
-    email = forms.EmailField()
+    email = forms.EmailField(label="Correo Electrónico", required=True)
+    telefono = forms.CharField(label="Teléfono", max_length=25, required=True)
 
     class Meta:
         model = User
         fields = ['username', 'email', 'first_name', 'last_name']
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        if self.instance and hasattr(self.instance, 'perfil'):
+            self.fields['telefono'].initial = self.instance.perfil.telefono
+
+    def save(self, commit=True):
+        user = super().save(commit=commit)
+        
+        if hasattr(user, 'perfil'):
+            user.perfil.telefono = self.cleaned_data.get('telefono')
+            if commit:
+                user.perfil.save()
+                
+        return user
+    
 class ReseñaForm(forms.ModelForm):
     class Meta:
         model = Reseña

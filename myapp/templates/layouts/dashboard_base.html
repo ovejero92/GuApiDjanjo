@@ -230,11 +230,13 @@ display: flex; /* Para controlar el botón de abajo */
             animation: gold-flash 1.8s ease-out;
         }
     .premium-blocker-overlay {
-    position: absolute;
+    position: fixed;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
+    width: 100vw;  /* Ocupa el 100% del ANCHO de la ventana */
+    height: 100vh; /* Ocupa el 100% del ALTO de la ventana */
     background-color: rgba(40, 40, 40, 0.85); /* Fondo oscuro semitransparente */
     backdrop-filter: blur(5px); /* Efecto de desenfoque del fondo */
     z-index: 999; /* Se asegura de que esté por encima de todo */
@@ -283,10 +285,10 @@ display: flex; /* Para controlar el botón de abajo */
     background-color: #218838;
 }
 
-/* Y un pequeño ajuste para el contenedor principal */
+/* Y un pequeño ajuste para el contenedor principal 
 .dashboard-section, .dashboard-grid {
-    position: relative; /* Necesario para que el overlay se posicione correctamente */
-}
+    position: relative;
+}*/
 
 .blocker-actions {
     display: flex;

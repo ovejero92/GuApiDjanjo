@@ -1071,6 +1071,12 @@ def obtener_slots_disponibles(request, servicio_id):
         horario_laboral = servicio.horarios.get(dia_semana=fecha.weekday(), activo=True)
     except HorarioLaboral.DoesNotExist:
         return JsonResponse({'slots': []})
+    
+    if fecha == timezone.localdate():
+        hora_actual = timezone.localtime().time()
+        hora_cierre = horario_laboral.horario_cierre
+        if hora_actual >= hora_cierre:
+            return JsonResponse({'slots': []})
 
     turnos_del_dia = Turno.objects.filter(servicio=servicio, fecha=fecha, estado__in=['pendiente', 'confirmado'])
     bloqueos_del_dia = servicio.dias_no_disponibles.filter(fecha=fecha)
