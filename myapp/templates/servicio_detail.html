@@ -417,6 +417,32 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     actualizarResumenYPasos();
+
+    // 1. Seleccionamos todos los íconos de información
+    const infoIcons = document.querySelectorAll('.info-icon');
+
+    // 2. Añadimos un 'listener' a cada uno
+    infoIcons.forEach(icon => {
+        icon.addEventListener('click', function(event) {
+            // Detenemos la propagación para que al hacer clic en el ícono,
+            // no se seleccione también el servicio completo.
+            event.stopPropagation();
+
+            // 3. Obtenemos la descripción y el nombre que guardamos en los atributos data-*
+            const descripcion = event.currentTarget.dataset.descripcion;
+            const nombre = event.currentTarget.dataset.nombre;
+
+            // 4. Mostramos el popup con SweetAlert2
+            if (descripcion) {
+                Swal.fire({
+                    title: nombre,
+                    text: descripcion,
+                    icon: 'info',
+                    confirmButtonText: 'Entendido'
+                });
+            }
+        });
+    });
 });
 </script>
  <script>
