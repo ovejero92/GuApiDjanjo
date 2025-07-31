@@ -45,6 +45,16 @@ class Servicio(models.Model):
         default=15, # Un default razonable de 15 minutos
         help_text="Minutos de 'colchón' que se añadirán después de cada turno para preparación."
     )
+    color_slot = models.CharField(
+        max_length=7, 
+        default='#4A4A4A', 
+        help_text="Color de fondo para los botones de horarios y servicios."
+    )
+    color_slot_seleccionado = models.CharField(
+        max_length=7, 
+        default='#28a745', 
+        help_text="Color de fondo para los botones CUANDO están seleccionados."
+    )
     favoritos = models.ManyToManyField(User, related_name='servicios_favoritos', blank=True)
     color_primario = models.CharField(max_length=7, default='#007bff', help_text="Color principal")
     color_fondo = models.CharField(max_length=7, default='#333333', help_text="Color de fondo")

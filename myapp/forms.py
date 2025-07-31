@@ -206,12 +206,15 @@ class ServicioPersonalizacionForm(forms.ModelForm):
             'color_primario', 'color_fondo', 'color_texto' , 'imagen_banner',
             'fuente_titulos', 'fuente_cuerpo', 'slug',
             'footer_direccion', 'footer_telefono', 'footer_email',
-            'footer_instagram_url', 'footer_facebook_url', 'footer_tiktok_url'
+            'footer_instagram_url', 'footer_facebook_url', 'footer_tiktok_url',
+            'color_slot', 'color_slot_seleccionado'
         ]
         widgets = {
             'color_primario': forms.TextInput(attrs={'type': 'color'}),
             'color_fondo': forms.TextInput(attrs={'type': 'color'}),
             'color_texto': forms.TextInput(attrs={'type': 'color'}),
+            'color_slot': forms.TextInput(attrs={'type': 'color'}),
+            'color_slot_seleccionado': forms.TextInput(attrs={'type': 'color'}),
             'fuente_titulos': forms.Select(attrs={'class': 'form-control'}),
             'fuente_cuerpo': forms.Select(attrs={'class': 'form-control'}),
             'footer_direccion': forms.TextInput(attrs={'placeholder': 'Ej: Av. Siempreviva 742'}),

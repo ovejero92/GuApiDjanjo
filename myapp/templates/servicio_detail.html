@@ -16,6 +16,8 @@
         --color-texto-servicio: {% if servicio.tiene_apariencia_premium_activa %}{{ servicio.color_texto }}{% else %}#ffffff{% endif %};
         --fuente-titulos: {% if servicio.tiene_apariencia_premium_activa %}{{ servicio.fuente_titulos }}{% else %}'Montserrat', sans-serif{% endif %};
         --fuente-cuerpo: {% if servicio.tiene_apariencia_premium_activa %}{{ servicio.fuente_cuerpo }}{% else %}'Roboto', sans-serif{% endif %};
+        --color-slot-servicio: {% if servicio.tiene_apariencia_premium_activa %}{{ servicio.color_slot }}{% else %}#4A4A4A{% endif %};
+        --color-slot-seleccionado-servicio: {% if servicio.tiene_apariencia_premium_activa %}{{ servicio.color_slot_seleccionado }}{% else %}#28a745{% endif %};
     }
     .turno-form-container h1, .reseñas-container h2 {
         font-family: var(--fuente-titulos);
@@ -29,7 +31,11 @@
     }
     .turno-form-container, .reseñas-container { background-color: var(--color-fondo-servicio); color: var(--color-texto-servicio);}
     .slot-button, .btn-submit { background-color: var(--color-primario-servicio); }
-    .slot-button.selected, .subservicio-item.selected { background-color: #28a745 !important; }
+    .slot-button,
+    .subservicio-item {
+        background-color: var(--color-slot-servicio);
+    }
+    .slot-button.selected, .subservicio-item.selected { background-color: var(--color-slot-seleccionado-servicio) !important; }
     .btn-submit.is-disabled { background-color: #555 !important; }
     .subservicio-info {
     display: flex;
@@ -44,7 +50,23 @@
     display: none; /* ¡Oculto por defecto en la vista de computadora! */
 }
     @media (max-width: 768px) {
-        .banner-servicio {height: 40vh;}
+        .banner-servicio {
+            /* Hacemos que el banner sea más bajo en mobile */
+            height: 45vh; /* 45% de la altura de la pantalla */
+            
+            /* LA MAGIA: Hacemos que ocupe el 100% del ancho de la VENTANA,
+               ignorando el padding del contenedor padre. */
+            width: 100vw; /* 100% del ancho de la ventana */
+            position: relative;
+            left: 50%;
+            right: 50%;
+            margin-left: -50vw;
+            margin-right: -50vw;
+            background-size: cover;
+        }
+        .container{padding-top: 0;}
+        /* Ajuste para el contenido que viene después del banner en mobile */
+        
         .subservicio-info{position: relative;}
         .info-icon {
         display: inline-block;
@@ -267,6 +289,13 @@
     .subservicio-item input[type="checkbox"] { display: none; } 
     .subservicio-item label { cursor: pointer; width: 100%; } 
     #resumen-turno { background: #2a2a2a; padding: 15px; border-radius: 5px; margin-top: 15px; border-left: 4px solid aqua; }
+    @media (max-width: 768px) {
+        .turno-form-container {
+            padding:10px ; /* Quitamos el margen superior si hay banner */
+            border-top-left-radius: 0; /* Opcional: para que se una bien con el banner */
+            border-top-right-radius: 0;
+        }
+    }
 </style>
 {% endblock %}
 

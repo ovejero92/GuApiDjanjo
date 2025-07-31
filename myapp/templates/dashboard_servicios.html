@@ -63,6 +63,14 @@
                             <div style="max-width: 100px;">{{ form.color_texto }}</div>
                         </div>
                         <div class="form-group">
+                            <label for="{{ form.color_slot.id_for_label }}">Color de Slots (horarios/servicios):</label>
+                            <div style="max-width: 100px;">{{ form.color_slot }}</div>
+                        </div>
+                        <div class="form-group">
+                            <label for="{{ form.color_slot_seleccionado.id_for_label }}">Color de Slots (al seleccionar):</label>
+                            <div style="max-width: 100px;">{{ form.color_slot_seleccionado }}</div>
+                        </div>
+                        <div class="form-group">
                             <label for="{{ form.imagen_banner.id_for_label }}">Imagen de Banner:</label>
                             <div style="max-width: 300px;overflow: hidden;">{{ form.imagen_banner }}</div>
                             {% if servicio_activo.imagen_banner %}
@@ -109,6 +117,14 @@
                         <h3 id="previewTitle">Tu Título de Ejemplo</h3>
                         <p id="previewText">Un texto de ejemplo para que veas cómo queda.</p>
                         <button class="preview-button" id="previewButton">Botón de Ejemplo</button>
+
+                        <div style="margin-top: 20px; border-top: 1px dashed #555; padding-top: 15px;">
+                            <p style="font-size: 0.9em; margin-bottom: 10px;">Ejemplo de Slots:</p>
+                            <div style="display: flex; justify-content: center; gap: 10px;">
+                                <button class="preview-button" id="previewSlot">10:00</button>
+                                <button class="preview-button" id="previewSlotSelected">10:15</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -210,6 +226,8 @@
             const colorPrimarioInput = document.getElementById('id_color_primario');
             const colorFondoInput = document.getElementById('id_color_fondo');
             const colorTextoInput = document.getElementById('id_color_texto');
+            const colorSlotInput = document.getElementById('id_color_slot');
+            const colorSlotSeleccionadoInput = document.getElementById('id_color_slot_seleccionado');
             const bannerInput = document.getElementById('id_imagen_banner');
             const fuenteTitulosInput = document.getElementById('id_fuente_titulos');
             const fuenteCuerpoInput = document.getElementById('id_fuente_cuerpo');
@@ -233,7 +251,12 @@
                 previewCard.style.backgroundColor = colorFondoInput.value;
                 previewTitle.style.color = colorTextoInput.value;
                 previewText.style.color = colorTextoInput.value;
-                
+                const previewSlot = document.getElementById('previewSlot');
+                const previewSlotSelected = document.getElementById('previewSlotSelected');
+                if(previewSlot && previewSlotSelected) {
+                    previewSlot.style.backgroundColor = colorSlotInput.value;
+                    previewSlotSelected.style.backgroundColor = colorSlotSeleccionadoInput.value;
+                }
                 if (bannerInput.files && bannerInput.files[0]) {
                     const reader = new FileReader();
                     reader.onload = function(e) {
