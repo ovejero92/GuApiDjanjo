@@ -1,59 +1,6 @@
 {% extends 'layouts/dashboard_base.html' %}
 {% block dashboard_title %}Gestión de Turnos{% endblock %}
 {% block dashboard_content %}
-    <style>
-        .historial-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-        .historial-filtros a {
-            text-decoration: none;
-            color: #ccc;
-            background-color: #3a3a3a;
-            padding: 8px 15px;
-            border-radius: 20px;
-            margin-left: 10px;
-            font-size: 0.9em;
-            transition: all 0.2s;
-        }
-        .historial-filtros a.active {
-            background-color: var(--color-primario, #007bff);
-            color: white;
-            font-weight: bold;
-        }
-        .pagination-container {
-            margin-top: 25px;
-            text-align: center;
-        }
-        .pagination-container a, .pagination-container span {
-            color: #ccc;
-            padding: 8px 12px;
-            text-decoration: none;
-            border: 1px solid #444;
-            margin: 0 4px;
-            border-radius: 5px;
-        }
-        .pagination-container .current-page {
-            background-color: var(--color-primario, #007bff);
-            color: white;
-            border-color: var(--color-primario, #007bff);
-        }
-        .pagination-container a:hover {
-            background-color: #444;
-        }
-        @media (max-width: 992px){
-            .historial-filtros{
-                display: flex;
-                flex-direction: column;
-                width: 70%;
-            }
-            .historial-filtros a{
-                margin-top: 10px;
-            }
-        }
-    </style>
     
     {% if no_hay_servicio %}
         <div class="dashboard-section">

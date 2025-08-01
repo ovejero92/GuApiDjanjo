@@ -11,31 +11,6 @@
         <button type="submit" class="btn-submit">Crear mi Servicio</button>
     </form>
 </div>
-
-<style>
-        /* Apuntamos al contenedor que Django crea para el campo de checkboxes */
-        #div_id_medios_de_pago_aceptados ul {
-            list-style-type: none; /* Quitamos los puntos de la lista */
-            padding: 15px;
-            margin: 0;
-            background-color: #f8f9fa; /* Un fondo claro para la caja */
-            border: 1px solid #ced4da; /* Un borde sutil */
-            border-radius: 5px;
-            max-height: 150px; /* Le damos una altura máxima con scroll */
-            overflow-y: auto; /* Añade scroll si hay muchas opciones */
-        }
-        
-        /* Estilo para cada opción individual (cada checkbox) */
-        #div_id_medios_de_pago_aceptados ul li {
-            padding: 5px 0;
-            display: block; /* Asegura que cada opción ocupe su propia línea */
-        }
-        
-        #div_id_medios_de_pago_aceptados label {
-            margin-left: 8px; /* Un poco de espacio entre el checkbox y el texto */
-        }
-        
-    </style>
     <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Django crea el id como "id_" + nombre_del_campo
