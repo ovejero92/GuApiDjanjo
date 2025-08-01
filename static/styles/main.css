@@ -407,8 +407,9 @@ body {
 
 /* ===== FILTROS Y BÚSQUEDA PÚBLICA ===== */
 .contendor-titulo { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
-.search-form { display: flex; flex-grow: 1; max-width: 300px; align-items: center; }
 .search-form input[type="text"] { width: 100%; padding: 10px 15px; border: 1px solid #555; border-radius: 5px 0 0 5px; background-color: #333; color: #fff; height: 40px; }
+.search-form { display: flex; flex-grow: 1; max-width: 300px; align-items: center; }
+
 .search-form button { padding: 10px 15px; height: 40px; border: 1px solid #555; border-left: none; background-color: var(--color-primario-servicio, #007bff); color: white; cursor: pointer; border-radius: 0 5px 5px 0; }
 .category-filters { text-align: center; margin-bottom: 30px; }
 .category-filters a { display: inline-block; padding: 8px 15px; margin: 5px; background-color: #444; color: #ccc; text-decoration: none; border-radius: 20px; transition: all 0.2s; }
@@ -575,7 +576,9 @@ body {
 /* crear reseña */
 .form-container { background-color: #333; padding: 30px; border-radius: 8px; max-width: 600px; margin: 40px auto; }
 .btn-submit { background-color: #007bff; color: white; padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; width: 100%; margin-top: 10px; font-size: 16px; }
-
+#boton-premiun{
+    background-color: var(--color-primario);
+}
 /* Apuntamos al contenedor que Django crea para el campo de checkboxes */
         #div_id_medios_de_pago_aceptados ul {
             list-style-type: none; /* Quitamos los puntos de la lista */
@@ -601,22 +604,29 @@ body {
 
 /* ===== PÁGINA DE DETALLE DE SERVICIO ===== */
 .banner-servicio { width: 100%; height: 300px; background-size: cover; background-position: center; }
-.turno-form-container, .reseñas-container { padding: 30px; border-radius: 8px; max-width: 600px; margin: 40px auto; background-color: var(--color-fondo-servicio); color: var(--color-texto-servicio); }
-.turno-form-container h1, .reseñas-container h2 { font-family: var(--fuente-titulos); }
+.turno-form-container, .reseñas-container { padding: 30px; border-radius: 8px; max-width: 600px; margin: 40px auto; background-color: var(--color-fondo-servicio, #343a40); color: var(--color-texto-servicio, #ffffff); }
+.turno-form-container h1, .reseñas-container h2 {
+    font-family: var(--fuente-titulos, 'Montserrat', sans-serif);
+}
+.pagina-servicio-personalizada, 
+.pagina-servicio-personalizada .turno-form-container p, 
+.pagina-servicio-personalizada .reseñas-container p, 
+.pagina-servicio-personalizada .subservicio-item {
+    font-family: var(--fuente-cuerpo, 'Roboto', sans-serif);
+}
 .turno-form-container p, .reseñas-container p, .subservicio-item { font-family: var(--fuente-cuerpo); }
 .slots-container { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; margin-top: 10px; padding: 10px; background-color: #2a2a2a; border-radius: 5px; min-height: 50px; }
 .subservicio-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding: 12px; border-radius: 5px; cursor: pointer; transition: background-color 0.2s; border-left: 4px solid transparent; background-color: var(--color-slot-servicio); }
 .subservicio-item:hover { background-color: #555; }
 .subservicio-item.selected { font-weight: bold; border-left-color: var(--color-primario-servicio); background-color: var(--color-slot-seleccionado-servicio) !important; }
-#resumen-turno { padding: 15px; border-radius: 5px; margin-top: 15px; border-left: 4px solid aqua; background: var(--color-slot-servicio); }
 .subservicio-info { display: flex; align-items: center; gap: 8px; }
 .info-icon { color: #ccc; cursor: pointer; display: none; }
 
 /* ===== BOTONES GENERALES ===== */
 .btn-submit { color: white; padding: 10px 15px; width: 100%; border: none; border-radius: 5px; cursor: pointer; transition: background-color 0.2s, opacity 0.2s; background-color: var(--color-primario-servicio); }
 .btn-submit.is-disabled { cursor: not-allowed; opacity: 0.6; background-color: #555 !important; }
-.slot-button { color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; transition: background-color 0.2s; background-color: var(--color-slot-servicio); }
-.slot-button.selected { background-color: var(--color-slot-seleccionado-servicio) !important; }
+.slot-button { color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; transition: background-color 0.2s; background-color: var(--color-slot-servicio, #4A4A4A); }
+.slot-button.selected { background-color: var(--color-slot-seleccionado-servicio, #28a745) !important;  }
 .btn-gradient { display: inline-block; padding: 12px 30px; background: linear-gradient(135deg, #6C63FF, #00B4DB); border: 2px black solid; color: white; border-radius: 50px; text-decoration: none; font-weight: bold; font-size: 1em; box-shadow: 0 5px 15px rgba(0,0,0,0.1); transition: all 0.3s ease; }
 .btn-gradient:hover { transform: scale(1.05); opacity: 0.95; }
 .btn-primary, .btn-secondary, .btn-tertiary { padding: 10px 25px; border-radius: 50px; text-decoration: none; display: inline-block; margin-top: 10px; font-weight: bold; border: 2px black solid; transition: all 0.3s ease; }
@@ -1089,7 +1099,7 @@ body {
         .schedule-table th, .schedule-table td { padding: 12px; border: 1px solid #444; text-align: center; }
         .schedule-table th { background-color: #3a3a3a; }
         .schedule-table input, .schedule-table select { background-color: #555; color: white; border: 1px solid #777; padding: 5px; border-radius: 4px; }
-        .btn-submit { background-color: #007bff; color: white; padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; }
+        .btn-submit { background-color:var(--color-primario-servicio, #007bff); color: white; padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; }
         .bloqueo-form p { margin-bottom: 15px; }
         .lista-bloqueos { list-style: none; padding-left: 0; }
         .lista-bloqueos li { background-color: #444; padding: 10px; border-radius: 4px; margin-bottom: 8px; }
@@ -1448,12 +1458,6 @@ body {
 .dashboard-sidebar.collapsed .sidebar-nav span { display: none; }
 .dashboard-sidebar.collapsed .sidebar-toggle-btn i { transform: rotate(180deg); }
 .mobile-sidebar-toggle { display: none; }
-.turno-form-container, .reseñas-container {
-        padding: 30px;
-        border-radius: 8px;
-        max-width: 600px;
-        margin: 40px auto;
-    }
     .reseñas-container {
         max-width: 800px;
     }
@@ -1462,7 +1466,7 @@ body {
     .slot-button { color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; transition: background-color 0.2s; }
     .form-error { color: #ff6b6b; background-color: #5d1a1a; padding: 10px; border-radius: 5px; margin-top: 5px; }
     .btn-submit { color: white; padding: 10px 15px; width: 100%;    background-color: #007bff; border: none; border-radius: 5px; cursor: pointer; transition: background-color 0.2s, opacity 0.2s; opacity: 1; }
-    .btn-submit.is-disabled { cursor: not-allowed; opacity: 0.6; pointer-events: none; }
+    .btn-submit.is-disabled { cursor: not-allowed; opacity: 0.6; pointer-events: none;background-color: var(--color-primario) !important }
         .resumen-calificacion { text-align: center; margin-bottom: 30px; }
     .promedio-numero { font-size: 3em; font-weight: bold; }
     .promedio-estrellas { font-size: 1.5em; color: #ffc107; margin: 0 10px; }
@@ -1486,15 +1490,15 @@ body {
     }
     .footer-estructurado { background-color: var(--color-fondo-servicio, #222); color: var(--color-texto-servicio, #ccc); padding: 40px 0 20px 0; margin-top: 50px; border-top: 3px solid var(--color-primario-servicio, #007bff); }
     .footer-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 30px; }
-    .footer-columna h4 { font-family: var(--fuente-titulos);  color: var(--color-texto-servicio);  margin-bottom: 15px; border-bottom: 1px solid #555; padding-bottom: 10px; }
-    .footer-columna p { font-family: var(--fuente-cuerpo); line-height: 1.6; }
-    .footer-columna i { color: var(--color-primario-servicio); margin-right: 10px; }
+    .footer-columna h4 {font-family: var(--fuente-titulos, 'Montserrat', sans-serif);
+    color: var(--color-texto-servicio, #fff);  margin-bottom: 15px; border-bottom: 1px solid #555; padding-bottom: 10px; }
+    .footer-columna i { color: var(--color-primario-servicio, #007bff); margin-right: 10px; }
     .social-links a { color: #ccc; font-size: 1.8em; margin-right: 15px; transition: color 0.2s; }
-    .social-links a:hover { color: var(--color-primario-servicio); }
+    .social-links a:hover { color: var(--color-primario-servicio, #007bff); }
     .footer-bottom { text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #444; font-size: 0.9em; }
     .filtros-reseñas { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 30px; justify-content: center; }
     .filtro-btn { background-color: #444; color: #ccc; padding: 8px 15px; border-radius: 20px; text-decoration: none; transition: all 0.2s; }
-    .filtro-btn.active, .filtro-btn:hover { background-color: var(--color-primario-servicio); color: white; }
+    .filtro-btn.active, .filtro-btn:hover { background-color: var(--color-primario-servicio, #007bff); color: white; }
     .load-more-container { text-align: center; margin-top: 30px; }
     .btn-load-more { background-color: transparent; border: 1px solid var(--color-primario-servicio); color: var(--color-primario-servicio); padding: 10px 25px; border-radius: 5px; cursor: pointer; }
     .footer-mapa .map-container {
@@ -1507,7 +1511,7 @@ body {
     .subservicio-item.selected { font-weight: bold; border-left-color: var(--color-primario-servicio); }
     .subservicio-item input[type="checkbox"] { display: none; } 
     .subservicio-item label { cursor: pointer; width: 100%; } 
-    #resumen-turno { background: var(--color-slot-servicio); padding: 15px; border-radius: 5px; margin-top: 15px; border-left: 4px solid aqua; }
+    #resumen-turno { background: var(--color-slot-servicio); padding: 15px; border-radius: 5px; margin-top: 15px; border-left: 8px solid var(--color-primario-servicio); }
     @media (max-width: 768px) {
         .turno-form-container {
             padding:10px ; /* Quitamos el margen superior si hay banner */
@@ -1604,4 +1608,62 @@ body {
     .banner-servicio { height: 45vh; width: 100vw; position: relative; left: 50%; right: 50%; margin-left: -50vw; margin-right: -50vw; }
     .turno-form-container { margin-top: 0; border-top-left-radius: 0; border-top-right-radius: 0; padding: 15px; }
     .info-icon { display: inline-block; margin: 0 15px ;}
+}
+
+/* Contenedores principales */
+.pagina-servicio-personalizada .turno-form-container, 
+.pagina-servicio-personalizada .reseñas-container {
+    background-color: var(--color-fondo-servicio);
+    color: var(--color-texto-servicio);
+}
+
+/* Títulos y fuentes */
+.pagina-servicio-personalizada .turno-form-container h1, 
+.pagina-servicio-personalizada .reseñas-container h2 {
+    font-family: var(--fuente-titulos);
+}
+.pagina-servicio-personalizada {
+    font-family: var(--fuente-cuerpo);
+}
+
+/* Botones y elementos interactivos */
+.pagina-servicio-personalizada .btn-submit {
+    background-color: var(--color-primario-servicio) !important;
+}
+.pagina-servicio-personalizada .subservicio-item {
+    background-color: var(--color-slot-servicio);
+}
+.pagina-servicio-personalizada .subservicio-item.selected {
+    background-color: var(--color-slot-seleccionado-servicio) !important;
+    border-left-color: var(--color-primario-servicio);
+    border-left-width: 8px;
+}
+.pagina-servicio-personalizada .slot-button {
+    background-color: var(--color-slot-servicio);
+}
+.pagina-servicio-personalizada .slot-button.selected {
+    background-color: var(--color-slot-seleccionado-servicio) !important;
+}
+
+/* Footer estructurado en esta página */
+.pagina-servicio-personalizada .footer-estructurado {
+    background-color: var(--color-fondo-servicio);
+    color: var(--color-texto-servicio);
+    border-top: 3px solid var(--color-primario-servicio);
+}
+.pagina-servicio-personalizada .footer-columna h4 {
+    font-family: var(--fuente-titulos);
+    color: var(--color-texto-servicio);
+}
+.pagina-servicio-personalizada .footer-columna i {
+    color: var(--color-primario-servicio);
+}
+.pagina-servicio-personalizada .social-links a:hover {
+    color: var(--color-primario-servicio);
+}
+
+/* Filtros de reseñas en esta página */
+.pagina-servicio-personalizada .filtro-btn.active, 
+.pagina-servicio-personalizada .filtro-btn:hover {
+    background-color: var(--color-primario-servicio);
 }

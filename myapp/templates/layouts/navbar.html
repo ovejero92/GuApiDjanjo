@@ -20,11 +20,11 @@
     <meta name="description" content="{% block meta_description %}La plataforma ideal para que profesionales y pequeños negocios gestionen sus turnos y clientes de forma sencilla y eficiente.{% endblock %}">    
     <link href="https://fonts.googleapis.com/css2?family=Lato&family=Montserrat&family=Open+Sans&family=Playfair+Display&family=Roboto&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    {% block styles_extra %}{% endblock %}
     <link rel="stylesheet" href="{% static 'styles/main.css' %}">
     <script src="https://kit.fontawesome.com/76e20a326e.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <meta name="theme-color" content="#007bff">
-      {% block styles_extra %}{% endblock %}
     <style>
         .plan-badge {
         font-size: 0.7em;
@@ -111,7 +111,7 @@
         }
     </style>
 </head>
-<body data-servicio-id="{{ servicio.id }}" data-servicio-slug="{{ servicio.slug }}">
+<body data-servicio-id="{{ servicio.id }}" data-servicio-slug="{{ servicio.slug }}" class="{% block body_class %}{% endblock %}">
     <nav class="navbar">
         <div class="nav-content">
             <a href="{% url 'index' %}" class="logo-link">

@@ -63,7 +63,7 @@
                 <input type="hidden" name="categoria" value="{{ categoria_activa }}">
             {% endif %}
             
-            <input type="text" name="q" placeholder="Buscar negocio por nombre..." value="{{ search_query|default:'' }}">
+            <input type="text" style="position: relative; top: 7px;" name="q" placeholder="Buscar negocio por nombre..." value="{{ search_query|default:'' }}">
             <button type="submit"><i class="fas fa-search"></i></button>
         </form>
     </div>

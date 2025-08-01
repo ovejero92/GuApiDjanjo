@@ -1,5 +1,6 @@
 {% extends 'layouts/navbar.html' %}
 {% load static %}
+{% block body_class %}pagina-servicio-personalizada{% endblock %}
 {% block title %}{{ servicio.nombre }} en Turnos Online{% endblock %}
 {% block meta_description %}Reserva tu turno en {{ servicio.nombre }}. {{ servicio.descripcion|truncatewords:20 }}{% endblock %}
 {% load custom_filters %}
@@ -77,7 +78,7 @@
             </div>
             
             {{ form.hora.as_hidden }}
-            <button type="submit" class="btn-submit is-disabled">Solicitar Turno</button>
+            <button type="submit" class="btn-submit is-disabled" id="boton-premiun">Solicitar Turno</button>
         </form>
     </div>
 
