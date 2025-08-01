@@ -150,27 +150,46 @@ class SubServicio(models.Model):
         return f"{self.nombre} ({self.servicio_padre.nombre})"
 
 class HorarioLaboral(models.Model):
-    DIA_SEMANA_CHOICES = [
-        (1, 'Lunes'),
-        (2, 'Martes'),
-        (3, 'Miércoles'),
-        (4, 'Jueves'),
-        (5, 'Viernes'),
-        (6, 'Sábado'),
-        (0, 'Domingo'),
-    ]
     servicio = models.ForeignKey(Servicio, on_delete=models.CASCADE, related_name='horarios')
-    dia_semana = models.IntegerField(choices=DIA_SEMANA_CHOICES)
+    
+    lunes = models.BooleanField(default=False)
+    martes = models.BooleanField(default=False)
+    miercoles = models.BooleanField(default=False)
+    jueves = models.BooleanField(default=False)
+    viernes = models.BooleanField(default=False)
+    sabado = models.BooleanField(default=False)
+    domingo = models.BooleanField(default=False)
+    
     horario_apertura = models.TimeField()
     horario_cierre = models.TimeField()
-    activo = models.BooleanField(default=True, help_text="Marcar si el servicio está abierto este día")
+    
+    tiene_descanso = models.BooleanField(default=False, help_text="Marcar si hay un descanso en medio de la jornada.")
+    descanso_inicio = models.TimeField(null=True, blank=True)
+    descanso_fin = models.TimeField(null=True, blank=True)
+    
+    activo = models.BooleanField(default=True, help_text="Desmarcar para desactivar esta regla temporalmente.")
 
     class Meta:
-        unique_together = ('servicio', 'dia_semana') # Un servicio solo puede tener una configuración por día
-        ordering = ['dia_semana']
-
+        ordering = ['id']
+        
     def __str__(self):
-        return f"{self.servicio.nombre} - {self.get_dia_semana_display()}: {self.horario_apertura.strftime('%H:%M')} a {self.horario_cierre.strftime('%H:%M')}"
+        dias_activos = []
+        if self.lunes: dias_activos.append('Lu')
+        if self.martes: dias_activos.append('Ma')
+        if self.miercoles: dias_activos.append('Mi')
+        if self.jueves: dias_activos.append('Ju')
+        if self.viernes: dias_activos.append('Vi')
+        if self.sabado: dias_activos.append('Sa')
+        if self.domingo: dias_activos.append('Do')
+        return f"Regla para {', '.join(dias_activos)} de {self.horario_apertura.strftime('%H:%M')} a {self.horario_cierre.strftime('%H:%M')}"
+
+    def clean(self):
+        if self.tiene_descanso and (not self.descanso_inicio or not self.descanso_fin):
+            raise ValidationError("Si se marca que tiene descanso, se deben especificar las horas de inicio y fin del mismo.")
+        if self.tiene_descanso and self.descanso_inicio >= self.descanso_fin:
+            raise ValidationError("La hora de inicio del descanso debe ser anterior a la hora de fin.")
+        if self.tiene_descanso and not (self.horario_apertura <= self.descanso_inicio and self.descanso_fin <= self.horario_cierre):
+            raise ValidationError("El descanso debe estar dentro del horario de apertura y cierre.")
 
 class DiaNoDisponible(models.Model):
     servicio = models.ForeignKey(Servicio, on_delete=models.CASCADE, related_name='dias_no_disponibles')

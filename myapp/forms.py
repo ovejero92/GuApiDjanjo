@@ -278,3 +278,82 @@ class BloqueoForm(forms.ModelForm):
         if inicio and fin and inicio >= fin:
             raise forms.ValidationError("La hora de inicio debe ser anterior a la hora de fin.")
         return cleaned_data
+    
+class HorarioLaboralForm(forms.ModelForm):
+    # Usamos MultipleChoiceField para mostrar los checkboxes
+    dias_semana = forms.MultipleChoiceField(
+        # Las opciones ahora se definen aquí, en el formulario
+        choices=[('lunes', 'Lunes'), ('martes', 'Martes'), ('miercoles', 'Miércoles'), ('jueves', 'Jueves'), ('viernes', 'Viernes'), ('sabado', 'Sábado'), ('domingo', 'Domingo')],
+        widget=forms.CheckboxSelectMultiple,
+        label="Días de la semana para esta regla",
+        required=False # Lo hacemos no requerido a nivel de form, luego validamos
+    )
+    
+    class Meta:
+        model = HorarioLaboral
+        # Excluimos los campos de día individuales porque los manejaremos nosotros
+        exclude = ['servicio', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo']
+        widgets = {
+            'horario_apertura': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
+            'horario_cierre': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
+            'descanso_inicio': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
+            'descanso_fin': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
+            # ...
+        }
+
+    # --- INICIO DE LA CORRECCIÓN DEL MÉTODO save ---
+    def save(self, commit=True):
+        # 1. Obtenemos la instancia del modelo, pero todavía no la guardamos en la DB
+        instance = super().save(commit=False)
+        
+        # 2. Obtenemos la lista de días que el usuario marcó en los checkboxes
+        dias_seleccionados = self.cleaned_data.get('dias_semana', [])
+        
+        # 3. Reiniciamos todos los campos de día a False. Esto es importante
+        #    para cuando el usuario edita una regla y desmarca un día.
+        instance.lunes = False
+        instance.martes = False
+        instance.miercoles = False
+        instance.jueves = False
+        instance.viernes = False
+        instance.sabado = False
+        instance.domingo = False
+
+        # 4. Recorremos la lista de días seleccionados y ponemos a True los campos correspondientes.
+        for dia in dias_seleccionados:
+            # setattr(instance, 'lunes', True) es lo mismo que instance.lunes = True
+            if hasattr(instance, dia):
+                setattr(instance, dia, True)
+
+        # 5. Si commit es True, ahora sí guardamos la instancia completa en la base de datos.
+        if commit:
+            instance.save()
+            
+        return instance
+    # --- FIN DE LA CORRECCIÓN DEL MÉTODO save ---
+
+    # --- INICIO DE LA LÓGICA DE RELLENADO (para la edición) ---
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Si estamos editando una regla existente...
+        if self.instance and self.instance.pk:
+            # ...leemos los valores booleanos del modelo...
+            dias_iniciales = []
+            if self.instance.lunes: dias_iniciales.append('lunes')
+            if self.instance.martes: dias_iniciales.append('martes')
+            if self.instance.miercoles: dias_iniciales.append('miercoles')
+            if self.instance.jueves: dias_iniciales.append('jueves')
+            if self.instance.viernes: dias_iniciales.append('viernes')
+            if self.instance.sabado: dias_iniciales.append('sabado')
+            if self.instance.domingo: dias_iniciales.append('domingo')
+            
+            # ...y los usamos para marcar los checkboxes correspondientes.
+            self.fields['dias_semana'].initial = dias_iniciales
+    # --- FIN DE LA LÓGICA DE RELLENADO ---
+
+    def clean(self):
+        cleaned_data = super().clean()
+        # Validación para asegurar que al menos un día sea seleccionado
+        if not cleaned_data.get('dias_semana'):
+            self.add_error('dias_semana', 'Debes seleccionar al menos un día para esta regla.')
+        return cleaned_data

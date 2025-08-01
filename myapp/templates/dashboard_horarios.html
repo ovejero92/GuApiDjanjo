@@ -6,48 +6,116 @@
         <h1>Horarios y Disponibilidad</h1>
         <button id="ayudaHorariosBtn" class="help-button" title="Ver guía de esta sección">?</button>
     </div>
-    <p>Define tus horarios de trabajo para cada día y bloquea fechas por vacaciones o eventos especiales.</p>
+    <p>Define tus reglas de trabajo. Puedes crear una regla simple para "Lunes a Viernes" y otra solo para "Sábados".</p>
     
     {% if no_hay_servicio %}
         <div class="dashboard-section"><p>Aún no tienes un servicio configurado.</p></div>
     {% else %}
-        <div class="dashboard-section"  id="seccion-horario-semanal">
-            <h2>Configuración de Horario Semanal para: <strong>{{ servicio.nombre }}</strong></h2>
-            <form method="post">
+        <div class="dashboard-section" id="seccion-horario-semanal">
+            <h2>Reglas de Horario Semanal</h2>
+            
+            <form method="post" id="form-horarios">
                 {% csrf_token %}
                 {{ formset.management_form }}
+
+                <div id="reglas-container">
+                    {% for form in formset %}
+                        <div class="regla-horario-card">
+                            {{ form.id }}
+                            {% if form.non_field_errors %}<div class="form-error-box">{{ form.non_field_errors }}</div>{% endif %}
+
+                            <div class="form-group">
+                                <label>Días de la semana para esta regla:</label>
+                                <div class="dias-botones-container">
+                                    {# Renderizamos cada checkbox a mano para tener control total #}
+                                    {% for checkbox in form.dias_semana %}
+                                        {{ checkbox.tag }}
+                                        <label for="{{ checkbox.id_for_label }}">{{ checkbox.choice_label }}</label>
+                                    {% endfor %}
+                                </div>
+                            </div>
+
+                            <div class="horas-grid">
+                                <div class="form-group">
+                                    {{ form.horario_apertura.label_tag }} {{ form.horario_apertura }}
+                                </div>
+                                <div class="form-group">
+                                    {{ form.horario_cierre.label_tag }} {{ form.horario_cierre }}
+                                </div>
+                            </div>
+
+                            <div class="descanso-toggle">
+                                {{ form.tiene_descanso }} {{ form.tiene_descanso.label_tag }}
+                            </div>
+                            <div class="horas-grid descanso-horas">
+                                <div class="form-group">
+                                    {{ form.descanso_inicio.label_tag }} {{ form.descanso_inicio }}
+                                </div>
+                                <div class="form-group">
+                                    {{ form.descanso_fin.label_tag }} {{ form.descanso_fin }}
+                                </div>
+                            </div>
+
+                            <div class="regla-acciones">
+                                <div class="form-group-inline">
+                                    {{ form.activo }} {{ form.activo.label_tag }}
+                                </div>
+                                {% if form.instance.pk and formset.can_delete %}
+                                    <div class="form-group-inline delete-group">
+                                        <label for="{{ form.DELETE.id_for_label }}" class="delete-label">
+                                            {{ form.DELETE }} Eliminar
+                                        </label>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Template para clonar -->
+                <template id="regla-horario-template">
+                    <div class="regla-horario-card">
+                        {{ formset.empty_form.id }}
+                        <div class="form-group">
+                            <label>Días de la semana para esta regla:</label>
+                            <div class="dias-botones-container">
+                                {% for checkbox in formset.empty_form.dias_semana %}
+                                    {{ checkbox.tag }}
+                                    <label for="{{ checkbox.id_for_label }}">{{ checkbox.choice_label }}</label>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="horas-grid">
+                            <div class="form-group">
+                                {{ formset.empty_form.horario_apertura.label_tag }} {{ formset.empty_form.horario_apertura }}
+                            </div>
+                            <div class="form-group">
+                                {{ formset.empty_form.horario_cierre.label_tag }} {{ formset.empty_form.horario_cierre }}
+                            </div>
+                        </div>
+                        <div class="descanso-toggle">
+                            {{ formset.empty_form.tiene_descanso }} {{ formset.empty_form.tiene_descanso.label_tag }}
+                        </div>
+                        <div class="horas-grid descanso-horas">
+                            <div class="form-group">
+                                {{ formset.empty_form.descanso_inicio.label_tag }} {{ formset.empty_form.descanso_inicio }}
+                            </div>
+                            <div class="form-group">
+                                {{ formset.empty_form.descanso_fin.label_tag }} {{ formset.empty_form.descanso_fin }}
+                            </div>
+                        </div>
+                        <div class="regla-acciones">
+                            <div class="form-group-inline">
+                                {{ formset.empty_form.activo }} {{ formset.empty_form.activo.label_tag }}
+                            </div>
+                        </div>
+                    </div>
+                </template>
                 
-                <table class="schedule-table">
-                    <thead>
-                        <tr>
-                            <th>Día</th>
-                            <th>Abierto</th>
-                            <th>Apertura</th>
-                            <th>Cierre</th>
-                            {% if formset.can_delete %}<th>Eliminar</th>{% endif %}
-                        </tr>
-                    </thead>
-                    <tbody id="cuerpo">
-                        {% for form in formset %}
-                            <tr>
-                                {{ form.id }}
-                                <td data-label="Día">
-                                    {% if form.instance.pk %}
-                                        <strong>{{ form.instance.get_dia_semana_display }}</strong>
-                                        <div style="display:none;">{{ form.dia_semana }}</div>
-                                    {% else %}
-                                        <span class="inp">{{ form.dia_semana }}</span>
-                                    {% endif %}
-                                </td>
-                                <td data-label="Abierto">{{ form.activo }}</td>
-                                <td class="inp" data-label="Apertura">{{ form.horario_apertura }}</td>
-                                <td class="inp" data-label="Cierre">{{ form.horario_cierre }}</td>
-                                {% if formset.can_delete %}<td data-label="Eliminar">{% if form.instance.pk %}{{ form.DELETE }}{% endif %}</td>{% endif %}
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-                <button type="submit" name="guardar_horarios" class="btn-submit" style="margin-top: 20px;">Guardar Horarios</button>
+                <div class="form-actions">
+                    <button type="button" id="add-rule-btn" class="btn-secondary"><i class="fas fa-plus"></i> Añadir Regla</button>
+                    <button type="submit" name="guardar_horarios" class="btn-submit">Guardar Horarios</button>
+                </div>
             </form>
         </div>
 
@@ -120,6 +188,152 @@
         width: 20px;
         height: 20px;
     }
+    .regla-horario-form {
+            background-color: #2a2a2a;
+            border: 1px solid #555;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .regla-horario-form fieldset {
+            border: none; padding: 0; margin: 0 0 15px 0;
+        }
+        .regla-horario-form legend {
+            font-weight: bold; color: #ccc; margin-bottom: 10px; font-size: 1.1em;
+        }
+        .dias-checkboxes {
+            display: flex; flex-wrap: wrap; gap: 10px 20px;
+        }
+        .dias-checkboxes label {
+            display: flex; align-items: center; gap: 8px; font-weight: normal;
+        }
+        .horas-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 20px;
+        }
+        .descanso-fieldset .descanso-horas {
+            display: none; /* Oculto por defecto */
+            margin-top: 15px;
+        }
+        .regla-acciones {
+            display: flex; justify-content: space-between; align-items: center;
+            border-top: 1px solid #444; padding-top: 15px; margin-top: 15px;
+        }
+        .form-group-inline {
+            display: flex; align-items: center; gap: 8px;
+        }
+        .delete-group label {
+            color: #ff6b6b;
+        }
+        .form-actions {
+            margin-top: 20px; display: flex; gap: 15px;
+        }
+        .btn-secondary {
+            background: transparent; border: 1px solid #666; color: #ccc; padding: 10px 15px;
+            border-radius: 5px; cursor: pointer; transition: background-color 0.2s;
+        }
+         .regla-horario-card {
+            background-color: #3a3a3a;
+            border: 1px solid #555;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: bold; }
+
+        /* LA MAGIA PARA LOS BOTONES DE DÍAS */
+        .dias-botones-container {
+            display: flex; flex-wrap: wrap; gap: 10px;
+        }
+        /* Ocultamos el checkbox real */
+        .dias-botones-container input[type="checkbox"] {
+            display: none;
+        }
+        /* Le damos estilo al label para que parezca un botón */
+        .dias-botones-container label {
+            padding: 8px 12px;
+            background-color: #555;
+            color: #ccc;
+            border: 1px solid #777;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: normal;
+            font-size: 0.9em;
+        }
+        /* Cuando el checkbox oculto está seleccionado, cambiamos el estilo del label */
+        .dias-botones-container input[type="checkbox"]:checked + label {
+            background-color: var(--color-primario, #007bff);
+            color: white;
+            border-color: var(--color-primario, #007bff);
+            font-weight: bold;
+        }
+ .dias-botones-container label {
+            padding: 6px 12px;
+            font-size: 0.85em;
+        }
+
+        /* Hacemos los labels de los inputs más pequeños */
+        .regla-horario-card .form-group label {
+            font-size: 0.9em;
+            color: #bbb;
+        }
+
+        /* Estilo para el toggle de descanso */
+        .descanso-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background-color: #2f2f2f;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 15px;
+        }
+
+        /* Hacemos el botón de eliminar mucho más claro */
+        .delete-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #ff8a8a; /* Un rojo suave */
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+        .delete-label:hover {
+            background-color: rgba(255, 100, 100, 0.1);
+        }
+        .form-error-box {
+            background-color: #5d1a1a;
+            color: #ffbaba;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+        .horas-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+        }
+        .descanso-toggle { margin-top: 15px; }
+        .descanso-horas {
+            display: none; /* Oculto por defecto */
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #555;
+        }
+        .regla-acciones {
+            display: flex; justify-content: space-between; align-items: center;
+            border-top: 1px solid #444; padding-top: 15px; margin-top: 20px;
+        }
+        .form-group-inline {
+            display: flex; align-items: center; gap: 8px;
+        }
+        .delete-group label { color: #ff6b6b; }
+        .form-actions {
+            margin-top: 20px; display: flex; gap: 15px;
+        }
+        .btn-secondary:hover { background-color: #444; }
+        .form-error { color: #ff6b6b; font-size: 0.9em; margin-top: 5px; }
         .schedule-table { width: 100%; margin-top: 20px; border-collapse: collapse; }
         .schedule-table th, .schedule-table td { padding: 12px; border: 1px solid #444; text-align: center; }
         .schedule-table th { background-color: #3a3a3a; }
@@ -143,9 +357,54 @@
 {% block scripts_extra %}
     {{ block.super }} {# ¡CRUCIAL! Esto incluye el script del tour de bienvenida de la plantilla base #}
 
-    <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const botonAyuda = document.getElementById('ayudaHorariosBtn');
+ <script>
+    document.addEventListener('DOMContentLoaded', function() {
+
+        // --- LÓGICA PARA MANEJAR EL DESCANSO Y AÑADIR NUEVAS REGLAS ---
+        function setupFormCard(cardElement) {
+            const descansoCheckbox = cardElement.querySelector('input[name$="-tiene_descanso"]');
+            const horasDiv = cardElement.querySelector('.descanso-horas');
+            
+            if (descansoCheckbox && horasDiv) {
+                function toggleDescanso() {
+                    horasDiv.style.display = descansoCheckbox.checked ? 'grid' : 'none';
+                }
+                toggleDescanso();
+                descansoCheckbox.addEventListener('change', toggleDescanso);
+            }
+        }
+        
+        // Aplica la lógica a todos los formularios que ya existen
+        document.querySelectorAll('.regla-horario-card').forEach(setupFormCard);
+
+        const addRuleBtn = document.getElementById('add-rule-btn');
+        const container = document.getElementById('reglas-container');
+        const templateNode = document.getElementById('regla-horario-template');
+        const totalFormsInput = document.getElementById('id_form-TOTAL_FORMS');
+
+        if (addRuleBtn && container && templateNode && totalFormsInput) {
+            addRuleBtn.addEventListener('click', function() {
+                let formIdx = parseInt(totalFormsInput.value);
+                
+                // Clonamos el contenido del template
+                let newFormHtml = templateNode.innerHTML.replace(/__prefix__/g, formIdx);
+                
+                // Creamos un nuevo div y le metemos el HTML clonado
+                let newDiv = document.createElement('div');
+                newDiv.innerHTML = newFormHtml;
+                const newCard = newDiv.firstElementChild; // Obtenemos el .regla-horario-card
+                
+                // Añadimos el nuevo formulario al contenedor
+                container.appendChild(newCard);
+
+                totalFormsInput.value = formIdx + 1;
+
+                // Aplicamos la lógica al nuevo formulario
+                setupFormCard(newCard);
+            });
+        }
+
+         const botonAyuda = document.getElementById('ayudaHorariosBtn');
     if (botonAyuda) {
 
         botonAyuda.addEventListener('click', function() {
@@ -249,6 +508,7 @@ document.addEventListener('DOMContentLoaded', function() {
             tourGeneral.start();
         });
     }
-});
-</script>
+
+    });
+    </script>
 {% endblock %}

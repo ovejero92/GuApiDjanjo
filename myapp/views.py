@@ -2,9 +2,9 @@ from django import forms
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth import login
 from django.contrib import messages
-from django.forms import inlineformset_factory
-from .models import Servicio, Turno, HorarioLaboral, SubServicio, Categoria, Plan, Suscripcion
-from .forms import BloqueoForm, TurnoForm, UserUpdateForm, IngresoTurnoForm, ReseñaForm, ServicioPersonalizacionForm, ServicioUpdateForm, ServicioCreateForm
+from django.forms import inlineformset_factory, modelformset_factory
+from .models import Servicio, Turno, HorarioLaboral, SubServicio, Categoria, Plan, Suscripcion, DiaNoDisponible
+from .forms import BloqueoForm, HorarioLaboralForm, TurnoForm, UserUpdateForm, IngresoTurnoForm, ReseñaForm, ServicioPersonalizacionForm, ServicioUpdateForm, ServicioCreateForm
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from django.http import JsonResponse
@@ -267,20 +267,24 @@ def webhook_mp(request):
 @login_required
 def servicio_detail(request, servicio_slug):
     servicio = get_object_or_404(Servicio, slug=servicio_slug)
+    
+    dias_laborables_js = {str(i): False for i in range(7)}
+    
+    reglas_horario_activas = servicio.horarios.filter(activo=True)
+    
+    for regla in reglas_horario_activas:
+        if regla.domingo: dias_laborables_js['0'] = True
+        if regla.lunes: dias_laborables_js['1'] = True
+        if regla.martes: dias_laborables_js['2'] = True
+        if regla.miercoles: dias_laborables_js['3'] = True
+        if regla.jueves: dias_laborables_js['4'] = True
+        if regla.viernes: dias_laborables_js['5'] = True
+        if regla.sabado: dias_laborables_js['6'] = True
+    
+
     turnos_reservados = Turno.objects.filter(servicio=servicio)
     fechas_ocupadas = [turno.fecha.strftime('%Y-%m-%d') for turno in turnos_reservados]
-    # 1. Creamos un diccionario para los 7 días de la semana, todos desactivados por defecto.
-    #    Usamos strings para las claves ("0", "1", etc.) para que coincida con el JavaScript.
-    dias_laborables = {str(i): False for i in range(7)}
 
-    # 2. Consultamos TU TABLA DE HORARIOS para este servicio, trayendo solo los días que el propietario marcó como "activos".
-    #    Si tu campo se llama `esta_abierto=True`, cámbialo aquí.
-    horarios_activos = HorarioLaboral.objects.filter(servicio=servicio, activo=True)
-
-    # 3. Recorremos los horarios que el propietario SÍ configuró y los marcamos como "True" en nuestro diccionario.
-    for horario in horarios_activos:
-        # `horario.dia_semana` debe ser el número del día (0 para Domingo, 1 para Lunes, etc.)
-        dias_laborables[str(horario.dia_semana)] = True
     if request.method == 'POST':
         form = TurnoForm(request.POST, servicio_id=servicio.id)
         if form.is_valid():
@@ -297,9 +301,7 @@ def servicio_detail(request, servicio_slug):
         form = TurnoForm(servicio_id=servicio.id, initial={'fecha': timezone.localdate()})
 
     calificacion_filtro = request.GET.get('calificacion')
-
     reseñas_base = servicio.reseñas.all().select_related('usuario').order_by('-fecha_creacion')
-    
     conteo_estrellas = reseñas_base.values('calificacion').annotate(count=Count('id'))
     conteo_map = {item['calificacion']: item['count'] for item in conteo_estrellas}
     conteo_total = reseñas_base.count()
@@ -311,7 +313,6 @@ def servicio_detail(request, servicio_slug):
     
     paginator = Paginator(reseñas_a_mostrar, 6)
     reseñas_iniciales = paginator.get_page(1)
-        
     calificacion_promedio = servicio.reseñas.aggregate(Avg('calificacion'))['calificacion__avg']
     
     context = {
@@ -325,7 +326,7 @@ def servicio_detail(request, servicio_slug):
         'google_maps_api_key': settings.GOOGLE_MAPS_API_KEY,
         'filtro_activo': int(calificacion_filtro) if calificacion_filtro and calificacion_filtro.isdigit() else 0,
         'fechas_ocupadas_json': json.dumps(fechas_ocupadas),
-        'horario_trabajo_json': json.dumps(dias_laborables),
+        'horario_trabajo_json': json.dumps(dias_laborables_js),
     }
     return render(request, 'servicio_detail.html', context)
 
@@ -616,36 +617,32 @@ def dashboard_horarios(request):
     if not servicio_activo.esta_activo:
         context = {
             'servicio': servicio_activo,
-            'onboarding_completo': True, # Le decimos a la plantilla que el tour YA se hizo.
-            'servicio_activo': servicio_activo # Es buena práctica pasarlo también
+            'onboarding_completo': True,
+            'servicio_activo': servicio_activo
         }
         return render(request, 'servicio_suspendido.html', context)
-    
-    HorarioFormSet = inlineformset_factory(
-        Servicio,
+
+    HorarioFormSet = modelformset_factory(
         HorarioLaboral,
-        fields=('dia_semana','activo', 'horario_apertura', 'horario_cierre'),
-        extra=7,
-        max_num=7,
-        can_delete=True,
-        widgets={
-            'horario_apertura': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
-            'horario_cierre': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
-            'dia_semana': forms.Select(attrs={'class': 'form-control'}),
-            'activo': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-        }
+        form=HorarioLaboralForm,
+        extra=0,
+        can_delete=True
     )
 
-    horario_formset = HorarioFormSet(prefix='horarios', instance=servicio_activo)
-    bloqueo_form = BloqueoForm(prefix='bloqueo')
-    
     if request.method == 'POST':
-        # Verificamos qué formulario se envió
         if 'guardar_horarios' in request.POST:
-            horario_formset = HorarioFormSet(request.POST, prefix='horarios', instance=servicio_activo)
-            if horario_formset.is_valid():
-                horario_formset.save()
-                messages.success(request, "¡Horarios actualizados correctamente!")
+            formset = HorarioFormSet(request.POST, queryset=HorarioLaboral.objects.filter(servicio=servicio_activo))
+            
+            if formset.is_valid():
+                instances = formset.save(commit=False)
+                for instance in instances:
+                    instance.servicio = servicio_activo
+                    instance.save()
+                
+                for obj in formset.deleted_objects:
+                    obj.delete()
+
+                messages.success(request, "¡Tus reglas de horario han sido actualizadas correctamente!")
                 return redirect('dashboard_horarios')
         
         elif 'crear_bloqueo' in request.POST:
@@ -656,14 +653,16 @@ def dashboard_horarios(request):
                 nuevo_bloqueo.save()
                 messages.success(request, "¡Nuevo bloqueo creado exitosamente!")
                 return redirect('dashboard_horarios')
+    else:
+        formset = HorarioFormSet(queryset=HorarioLaboral.objects.filter(servicio=servicio_activo))
 
-    # Obtenemos la lista de bloqueos existentes para mostrarlos
+    bloqueo_form = BloqueoForm(prefix='bloqueo')
     bloqueos_existentes = servicio_activo.dias_no_disponibles.filter(fecha__gte=timezone.localdate()).order_by('fecha')
 
     context = {
         'servicio_activo': servicio_activo,
         'onboarding_completo': servicio_activo.configuracion_inicial_completa,
-        'formset': horario_formset,
+        'formset': formset,
         'bloqueo_form': bloqueo_form,
         'bloqueos': bloqueos_existentes,
     }
@@ -1067,64 +1066,67 @@ def obtener_slots_disponibles(request, servicio_id):
 
     slots_disponibles = []
     
+    dia_de_la_semana_num = fecha.weekday()
+    
+    dia_map = {0: 'lunes', 1: 'martes', 2: 'miercoles', 3: 'jueves', 4: 'viernes', 5: 'sabado', 6: 'domingo'}
+    campo_dia_a_filtrar = dia_map.get(dia_de_la_semana_num)
+
+    if not campo_dia_a_filtrar:
+        return JsonResponse({'slots': []})
+
     try:
-        horario_laboral = servicio.horarios.get(dia_semana=fecha.weekday(), activo=True)
+        regla_horario = servicio.horarios.get(activo=True, **{campo_dia_a_filtrar: True})
     except HorarioLaboral.DoesNotExist:
         return JsonResponse({'slots': []})
-    
-    if fecha == timezone.localdate():
-        hora_actual = timezone.localtime().time()
-        hora_cierre = horario_laboral.horario_cierre
-        if hora_actual >= hora_cierre:
-            return JsonResponse({'slots': []})
+    except HorarioLaboral.MultipleObjectsReturned:
+        regla_horario = servicio.horarios.filter(activo=True, **{campo_dia_a_filtrar: True}).first()
 
     turnos_del_dia = Turno.objects.filter(servicio=servicio, fecha=fecha, estado__in=['pendiente', 'confirmado'])
     bloqueos_del_dia = servicio.dias_no_disponibles.filter(fecha=fecha)
-    
     duracion_requerida_td = timedelta(minutes=duracion_requerida)
 
-    hora_de_inicio_busqueda = horario_laboral.horario_apertura
+    if fecha == timezone.localdate() and timezone.localtime().time() >= regla_horario.horario_cierre:
+        return JsonResponse({'slots': []})
 
+    hora_de_inicio_busqueda = regla_horario.horario_apertura
     if fecha == timezone.localdate():
         hora_minima_reserva = (timezone.localtime() + timedelta(minutes=15)).time()
-        
         if hora_minima_reserva > hora_de_inicio_busqueda:
             hora_de_inicio_busqueda = hora_minima_reserva
 
     hora_actual_dt = datetime.combine(fecha, hora_de_inicio_busqueda)
-    hora_cierre_dt = datetime.combine(fecha, horario_laboral.horario_cierre)
+    hora_cierre_dt = datetime.combine(fecha, regla_horario.horario_cierre)
     
     if hora_actual_dt.minute % 15 != 0:
-        minutos_para_sumar = 15 - (hora_actual_dt.minute % 15)
-        hora_actual_dt += timedelta(minutes=minutos_para_sumar)
+        hora_actual_dt += timedelta(minutes=(15 - (hora_actual_dt.minute % 15)))
 
     while hora_actual_dt + duracion_requerida_td <= hora_cierre_dt:
         slot_inicio_dt = hora_actual_dt
         slot_fin_dt = hora_actual_dt + duracion_requerida_td
-        
         slot_esta_disponible = True
 
-        for bloqueo in bloqueos_del_dia:
-            if bloqueo.hora_inicio is None:
+        if regla_horario.tiene_descanso and regla_horario.descanso_inicio and regla_horario.descanso_fin:
+            descanso_inicio_dt = datetime.combine(fecha, regla_horario.descanso_inicio)
+            descanso_fin_dt = datetime.combine(fecha, regla_horario.descanso_fin)
+            if slot_inicio_dt < descanso_fin_dt and slot_fin_dt > descanso_inicio_dt:
                 slot_esta_disponible = False
-                break
-            bloqueo_inicio_dt = datetime.combine(fecha, bloqueo.hora_inicio)
-            bloqueo_fin_dt = datetime.combine(fecha, bloqueo.hora_fin)
-            if slot_inicio_dt < bloqueo_fin_dt and slot_fin_dt > bloqueo_inicio_dt:
-                slot_esta_disponible = False
-                break
-        if not slot_esta_disponible:
-            hora_actual_dt += timedelta(minutes=15)
-            continue
-        for turno in turnos_del_dia:
-            duracion_total_ocupacion = timedelta(minutes=(turno.duracion_total + servicio.duracion_buffer_minutos))
-            
-            turno_inicio_dt = datetime.combine(fecha, turno.hora)
-            turno_fin_con_buffer_dt = turno_inicio_dt + duracion_total_ocupacion
-
-            if slot_inicio_dt < turno_fin_con_buffer_dt and slot_fin_dt > turno_inicio_dt:
-                slot_esta_disponible = False
-                break
+        
+        if slot_esta_disponible:
+            for bloqueo in bloqueos_del_dia:
+                if bloqueo.hora_inicio is None:
+                    slot_esta_disponible = False; break
+                bloqueo_inicio_dt = datetime.combine(fecha, bloqueo.hora_inicio)
+                bloqueo_fin_dt = datetime.combine(fecha, bloqueo.hora_fin)
+                if slot_inicio_dt < bloqueo_fin_dt and slot_fin_dt > bloqueo_inicio_dt:
+                    slot_esta_disponible = False; break
+        
+        if slot_esta_disponible:
+            for turno in turnos_del_dia:
+                duracion_total_ocupacion = timedelta(minutes=(turno.duracion_total + servicio.duracion_buffer_minutos))
+                turno_inicio_dt = datetime.combine(fecha, turno.hora)
+                turno_fin_con_buffer_dt = turno_inicio_dt + duracion_total_ocupacion
+                if slot_inicio_dt < turno_fin_con_buffer_dt and slot_fin_dt > turno_inicio_dt:
+                    slot_esta_disponible = False; break
         
         if slot_esta_disponible:
             slots_disponibles.append(slot_inicio_dt.strftime('%H:%M'))
