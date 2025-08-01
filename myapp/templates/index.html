@@ -99,6 +99,9 @@
                 {% endif %}
                 <h2>{{ servicio.nombre }}</h2>
                 <p>{{ servicio.descripcion|truncatewords:15 }}</p>
+                {% if servicio.direccion and servicio.direccion != "Sin dirección" %}
+                <p class="card-direccion"><i class="fas fa-map-marker-alt"></i>{{ servicio.direccion }}</p>
+                {% endif %}
                 <a href="{% url 'servicio_detail' servicio.slug %}" class="btn-solicitar">Ver y Reservar</a>
             </div>
         {% endfor %}
@@ -110,7 +113,16 @@
   font-family: 'Segoe UI', sans-serif;
   color: #333;
 }
-
+.card-direccion {
+    font-size: 0.9em;
+    color: #ffffff; /* Un color más sutil */
+    margin-top: -10px; /* Un poco más cerca de la descripción */
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px; /* Espacio entre el ícono y el texto */
+}
 .hero {
   display: flex;
   flex-wrap: wrap;

@@ -379,6 +379,16 @@ display: flex; /* Para controlar el botón de abajo */
         }
         
         .dashboard-content { overflow-y: visible; padding-right: 0; }
+        .premium-blocker-overlay {
+        /* En mobile, el .dashboard-content empieza desde arriba */
+        top: -190px;
+        left: 0;
+        height: 100%; /* Ocupa toda la altura disponible dentro del layout */
+    }
+    .premium-blocker-content{
+        transform: scale(0.9);
+        padding-right: 40px;
+    }
     }
 </style>
 

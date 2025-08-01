@@ -194,7 +194,7 @@ class HorarioLaboral(models.Model):
 class DiaNoDisponible(models.Model):
     servicio = models.ForeignKey(Servicio, on_delete=models.CASCADE, related_name='dias_no_disponibles')
     fecha = models.DateField(help_text="Día completo que no estará disponible.")
-    # Para bloqueos parciales (ej: una cita médica de 14:00 a 15:00)
+    
     hora_inicio = models.TimeField(null=True, blank=True)
     hora_fin = models.TimeField(null=True, blank=True)
     motivo = models.CharField(max_length=255, blank=True, help_text="Ej: Vacaciones, Feriado, Cita médica")
