@@ -196,7 +196,7 @@ class ServicioPersonalizacionForm(forms.ModelForm):
     class Meta:
         model = Servicio
         fields = [
-            'color_primario', 'color_fondo', 'color_texto' , 'imagen_banner',
+            'logo','color_primario', 'color_fondo', 'color_texto' , 'imagen_banner',
             'fuente_titulos', 'fuente_cuerpo', 'slug',
             'footer_direccion', 'footer_telefono', 'footer_email',
             'footer_instagram_url', 'footer_facebook_url', 'footer_tiktok_url',

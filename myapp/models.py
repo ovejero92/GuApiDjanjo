@@ -64,6 +64,13 @@ class Servicio(models.Model):
         help_text="Selecciona los medios de pago que aceptas en tu negocio."
     )
     imagen_banner = models.ImageField(upload_to='banners/', null=True, blank=True, help_text="Banner (máx 2MB)", validators=[validar_tamaño_maximo_img])
+    logo = models.ImageField(
+        upload_to='logos/',
+        null=True,
+        blank=True,
+        help_text="Sube un logo para tu negocio (recomendado: cuadrado, ej. 400x400px, máx 1MB).",
+        validators=[validar_tamaño_maximo_img] # Reutilizamos tu validador
+    )
     footer_personalizado = models.TextField(blank=True, help_text="Texto o HTML simple para el footer")
     configuracion_inicial_completa = models.BooleanField(default=False)
     esta_activo = models.BooleanField( default=True, help_text="Indica si el propietario tiene el pago al día y el servicio está habilitado.")

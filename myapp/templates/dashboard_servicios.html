@@ -77,6 +77,16 @@
                                 <small>Actual: <a href="{{ servicio_activo.imagen_banner.url }}" target="_blank">ver imagen</a></small>
                             {% endif %}
                         </div>
+                        <div class="form-group">
+                            <label for="{{ form.logo.id_for_label }}">Logo de tu Negocio:</label>
+                            {{ form.logo }}
+                            {% if form.logo.help_text %}
+                                <small class="form-help-text">{{ form.logo.help_text }}</small>
+                            {% endif %}
+                            {% if servicio_activo.logo %}
+                                <small>Logo actual: <a href="{{ servicio_activo.logo.url }}" target="_blank">ver logo</a></small>
+                            {% endif %}
+                        </div>
                     </fieldset>
 
                     <fieldset>

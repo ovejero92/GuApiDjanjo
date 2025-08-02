@@ -86,26 +86,41 @@
     </div>
 
     <div class="contenedor-servicios">
-        {% for servicio in servicios %}
-            <div class="card-servicio">
-                {% if user.is_authenticated %}
-                    <a href="{% url 'toggle_favorito' servicio.id %}" class="favorito-btn">
-                        {% if servicio in user.servicios_favoritos.all %}
-                            <i class="fas fa-heart"></i>
-                        {% else %}
-                            <i class="far fa-heart"></i>
-                        {% endif %}
-                    </a>
-                {% endif %}
-                <h2>{{ servicio.nombre }}</h2>
-                <p>{{ servicio.descripcion|truncatewords:15 }}</p>
-                {% if servicio.direccion and servicio.direccion != "Sin dirección" %}
-                <p class="card-direccion"><i class="fas fa-map-marker-alt"></i>{{ servicio.direccion }}</p>
-                {% endif %}
-                <a href="{% url 'servicio_detail' servicio.slug %}" class="btn-solicitar">Ver y Reservar</a>
+    {% for servicio in servicios %}
+        {# Añadimos una clase condicional si el servicio tiene logo y es premium #}
+        <div class="card-servicio-nueva {% if servicio.logo and servicio.tiene_apariencia_premium_activa %}has-logo{% endif %}">
+            
+            <div class="card-titulo-pill">
+                <span>{{ servicio.nombre }}</span>
             </div>
-        {% endfor %}
-    </div>
+            
+            {# Solo mostramos el logo si es premium y lo ha subido #}
+            {% if servicio.logo and servicio.tiene_apariencia_premium_activa %}
+                <div class="card-logo">
+                    <img src="{{ servicio.logo.url }}" alt="Logo de {{ servicio.nombre }}">
+                </div>
+            {% endif %}
+
+            <div class="card-contenido">
+                <p class="card-descripcion">{{ servicio.descripcion|truncatewords:15 }}</p>
+                {% if servicio.direccion and servicio.direccion != "Sin dirección" %}
+                    <p class="card-direccion">
+                        <i class="fas fa-map-marker-alt"></i> {{ servicio.direccion }}
+                    </p>
+                {% endif %}
+                <a href="{% url 'servicio_detail' servicio.slug %}" class="card-boton">Ver y Reservar</a>
+            </div>
+
+            {% if user.is_authenticated %}
+                <a href="{% url 'toggle_favorito' servicio.id %}" class="card-favorito-btn">
+                    {% if servicio in user.servicios_favoritos.all %}<i class="fas fa-heart"></i>{% else %}<i class="far fa-heart"></i>{% endif %}
+                </a>
+            {% endif %}
+        </div>
+    {% empty %}
+        <p class="no-results-message">No se encontraron servicios que coincidan con tu búsqueda.</p>
+    {% endfor %}
+</div>
 {% endif %}
 
 
