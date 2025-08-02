@@ -1,9 +1,8 @@
-from django import forms
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth import login
 from django.contrib import messages
 from django.forms import inlineformset_factory, modelformset_factory
-from .models import Servicio, Turno, HorarioLaboral, SubServicio, Categoria, Plan, Suscripcion, DiaNoDisponible
+from .models import Servicio, Turno, HorarioLaboral, SubServicio, Categoria, Plan, Suscripcion
 from .forms import BloqueoForm, HorarioLaboralForm, TurnoForm, UserUpdateForm, IngresoTurnoForm, ReseñaForm, ServicioPersonalizacionForm, ServicioUpdateForm, ServicioCreateForm
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
@@ -19,13 +18,13 @@ from django.contrib.auth.tokens import default_token_generator
 from django.contrib.auth.models import User
 import json
 from django.db.models import Q
-from django.core.serializers import serialize
 from django.core.mail import send_mail
 from django.contrib.auth.views import LoginView
 from django.urls import reverse_lazy, reverse
 from django.conf import settings
 import mercadopago
 from django.views.decorators.csrf import csrf_exempt
+from django.template.loader import render_to_string
 
 def index(request):
     categorias_con_servicios = Categoria.objects.annotate(
@@ -269,9 +268,7 @@ def servicio_detail(request, servicio_slug):
     servicio = get_object_or_404(Servicio, slug=servicio_slug)
     
     dias_laborables_js = {str(i): False for i in range(7)}
-    
     reglas_horario_activas = servicio.horarios.filter(activo=True)
-    
     for regla in reglas_horario_activas:
         if regla.domingo: dias_laborables_js['0'] = True
         if regla.lunes: dias_laborables_js['1'] = True
@@ -281,19 +278,53 @@ def servicio_detail(request, servicio_slug):
         if regla.viernes: dias_laborables_js['5'] = True
         if regla.sabado: dias_laborables_js['6'] = True
     
-
     turnos_reservados = Turno.objects.filter(servicio=servicio)
     fechas_ocupadas = [turno.fecha.strftime('%Y-%m-%d') for turno in turnos_reservados]
 
     if request.method == 'POST':
         form = TurnoForm(request.POST, servicio_id=servicio.id)
         if form.is_valid():
-            sub_servicios_ids = request.POST.getlist('sub_servicios_solicitados')
             turno = form.save(commit=False)
             turno.cliente = request.user
             turno.save()
-            if sub_servicios_ids:
-                turno.sub_servicios_solicitados.set(sub_servicios_ids)
+            
+            # El save_m2m() es para los subservicios del turno
+            if 'sub_servicios_solicitados' in form.cleaned_data:
+                turno.sub_servicios_solicitados.set(form.cleaned_data['sub_servicios_solicitados'])
+            
+            propietario = servicio.propietario
+            enviar_email = False
+            try:
+                suscripcion_propietario = propietario.suscripcion
+                if (suscripcion_propietario.is_active and 
+                    suscripcion_propietario.plan and 
+                    suscripcion_propietario.plan.slug != 'free'):
+                    enviar_email = True
+            except (Suscripcion.DoesNotExist, AttributeError):
+                pass
+
+            if enviar_email:
+                try:
+                    asunto = f"¡Nuevo Turno Reservado en {servicio.nombre}!"
+                    contexto_email = {
+                        'turno': turno,
+                        'servicio': servicio,
+                        'cliente': request.user,
+                        'domain': request.get_host(), # Para construir URLs absolutas
+                    }
+                    mensaje_texto = render_to_string('emails/nuevo_turno_propietario.txt', contexto_email)
+                    mensaje_html = render_to_string('emails/nuevo_turno_propietario.html', contexto_email)
+                    send_mail(
+                        asunto,
+                        mensaje_texto,
+                        settings.DEFAULT_FROM_EMAIL,
+                        [propietario.email],
+                        html_message=mensaje_html,
+                        fail_silently=False,
+                    )
+                except Exception as e:
+                    # Opcional: registrar el error si el envío de email falla
+                    print(f"Error al enviar email de nuevo turno: {e}")
             
             messages.success(request, "¡Turno solicitado con éxito!")
             return redirect('index')
@@ -1264,3 +1295,16 @@ class CustomLoginView(LoginView):
     template_name = 'registration/login.html'
     success_url = reverse_lazy('index')
     redirect_authenticated_user = True
+
+@login_required
+def obtener_notificaciones_propietario(request):
+    if not request.user.is_authenticated or not request.user.servicios_propios.exists():
+        return JsonResponse({'conteo': 0})
+
+    total_pendientes = 0
+    servicios_del_propietario = request.user.servicios_propios.all()
+    
+    for servicio in servicios_del_propietario:
+        total_pendientes += Turno.objects.filter(servicio=servicio, estado='pendiente').count()
+
+    return JsonResponse({'conteo': total_pendientes})

@@ -9,7 +9,11 @@
             <nav class="sidebar-nav">
                 <ul>
                     <li class="{% if request.resolver_match.url_name == 'dashboard_turnos' %}active{% endif %}">
-                        <a href="{% url 'dashboard_turnos' %}"><i class="fas fa-tasks"></i> <span>Gestión de Turnos</span></a>
+                        <a href="{% url 'dashboard_turnos' %}">
+                            <i class="fas fa-tasks"></i>
+                            <span>Gestión de Turnos</span>
+                            <span id="notificacion-propietario" class="notificacion-circulo hidden"></span>
+                        </a>
                     </li>
                     <li class="nav-item">
                         <a href="{% url 'dashboard_calendario' %}" class="nav-link">
@@ -81,6 +85,29 @@
 <script src="https://cdn.jsdelivr.net/npm/shepherd.js@10.0.1/dist/js/shepherd.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    const notificacionCirculo = document.getElementById('notificacion-propietario');
+    
+    // Solo ejecutamos esto si el elemento existe (es decir, si estamos en el dashboard)
+    if (notificacionCirculo) {
+        function checkPropietarioNotifications() {
+            fetch("{% url 'obtener_notificaciones_propietario' %}")
+                .then(response => response.json())
+                .then(data => {
+                    if (data.conteo > 0) {
+                        notificacionCirculo.textContent = data.conteo;
+                        notificacionCirculo.classList.remove('hidden');
+                    } else {
+                        notificacionCirculo.classList.add('hidden');
+                    }
+                })
+                .catch(error => console.error('Error al obtener notificaciones de propietario:', error));
+        }
+
+        // Comprobamos al cargar la página y luego cada 30 segundos
+        checkPropietarioNotifications();
+        setInterval(checkPropietarioNotifications, 30000); 
+    }
+
     const sidebar = document.getElementById('dashboardSidebar');
     
     // --- Lógica para el botón de DESKTOP ---

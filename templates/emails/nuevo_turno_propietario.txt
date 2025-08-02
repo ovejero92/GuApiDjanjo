@@ -1,0 +1,11 @@
+¡Hola {{ servicio.propietario.first_name|default:servicio.propietario.username }}!
+
+Has recibido una nueva solicitud de turno para tu servicio "{{ servicio.nombre }}".
+
+Detalles del Turno:
+- Cliente: {{ cliente.first_name|default:cliente.username }} ({{ cliente.email }})
+- Fecha: {{ turno.fecha|date:"d/m/Y" }}
+- Hora: {{ turno.hora|time:"H:i" }}
+- Servicios: {% for s in turno.sub_servicios_solicitados.all %}{{ s.nombre }}{% if not forloop.last %}, {% endif %}{% endfor %}
+
+Por favor, ingresa a tu dashboard para confirmar o cancelar el turno.

@@ -26,6 +26,7 @@ urlpatterns = [
         template_name="googleef49e9e659c3e137.html",
         content_type="text/html"
     )),
+    path('api/notificaciones-propietario/', views.obtener_notificaciones_propietario, name='obtener_notificaciones_propietario'),
     path('servicio/toggle-favorito/<int:servicio_id>/', views.toggle_favorito, name='toggle_favorito'),
     path('activate/<slug:uidb64>/<slug:token>/', views.activate, name='activate'),
     path('dashboard/catalogo/', views.dashboard_catalogo, name='dashboard_catalogo'),

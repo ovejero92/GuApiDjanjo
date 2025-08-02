@@ -33,7 +33,8 @@
             
             {# AÑADIMOS EL CONTEO SOLO SI ES MAYOR A CERO #}
             {% if dia_info.conteo > 0 %}
-                <span class="turnos-count">Reservados: {{ dia_info.conteo }}</span>
+                <span class="turnos-count escritorio">Reservados {{ dia_info.conteo }}</span>
+                <span class="turnos-count mobile">Total {{ dia_info.conteo }}</span>
             {% endif %}
         </div>
         {% endwith %}

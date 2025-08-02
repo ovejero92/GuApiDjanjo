@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head><title>Nuevo Turno</title></head>
+<body>
+    <h2>¡Hola {{ servicio.propietario.first_name|default:servicio.propietario.username }}!</h2>
+    <p>Has recibido una nueva solicitud de turno para tu servicio <strong>"{{ servicio.nombre }}"</strong>.</p>
+    <hr>
+    <h3>Detalles del Turno:</h3>
+    <ul>
+        <li><strong>Cliente:</strong> {{ cliente.first_name|default:cliente.username }} ({{ cliente.email }})</li>
+        <li><strong>Fecha:</strong> {{ turno.fecha|date:"d/m/Y" }}</li>
+        <li><strong>Hora:</strong> {{ turno.hora|time:"H:i" }}</li>
+        <li><strong>Servicios:</strong> {% for s in turno.sub_servicios_solicitados.all %}{{ s.nombre }}{% if not forloop.last %}, {% endif %}{% endfor %}</li>
+    </ul>
+    <hr>
+    <p>Por favor, ingresa a tu dashboard para confirmar o cancelar el turno.</p>
+    <a href="https://turnosok.com{% url 'dashboard_turnos' %}" style="padding: 10px 15px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px;">Ir al Dashboard</a>
+</body>
+</html>
