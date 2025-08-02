@@ -45,16 +45,16 @@
                     </li>
                 </ul>
             </nav>
-            <!-- Botón para DESKTOP -->
+                        <!-- Botón para DESKTOP (visible en PC, oculto en celu) -->
                 <button id="sidebarToggleBtn" class="sidebar-toggle-btn" title="Ocultar menú">
                     <i class="fas fa-chevron-left"></i>
                 </button>
-
-                <!-- ¡NUEVO BOTÓN PARA MÓVIL! -->
-                <button id="mobileSidebarToggleBtn" class="mobile-sidebar-toggle">
+            
+                <!-- Botón para MÓVIL (visible en celu, oculto en PC) -->
+                <button id="mobileSidebarToggleBtn" class="mobile-sidebar-toggle" title="Mostrar más">
                     <i class="fas fa-chevron-down"></i>
                 </button>
-        </aside>
+                    </aside>
 
          <main class="dashboard-content">
             {% if user.servicios_propios.count > 1 and servicio_activo %}
@@ -82,37 +82,36 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const sidebar = document.getElementById('dashboardSidebar');
-    const toggleBtn = document.getElementById('sidebarToggleBtn');
-
-    if (sidebar && toggleBtn) {
-        const toggleIcon = toggleBtn.querySelector('i');
-
-        toggleBtn.addEventListener('click', function() {
+    
+    // --- Lógica para el botón de DESKTOP ---
+    const desktopToggleBtn = document.getElementById('sidebarToggleBtn');
+    if (sidebar && desktopToggleBtn) {
+        desktopToggleBtn.addEventListener('click', function() {
             sidebar.classList.toggle('collapsed');
-
-            if (sidebar.classList.contains('collapsed')) {
-                toggleIcon.className = 'fas fa-chevron-right';
-                toggleBtn.title = "Mostrar menú";
-            } else {
-                toggleIcon.className = 'fas fa-chevron-left';
-                toggleBtn.title = "Ocultar menú";
-            }
+            const icon = this.querySelector('i');
+            // Gira la flecha
+            icon.style.transform = sidebar.classList.contains('collapsed') ? 'rotate(180deg)' : 'rotate(0deg)';
         });
     }
 
-    // --- ¡NUEVA LÓGICA para el botón de MÓVIL! ---
+    // --- Lógica para el botón de MOBILE ---
     const mobileToggleBtn = document.getElementById('mobileSidebarToggleBtn');
     if (sidebar && mobileToggleBtn) {
         mobileToggleBtn.addEventListener('click', function() {
+            // Añade o quita la clase 'expanded'
             sidebar.classList.toggle('expanded');
             const icon = this.querySelector('i');
+            // Cambia la flecha entre arriba y abajo
             if (sidebar.classList.contains('expanded')) {
-                icon.className = 'fas fa-chevron-up'; // Flecha hacia arriba
+                icon.className = 'fas fa-chevron-up';
+                this.title = 'Mostrar menos';
             } else {
-                icon.className = 'fas fa-chevron-down'; // Flecha hacia abajo
+                icon.className = 'fas fa-chevron-down';
+                this.title = 'Mostrar más';
             }
         });
     }
+
 
     const dashboardContainer = document.querySelector('.dashboard-wrapper');
     if (!dashboardContainer) return; 
