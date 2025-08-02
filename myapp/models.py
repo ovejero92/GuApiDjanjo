@@ -105,10 +105,9 @@ class Servicio(models.Model):
     footer_direccion = models.CharField(max_length=255, blank=True, null=True, help_text="Ej: Av. Siempreviva 742, Springfield")
     footer_telefono = models.CharField(max_length=20, blank=True, null=True, help_text="Ej: +54 9 11 1234-5678")
     footer_email = models.EmailField(max_length=255, blank=True, null=True, help_text="El email de contacto de tu negocio.")
-    footer_instagram_url = models.URLField(max_length=255, blank=True, null=True, help_text="Pega aquí la URL completa de tu perfil de Instagram.")
-    footer_facebook_url = models.URLField(max_length=255, blank=True, null=True, help_text="Pega aquí la URL completa de tu página de Facebook.")
-    footer_tiktok_url = models.URLField(max_length=255, blank=True, null=True, help_text="Pega aquí la URL completa de tu perfil de TikTok.")
-    
+    footer_instagram_url = models.CharField(max_length=100, blank=True, null=True, help_text="Solo tu nombre de usuario (sin @)")
+    footer_facebook_url = models.CharField(max_length=100, blank=True, null=True, help_text="Solo el nombre de tu página (ej: cocacola)")
+    footer_tiktok_url = models.CharField(max_length=100, blank=True, null=True, help_text="Solo tu nombre de usuario (con @)")    
     def save(self, *args, **kwargs):
         # Si el servicio no tiene un slug, lo creamos a partir del nombre.
         if not self.slug:

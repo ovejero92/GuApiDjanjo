@@ -925,7 +925,9 @@ def dashboard_detalles_negocio(request):
 
 @login_required
 def mis_turnos(request):
-    turnos_del_cliente = request.user.turnos_solicitados.all()
+    turnos_del_cliente = request.user.turnos_solicitados.all().select_related(
+        'servicio', 'reseña'
+    ).prefetch_related('sub_servicios_solicitados')
     
     ahora = timezone.now()
     hoy = ahora.date()

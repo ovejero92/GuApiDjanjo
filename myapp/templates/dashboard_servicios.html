@@ -106,9 +106,32 @@
                         <div class="form-group"><label for="{{ form.footer_direccion.id_for_label }}">Dirección:</label>{{ form.footer_direccion }}</div>
                         <div class="form-group"><label for="{{ form.footer_telefono.id_for_label }}">Teléfono:</label>{{ form.footer_telefono }}</div>
                         <div class="form-group"><label for="{{ form.footer_email.id_for_label }}">Email:</label>{{ form.footer_email }}</div>
-                        <div class="form-group"><label for="{{ form.footer_instagram_url.id_for_label }}">Instagram (URL completa):</label>{{ form.footer_instagram_url }}</div>
-                        <div class="form-group"><label for="{{ form.footer_facebook_url.id_for_label }}">Facebook (URL completa):</label>{{ form.footer_facebook_url }}</div>
-                        <div class="form-group"><label for="{{ form.footer_tiktok_url.id_for_label }}">TikTok (URL completa):</label>{{ form.footer_tiktok_url }}</div>
+                        <div class="form-group">
+                            <label for="{{ form.footer_instagram_url.id_for_label }}">Instagram:</label>
+                            <div class="url-preview">
+                                <span>https://instagram.com/</span>
+                                <span class="input-url">{{ form.footer_instagram_url }}</span>
+                            </div>
+                            <small class="form-help-text">{{ form.footer_instagram_url.help_text }}</small>
+                        </div>
+                    
+                        <div class="form-group">
+                            <label for="{{ form.footer_facebook_url.id_for_label }}">Facebook:</label>
+                            <div class="url-preview">
+                                <span>https://facebook.com/</span>
+                                <span class="input-url">{{ form.footer_facebook_url }}</span>
+                            </div>
+                            <small class="form-help-text">{{ form.footer_facebook_url.help_text }}</small>
+                        </div>
+                    
+                        <div class="form-group">
+                            <label for="{{ form.footer_tiktok_url.id_for_label }}">TikTok:</label>
+                            <div class="url-preview">
+                                <span>https://tiktok.com/</span>
+                                <span class="input-url">{{ form.footer_tiktok_url }}</span>
+                            </div>
+                            <small class="form-help-text">{{ form.footer_tiktok_url.help_text }}</small>
+                        </div>
                     </fieldset>
 
                     <button type="submit" class="btn-submit">Guardar Cambios</button>

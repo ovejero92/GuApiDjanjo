@@ -1,0 +1,16 @@
+
+{% with servicios=turno.sub_servicios_solicitados.all %}
+    {% if servicios.count == 1 %}
+        {# Si es solo un servicio, lo mostramos directamente #}
+        <span>{{ servicios.first.nombre }}</span>
+
+    {% elif servicios.count > 1 %}
+        {# Si son varios, creamos el botón para SweetAlert #}
+        <a href="#" class="ver-mas-servicios" 
+           data-servicios="{% for s in servicios %}<li>- {{ s.nombre }}</li>{% endfor %}">
+           {{ servicios.count }} servicios
+        </a>
+    {% else %}
+        <span>-</span>
+    {% endif %}
+{% endwith %}

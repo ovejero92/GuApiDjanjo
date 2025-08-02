@@ -122,8 +122,8 @@
                 <img src="{% static 'image/logo-footer.png' %}" alt="Logo TurnosOK Mobile" class="logo logo-mobile">
             </a>
             <div class="nav-links">
-                <a href="{% url 'index' %}">Home</a>
-                <a href="{% url 'about' %}">About</a>
+                <a href="{% url 'index' %}">Inicio</a>
+                <a href="{% url 'about' %}">Nosotros</a>
 
                 {% if user.is_authenticated %}
                 <a href="{% url 'mis_favoritos' %}">Mis Favoritos</a>

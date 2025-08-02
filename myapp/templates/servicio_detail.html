@@ -163,9 +163,15 @@
         <div class="footer-columna">
             <h4>Síguenos en Redes</h4>
             <div class="social-links">
-                {% if servicio.footer_facebook_url %}<a href="{{ servicio.footer_facebook_url }}" target="_blank"><i class="fab fa-facebook-f"></i></a>{% endif %}
-                {% if servicio.footer_instagram_url %}<a href="{{ servicio.footer_instagram_url }}" target="_blank"><i class="fab fa-instagram"></i></a>{% endif %}
-                {% if servicio.footer_tiktok_url %}<a href="{{ servicio.footer_tiktok_url }}" target="_blank"><i class="fab fa-tiktok"></i></a>{% endif %}
+                {% if servicio.footer_facebook_url %}
+                    <a href="https://www.facebook.com/{{ servicio.footer_facebook_url }}" target="_blank"><i class="fab fa-facebook-f"></i></a>
+                {% endif %}
+                {% if servicio.footer_instagram_url %}
+                    <a href="https://www.instagram.com/{{ servicio.footer_instagram_url }}" target="_blank"><i class="fab fa-instagram"></i></a>
+                {% endif %}
+                {% if servicio.footer_tiktok_url %}
+                    <a href="https://www.tiktok.com/{{ servicio.footer_tiktok_url }}" target="_blank"><i class="fab fa-tiktok"></i></a>
+                {% endif %}
             </div>
         </div>
     </div>
