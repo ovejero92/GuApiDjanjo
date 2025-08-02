@@ -597,7 +597,6 @@ def marcar_tour_visto(request):
             return JsonResponse({'status': 'ok'})
     return JsonResponse({'status': 'error'}, status=400)
 
-# --- FUNCIÓN AUXILIAR PARA OBTENER EL SERVICIO ACTIVO ---
 def get_servicio_activo(request):
     servicios_propietario = request.user.servicios_propios.all()
     if not servicios_propietario.exists():
@@ -941,12 +940,14 @@ def mis_turnos(request):
         Q(fecha__lt=hoy) | Q(fecha=hoy, hora__lt=hora_actual)
     ).order_by('-fecha', '-hora')
     
+    turnos_no_vistos_ids = list(turnos_del_cliente.filter(visto_por_cliente=False).values_list('id', flat=True))
     # Marcamos notificaciones como vistas (esto se queda igual)
-    turnos_del_cliente.filter(visto_por_cliente=False).update(visto_por_cliente=True)
+    turnos_del_cliente.filter(id__in=turnos_no_vistos_ids).update(visto_por_cliente=True)
     
     context = {
         'turnos_futuros': turnos_futuros,
         'turnos_pasados': turnos_pasados,
+        'turnos_no_vistos_ids': turnos_no_vistos_ids,
     }
     return render(request, 'mis_turnos.html', context)
 

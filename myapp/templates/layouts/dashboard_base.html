@@ -87,27 +87,32 @@
 document.addEventListener('DOMContentLoaded', function() {
     const notificacionCirculo = document.getElementById('notificacion-propietario');
     
-    // Solo ejecutamos esto si el elemento existe (es decir, si estamos en el dashboard)
     if (notificacionCirculo) {
         function checkPropietarioNotifications() {
             fetch("{% url 'obtener_notificaciones_propietario' %}")
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
                 .then(data => {
                     if (data.conteo > 0) {
                         notificacionCirculo.textContent = data.conteo;
                         notificacionCirculo.classList.remove('hidden');
                     } else {
+                        notificacionCirculo.textContent = '';
                         notificacionCirculo.classList.add('hidden');
                     }
                 })
-                .catch(error => console.error('Error al obtener notificaciones de propietario:', error));
+                .catch(error => {
+                    console.error('Error al obtener notificaciones de propietario:', error);
+                    notificacionCirculo.classList.add('hidden');
+                });
         }
-
-        // Comprobamos al cargar la página y luego cada 30 segundos
         checkPropietarioNotifications();
-        setInterval(checkPropietarioNotifications, 30000); 
+        setInterval(checkPropietarioNotifications, 30000);
     }
-
     const sidebar = document.getElementById('dashboardSidebar');
     
     // --- Lógica para el botón de DESKTOP ---

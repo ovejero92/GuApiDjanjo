@@ -1,13 +1,7 @@
 from django import forms
 from django.contrib.auth.models import User
 from .models import Turno, HorarioLaboral, DiaNoDisponible, Reseña, Servicio, SubServicio, MedioDePago
-from django.utils import timezone
-from django.core.files.uploadedfile import InMemoryUploadedFile
-from datetime import datetime, timedelta
-from PIL import Image
 from django.utils.text import slugify
-from io import BytesIO
-import os
 from django.shortcuts import  get_object_or_404
 
 
@@ -160,14 +154,13 @@ class ReseñaForm(forms.ModelForm):
         model = Reseña
         fields = ['calificacion', 'comentario']
         widgets = {
-            'calificacion': forms.NumberInput(attrs={
-                'type': 'range', 'min': '1', 'max': '5', 'step': '1',
-                'class': 'rating-slider'
-            }),
+            'calificacion': forms.RadioSelect(
+                choices=[(i, str(i)) for i in range(1, 6)]
+            ),
             'comentario': forms.Textarea(attrs={'rows': 4}),
         }
         labels = {
-            'calificacion': 'Tu Calificación (1 a 5 estrellas)',
+            'calificacion': 'Tu Calificación:',
             'comentario': 'Tu Comentario (opcional)',
         }
 

@@ -1,5 +1,5 @@
 {% extends 'layouts/navbar.html' %}
-{% block title %}Reserña - Turnos Online{% endblock %}
+{% block title %}Dejar Reseña - Turnos Online{% endblock %}
 
 {% block content %}
 <div class="container">
@@ -9,9 +9,68 @@
         <hr>
         <form method="post">
             {% csrf_token %}
-            {{ form.as_p }}
+            <div class="form-group">
+                <label>{{ form.calificacion.label }}</label>
+                <div class="rating-stars">
+                    {# Django renderizará los radio buttons aquí, pero los ocultaremos #}
+                    <div style="display: none;">{{ form.calificacion }}</div>
+                    
+                    {# Creamos nuestras propias estrellas visuales #}
+                    <i class="fas fa-star" data-value="1"></i>
+                    <i class="fas fa-star" data-value="2"></i>
+                    <i class="fas fa-star" data-value="3"></i>
+                    <i class="fas fa-star" data-value="4"></i>
+                    <i class="fas fa-star" data-value="5"></i>
+                </div>
+            </div>
+            <div class="form-group">
+                {{ form.comentario.label_tag }}
+                {{ form.comentario }}
+            </div>
             <button type="submit" class="btn-submit">Enviar Reseña</button>
         </form>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const stars = document.querySelectorAll('.rating-stars i');
+    const ratingRadios = document.querySelectorAll('input[name="calificacion"]');
+
+    stars.forEach(star => {
+        star.addEventListener('mouseover', function() {
+            resetStars();
+            const currentValue = this.dataset.value;
+            highlightStars(currentValue);
+        });
+
+        star.addEventListener('mouseout', function() {
+            resetStars();
+            // Al quitar el mouse, dejamos pintadas las que estén seleccionadas
+            const checkedRadio = document.querySelector('input[name="calificacion"]:checked');
+            if (checkedRadio) {
+                highlightStars(checkedRadio.value);
+            }
+        });
+
+        star.addEventListener('click', function() {
+            const value = this.dataset.value;
+            // Marcamos el radio button real correspondiente
+            document.getElementById('id_calificacion_' + (value - 1)).checked = true;
+            highlightStars(value);
+        });
+    });
+
+    function highlightStars(value) {
+        for (let i = 0; i < value; i++) {
+            stars[i].classList.add('selected');
+        }
+    }
+
+    function resetStars() {
+        stars.forEach(star => star.classList.remove('selected'));
+    }
+});
+</script>
+
 {% endblock %}
