@@ -458,20 +458,31 @@ def dashboard_calendario(request):
         fecha_actual = datetime(año, mes, dia_num).date()
         turnos_del_dia = [t for t in turnos_del_mes if t.fecha == fecha_actual]
         
-        # Obtenemos el conteo de turnos para este día
         conteo_turnos_dia = len(turnos_del_dia)
 
         if not turnos_del_dia:
-            # Si no hay turnos, guardamos un diccionario con el estado y conteo 0
             estado_dias[dia_num] = {'estado': 'vacio', 'conteo': 0}
             continue
 
-        # ==================== LÓGICA DE CÁLCULO DE OCUPACIÓN (SIN CAMBIOS) ====================
+        minutos_laborales = 0
         try:
-            horario_laboral = servicio_activo.horarios.get(dia_semana=fecha_actual.weekday(), activo=True)
-            minutos_laborales = (datetime.combine(datetime.min, horario_laboral.horario_cierre) - 
-                                datetime.combine(datetime.min, horario_laboral.horario_apertura)).seconds / 60
-        except HorarioLaboral.DoesNotExist:
+            dia_de_la_semana_num = fecha_actual.weekday()
+            dia_map = {0: 'lunes', 1: 'martes', 2: 'miercoles', 3: 'jueves', 4: 'viernes', 5: 'sabado', 6: 'domingo'}
+            campo_dia_a_filtrar = dia_map.get(dia_de_la_semana_num)
+
+            regla_horario = servicio_activo.horarios.get(activo=True, **{campo_dia_a_filtrar: True})
+            
+            minutos_jornada_total = (datetime.combine(datetime.min, regla_horario.horario_cierre) - 
+                                   datetime.combine(datetime.min, regla_horario.horario_apertura)).seconds / 60
+            
+            minutos_descanso = 0
+            if regla_horario.tiene_descanso and regla_horario.descanso_inicio and regla_horario.descanso_fin:
+                minutos_descanso = (datetime.combine(datetime.min, regla_horario.descanso_fin) -
+                                    datetime.combine(datetime.min, regla_horario.descanso_inicio)).seconds / 60
+            
+            minutos_laborales = minutos_jornada_total - minutos_descanso
+
+        except (HorarioLaboral.DoesNotExist, HorarioLaboral.MultipleObjectsReturned):
             minutos_laborales = 0
 
         if minutos_laborales > 0:
@@ -479,20 +490,17 @@ def dashboard_calendario(request):
             porcentaje_ocupacion = (minutos_reservados / minutos_laborales) * 100
         else:
             porcentaje_ocupacion = 100
-        # ====================================================================================
 
-        # Determinamos el estado basado en la ocupación
-        estado_css = 'con-turnos' # Valor por defecto si hay al menos un turno
+        estado_css = 'con-turnos'
         if porcentaje_ocupacion >= 90:
             estado_css = 'lleno'
         elif porcentaje_ocupacion >= 50:
             estado_css = 'casi-lleno'
         
-        # Guardamos un diccionario con el estado CSS y el conteo de turnos
         estado_dias[dia_num] = {'estado': estado_css, 'conteo': conteo_turnos_dia}
 
 
-    nombre_del_mes = calendar.month_name[mes]
+    nombre_del_mes = calendar.month_name[mes].capitalize()
 
     calendar_data_for_js = {
         'año': año,
@@ -507,7 +515,7 @@ def dashboard_calendario(request):
         'mes_nombre': nombre_del_mes,
         'rango_dias': range(1, num_dias + 1),
         'offset_dias': range(primer_dia),
-        'estado_dias': estado_dias, # Ahora estado_dias contiene diccionarios
+        'estado_dias': estado_dias,
         'calendar_data': calendar_data_for_js,
     }
     
