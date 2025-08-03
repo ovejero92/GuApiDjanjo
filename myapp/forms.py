@@ -242,9 +242,9 @@ class ServicioPersonalizacionForm(forms.ModelForm):
             'footer_direccion': forms.TextInput(attrs={'placeholder': 'Ej: Av. Siempreviva 742'}),
             'footer_telefono': forms.TextInput(attrs={'placeholder': 'Ej: +54 9 11 1234-5678'}),
             'footer_email': forms.EmailInput(attrs={'placeholder': 'Ej: contacto@minegocio.com'}),
-            'footer_instagram_url': forms.TextInput(attrs={'placeholder': 'https://instagram.com/tu-usuario'}),
-            'footer_facebook_url': forms.TextInput(attrs={'placeholder': 'https://facebook.com/tu-pagina'}),
-            'footer_tiktok_url': forms.TextInput(attrs={'placeholder': 'https://tiktok.com/@tu.usuario'}),
+            'footer_instagram_url': forms.TextInput(attrs={'placeholder': 'tu-usuario'}),
+            'footer_facebook_url': forms.TextInput(attrs={'placeholder': 'tu-usuario'}),
+            'footer_tiktok_url': forms.TextInput(attrs={'placeholder': '@tu.usuario'}),
         }
         help_texts = { 
             'slug': "Esta será la URL de tu negocio. Usa solo letras, números y guiones. Sin espacios."
