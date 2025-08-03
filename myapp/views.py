@@ -475,7 +475,7 @@ def dashboard_calendario(request):
     año = hoy.year
     mes = hoy.month
 
-    primer_dia, num_dias = calendar.monthrange(año, mes)
+    primer_dia_semana, num_dias = calendar.monthrange(año, mes)
     
     turnos_del_mes = Turno.objects.filter(
         servicio=servicio_activo,
@@ -501,19 +501,20 @@ def dashboard_calendario(request):
             dia_map = {0: 'lunes', 1: 'martes', 2: 'miercoles', 3: 'jueves', 4: 'viernes', 5: 'sabado', 6: 'domingo'}
             campo_dia_a_filtrar = dia_map.get(dia_de_la_semana_num)
 
-            regla_horario = servicio_activo.horarios.get(activo=True, **{campo_dia_a_filtrar: True})
+            regla_horario = servicio_activo.horarios.filter(activo=True, **{campo_dia_a_filtrar: True}).first()
             
-            minutos_jornada_total = (datetime.combine(datetime.min, regla_horario.horario_cierre) - 
-                                   datetime.combine(datetime.min, regla_horario.horario_apertura)).seconds / 60
-            
-            minutos_descanso = 0
-            if regla_horario.tiene_descanso and regla_horario.descanso_inicio and regla_horario.descanso_fin:
-                minutos_descanso = (datetime.combine(datetime.min, regla_horario.descanso_fin) -
-                                    datetime.combine(datetime.min, regla_horario.descanso_inicio)).seconds / 60
-            
-            minutos_laborales = minutos_jornada_total - minutos_descanso
+            if regla_horario:
+                minutos_jornada_total = (datetime.combine(datetime.min, regla_horario.horario_cierre) - 
+                                       datetime.combine(datetime.min, regla_horario.horario_apertura)).seconds / 60
+                
+                minutos_descanso = 0
+                if regla_horario.tiene_descanso and regla_horario.descanso_inicio and regla_horario.descanso_fin:
+                    minutos_descanso = (datetime.combine(datetime.min, regla_horario.descanso_fin) -
+                                        datetime.combine(datetime.min, regla_horario.descanso_inicio)).seconds / 60
+                
+                minutos_laborales = minutos_jornada_total - minutos_descanso
 
-        except (HorarioLaboral.DoesNotExist, HorarioLaboral.MultipleObjectsReturned):
+        except HorarioLaboral.DoesNotExist:
             minutos_laborales = 0
 
         if minutos_laborales > 0:
@@ -545,7 +546,7 @@ def dashboard_calendario(request):
         'año': año,
         'mes_nombre': nombre_del_mes,
         'rango_dias': range(1, num_dias + 1),
-        'offset_dias': range(primer_dia),
+        'offset_dias': range(primer_dia_semana),
         'estado_dias': estado_dias,
         'calendar_data': calendar_data_for_js,
     }

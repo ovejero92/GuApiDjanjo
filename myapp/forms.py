@@ -255,21 +255,35 @@ class ServicioCreateForm(forms.ModelForm):
 class BloqueoForm(forms.ModelForm):
     class Meta:
         model = DiaNoDisponible
-        fields = ['fecha', 'hora_inicio', 'hora_fin', 'motivo']
+        fields = ['fecha_inicio', 'fecha_fin', 'hora_inicio', 'hora_fin', 'motivo']
         widgets = {
-            'fecha': forms.DateInput(attrs={'type': 'date', 'required': True}),
+            'fecha_inicio': forms.DateInput(attrs={'type': 'date', 'required': True}),
+            'fecha_fin': forms.DateInput(attrs={'type': 'date'}),
             'hora_inicio': forms.TimeInput(attrs={'type': 'time'}),
             'hora_fin': forms.TimeInput(attrs={'type': 'time'}),
+        }
+        labels = {
+            'fecha_inicio': 'Fecha de Inicio (o día único)',
+            'fecha_fin': 'Fecha de Fin (opcional, para rangos)',
         }
     
     def clean(self):
         cleaned_data = super().clean()
         inicio = cleaned_data.get("hora_inicio")
         fin = cleaned_data.get("hora_fin")
+
+        # Tu lógica de validación se queda igual, pero la copio para que esté completa
         if (inicio and not fin) or (fin and not inicio):
             raise forms.ValidationError("Debe especificar tanto la hora de inicio como la de fin para un bloqueo parcial.")
         if inicio and fin and inicio >= fin:
             raise forms.ValidationError("La hora de inicio debe ser anterior a la hora de fin.")
+        
+        # Validación extra que faltaba en el modelo
+        fecha_inicio = cleaned_data.get("fecha_inicio")
+        fecha_fin = cleaned_data.get("fecha_fin")
+        if fecha_fin and fecha_fin < fecha_inicio:
+            raise forms.ValidationError("La fecha de fin no puede ser anterior a la de inicio.")
+
         return cleaned_data
     
 class HorarioLaboralForm(forms.ModelForm):

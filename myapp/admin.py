@@ -1,32 +1,53 @@
 from django.contrib import admin
-from .models import Servicio, SubServicio, Turno, HorarioLaboral, DiaNoDisponible, Reseña,Plan,Suscripcion, MedioDePago
+from .models import Servicio, SubServicio, Turno, HorarioLaboral, DiaNoDisponible, Reseña, Plan, Suscripcion, MedioDePago, Categoria, PerfilUsuario
 
+# Registros simples que no necesitan configuración especial
 admin.site.register(MedioDePago)
+admin.site.register(Categoria)
+admin.site.register(PerfilUsuario)
+admin.site.register(HorarioLaboral)
+admin.site.register(DiaNoDisponible)
+admin.site.register(SubServicio)
+
+
+# Acciones personalizadas para el modelo Servicio
+@admin.action(description="Activar servicios seleccionados (pago recibido)")
+def activar_servicios(modeladmin, request, queryset):
+    queryset.update(esta_activo=True)
 
 @admin.action(description="Desactivar servicios seleccionados (pago vencido)")
 def desactivar_servicios(modeladmin, request, queryset):
     queryset.update(esta_activo=False)
 
-@admin.action(description="Activar servicios seleccionados (pago recibido)")
-def activar_servicios(modeladmin, request, queryset):
-    queryset.update(esta_activo=True)
+
+# Clases "Inline" para editar modelos relacionados dentro de la página de Servicio
 
 class SubServicioInline(admin.TabularInline):
     model = SubServicio
     extra = 1
     fields = ('nombre', 'descripcion', 'duracion', 'precio')
 
+# --- INICIO DE LA CORRECCIÓN ---
 class HorarioLaboralInline(admin.TabularInline):
     model = HorarioLaboral
-    extra = 1
-    max_num = 7
-    fields = ('dia_semana', 'activo', 'horario_apertura', 'horario_cierre')
+    # Usamos los campos del NUEVO modelo, agrupados para que se vean bien
+    fields = (
+        ('lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'),
+        ('horario_apertura', 'horario_cierre'),
+        ('tiene_descanso', 'descanso_inicio', 'descanso_fin'),
+        'activo'
+    )
+    extra = 0 # No muestra formularios vacíos por defecto
+# --- FIN DE LA CORRECCIÓN ---
 
 class DiaNoDisponibleInline(admin.TabularInline):
     model = DiaNoDisponible
     extra = 1
-    fields = ('fecha', 'hora_inicio', 'hora_fin', 'motivo')
+    # Usamos los campos correctos para el bloqueo por rangos
+    fields = ('fecha_inicio', 'fecha_fin', 'hora_inicio', 'hora_fin', 'motivo')
 
+
+# --- CONFIGURACIÓN PRINCIPAL PARA CADA MODELO ---
 
 @admin.register(Servicio)
 class ServicioAdmin(admin.ModelAdmin):
@@ -34,6 +55,7 @@ class ServicioAdmin(admin.ModelAdmin):
     list_filter = ('esta_activo',)
     search_fields = ('nombre', 'propietario__username')
     actions = [activar_servicios, desactivar_servicios]
+    prepopulated_fields = {'slug': ('nombre',)}
     
     inlines = [
         SubServicioInline,
@@ -54,16 +76,12 @@ class ReseñaAdmin(admin.ModelAdmin):
 
 @admin.register(Plan)
 class PlanAdmin(admin.ModelAdmin):
-    """Configuración para el modelo Plan en el panel de admin."""
     list_display = ('get_nombre_display', 'slug', 'precio_mensual', 'mp_plan_id')
-    # Esta línea es "magia": autocompleta el campo 'slug' mientras escribes el nombre.
     prepopulated_fields = {'slug': ('nombre',)}
 
 @admin.register(Suscripcion)
 class SuscripcionAdmin(admin.ModelAdmin):
-    """Configuración para el modelo Suscripcion en el panel de admin."""
     list_display = ('usuario', 'plan', 'is_active', 'fecha_fin')
     list_filter = ('plan', 'is_active')
     search_fields = ('usuario__username', 'usuario__email')
-    # Hacemos que el campo de usuario sea de solo lectura para no cambiarlo por error.
     readonly_fields = ('usuario',)

@@ -87,7 +87,6 @@
 
     <div class="contenedor-servicios">
     {% for servicio in servicios %}
-        {# Añadimos una clase condicional si el servicio tiene logo y es premium #}
         <div class="card-servicio-nueva {% if servicio.logo and servicio.tiene_apariencia_premium_activa %}has-logo{% endif %}">
             
             <div class="card-titulo-pill">
