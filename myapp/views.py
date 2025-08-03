@@ -1123,7 +1123,7 @@ def obtener_slots_disponibles(request, servicio_id):
     # --- 3. PREPARAR DATOS Y DEFINIR UNA FUNCIÓN AUXILIAR ---
     slots_disponibles = []
     turnos_del_dia = Turno.objects.filter(servicio=servicio, fecha=fecha, estado__in=['pendiente', 'confirmado'])
-    bloqueos_del_dia = servicio.dias_no_disponibles.filter(fecha=fecha)
+    bloqueos_del_dia = servicio.dias_no_disponibles.filter(fecha_inicio__lte=fecha, fecha_fin__gte=fecha)
     duracion_requerida_td = timedelta(minutes=duracion_requerida)
     
     # Función auxiliar para generar slots en un período de tiempo
