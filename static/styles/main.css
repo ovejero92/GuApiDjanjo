@@ -5,9 +5,6 @@ body {
     margin: 0;
     font-family: 'Segoe UI', sans-serif;
 }
-* {
-    outline: 1px solid red !important;
-}
 /* NAVBAR */
 .navbar {
     background: #404040;
