@@ -3,34 +3,17 @@ import os
 import environ
 import dj_database_url
 
-# ========== 1. CONFIGURACIÓN DE ENTORNO ==========
-# Esta es la configuración moderna y recomendada.
-
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Inicializa 'environ' para leer variables
 env = environ.Env(
-    # Define valores por defecto y el tipo de dato.
-    # Si no encuentra DEBUG en el .env, será False.
     DEBUG=(bool, False)
 )
 
-# Lee el archivo .env si existe (esto solo funcionará en tu PC local)
 environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 
-
-# ========== 2. VARIABLES CLAVE Y DEBUG ==========
-
-# Lee la SECRET_KEY. Si no la encuentra, dará un error (¡esto es más seguro!).
 SECRET_KEY = env('SECRET_KEY')
-
-# 'RENDER' es una variable que existe automáticamente en Render.
-# Esto hace que DEBUG sea False en producción y True en local (porque lee DEBUG=True del .env).
 IS_PRODUCTION = 'RENDER' in os.environ
 DEBUG = not IS_PRODUCTION if IS_PRODUCTION else env('DEBUG')
-
-
-# ========== 3. CONFIGURACIÓN ESTÁNDAR DE DJANGO ==========
 
 ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'turnosok.com', 'www.turnosok.com']
 
@@ -104,10 +87,6 @@ LANGUAGE_CODE = 'es-es'
 TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
-
-
-# ========== 4. ARCHIVOS ESTÁTICOS Y MULTIMEDIA ==========
-
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
@@ -117,10 +96,6 @@ if not DEBUG:
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-
-# ========== 5. CONFIGURACIONES DE SERVICIOS EXTERNOS ==========
-
-# --- EMAIL (SendGrid en producción, Consola en local) ---
 if DEBUG:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
     DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='notificaciones@local.com')
@@ -133,13 +108,10 @@ else:
     EMAIL_USE_TLS = True
     DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL')
 
-# --- GOOGLE MAPS ---
 GOOGLE_MAPS_API_KEY = env('GOOGLE_MAPS_API_KEY')
 
-# --- MERCADO PAGO ---
 MERCADOPAGO_ACCESS_TOKEN = env('MERCADOPAGO_ACCESS_TOKEN')
 
-# ========== 6. CONFIGURACIÓN DE ALLAUTH ==========
 ACCOUNT_ADAPTER = 'myapp.adapters.MyAccountAdapter'
 
 AUTHENTICATION_BACKENDS = [
@@ -148,7 +120,6 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 SITE_ID = 1
-#LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
 ACCOUNT_AUTHENTICATION_METHOD = 'email'
 ACCOUNT_EMAIL_REQUIRED = True
@@ -170,7 +141,6 @@ SOCIALACCOUNT_PROVIDERS = {
 }
 
 
-# ========== 7. CONFIGURACIÓN DE SEGURIDAD PARA PRODUCCIÓN ==========
 if IS_PRODUCTION:
     CSRF_COOKIE_SECURE = True
     SESSION_COOKIE_SECURE = True
@@ -180,33 +150,26 @@ if IS_PRODUCTION:
     SECURE_HSTS_PRELOAD = True
     
 if IS_PRODUCTION:
-    # --- En Producción (Render), usamos AWS S3 ---
     AWS_ACCESS_KEY_ID = env('AWS_ACCESS_KEY_ID')
     AWS_SECRET_ACCESS_KEY = env('AWS_SECRET_ACCESS_KEY')
     AWS_STORAGE_BUCKET_NAME = env('AWS_STORAGE_BUCKET_NAME')
     AWS_S3_REGION_NAME = env('AWS_S3_REGION_NAME')
     AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com'
     
-    # Le decimos a Django que use django-storages para los archivos subidos (media)
     STORAGES = {
         "default": {
             "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
         },
-        "staticfiles": { # Whitenoise sigue manejando los estáticos
+        "staticfiles": {
             "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
         },
     }
     
-    # La URL base para los archivos multimedia ahora apuntará a S3
     MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/media/"
 
 else:
-    # --- En Local, seguimos usando el disco duro ---
     MEDIA_URL = '/media/'
     MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-    
-# ========== 8. CONFIGURACIÓN DE LOGGING PARA PRODUCCIÓN ==========
-# Esto fuerza a Django a mostrar los errores en los logs de Render.
 
 LOGGING = {
     "version": 1,
@@ -218,6 +181,6 @@ LOGGING = {
     },
     "root": {
         "handlers": ["console"],
-        "level": "INFO", # Cambia a "DEBUG" para ver aún más detalle si es necesario
+        "level": "INFO",
     },
 }

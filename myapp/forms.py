@@ -5,6 +5,8 @@ from django.utils.text import slugify
 from PIL import Image
 from django.shortcuts import  get_object_or_404
 
+class CustomImageWidget(forms.widgets.ClearableFileInput):
+    template_name = 'widgets/mi_widget_de_imagen.html'
 
 class CustomSignupForm(forms.Form):
     first_name = forms.CharField(max_length=30, label="Tu Nombre", required=True)
@@ -14,23 +16,19 @@ class CustomSignupForm(forms.Form):
         user.first_name = self.cleaned_data['first_name']
         telefono_ingresado = self.cleaned_data.get('telefono')
 
-        # 2. Guardamos el nombre en el modelo User principal.
         user.save()
 
         if telefono_ingresado:
             user.perfil.telefono = telefono_ingresado
             user.perfil.save()
         
-        # 4. Devolvemos el usuario. allauth se encarga del resto.
         return user
 
 class CustomSocialSignupForm(forms.Form):
     first_name = forms.CharField(max_length=30, label="Tu Nombre", required=True)
 
     def signup(self, request, sociallogin):
-        """
-        Guarda los datos extra en el objeto de usuario que viene del login social.
-        """
+
         user = sociallogin.user
         user.first_name = self.cleaned_data['first_name']
         user.save()
@@ -63,7 +61,6 @@ class TurnoForm(forms.ModelForm):
                 (mdp.slug, mdp.nombre_visible) 
                 for mdp in servicio.medios_de_pago_aceptados.all()
             ]
-            # 3. Asignamos esas opciones al campo 'medio_de_pago'
             self.fields['medio_de_pago'].choices = opciones_disponibles
 
     def clean(self):
@@ -76,7 +73,6 @@ class TurnoForm(forms.ModelForm):
         servicio_padre = sub_servicios_seleccionados.first().servicio_padre
         duracion_total_minutos = sum(sub.duracion for sub in sub_servicios_seleccionados)
         self.cleaned_data['duracion_total'] = duracion_total_minutos
-        # Aquí puedes añadir la lógica de validación completa si lo deseas
         return cleaned_data
 
     def save(self, commit=True):
@@ -197,27 +193,20 @@ class ServicioPersonalizacionForm(forms.ModelForm):
     def clean_logo(self):
         logo = self.cleaned_data.get('logo')
         
-        # Si no se subió un logo nuevo, no hacemos nada
         if not logo:
             return logo
 
-        # Si el logo es más grande que 1MB, el validador del modelo ya lo habrá rechazado.
-        # Ahora validamos las dimensiones.
         try:
             image = Image.open(logo)
             width, height = image.size
 
-            # Verificamos si es (aproximadamente) cuadrado
-            # Damos un pequeño margen de tolerancia del 5%
             if abs(width - height) / width > 0.05:
                 raise forms.ValidationError("La imagen del logo debe ser cuadrada (ej: 400x400px).")
 
-            # Verificamos si es demasiado pequeño
             if width < 200 or height < 200:
                 raise forms.ValidationError("La imagen del logo es demasiado pequeña. Debe ser de al menos 200x200px.")
 
         except Exception as e:
-            # Si Pillow no puede abrir la imagen, es un archivo corrupto o no es una imagen.
             raise forms.ValidationError(f"No se pudo procesar el archivo. Asegúrate de que sea una imagen válida. Error: {e}")
 
         return logo
@@ -246,7 +235,7 @@ class ServicioPersonalizacionForm(forms.ModelForm):
             'footer_facebook_url': forms.TextInput(attrs={'placeholder': 'tu-usuario'}),
             'footer_tiktok_url': forms.TextInput(attrs={'placeholder': '@tu.usuario'}),
         }
-        help_texts = { 
+        help_texts = {
             'slug': "Esta será la URL de tu negocio. Usa solo letras, números y guiones. Sin espacios."
         }
 
@@ -268,8 +257,6 @@ class ServicioUpdateForm(forms.ModelForm):
 class ServicioCreateForm(forms.ModelForm):
     class Meta:
         model = Servicio
-        # 2. Añadimos el nuevo campo a la lista de campos que se mostrarán.
-        #    También podemos añadir la dirección aquí si tiene sentido en tu flujo.
         fields = ['nombre', 'categoria', 'descripcion', 'direccion', 'medios_de_pago_aceptados', 'duracion_buffer_minutos']
         labels = {
             'nombre': '¿Cómo se llama tu negocio?',
@@ -301,13 +288,11 @@ class BloqueoForm(forms.ModelForm):
         inicio = cleaned_data.get("hora_inicio")
         fin = cleaned_data.get("hora_fin")
 
-        # Tu lógica de validación se queda igual, pero la copio para que esté completa
         if (inicio and not fin) or (fin and not inicio):
             raise forms.ValidationError("Debe especificar tanto la hora de inicio como la de fin para un bloqueo parcial.")
         if inicio and fin and inicio >= fin:
             raise forms.ValidationError("La hora de inicio debe ser anterior a la hora de fin.")
         
-        # Validación extra que faltaba en el modelo
         fecha_inicio = cleaned_data.get("fecha_inicio")
         fecha_fin = cleaned_data.get("fecha_fin")
         if fecha_fin and fecha_fin < fecha_inicio:
@@ -316,18 +301,15 @@ class BloqueoForm(forms.ModelForm):
         return cleaned_data
     
 class HorarioLaboralForm(forms.ModelForm):
-    # Usamos MultipleChoiceField para mostrar los checkboxes
     dias_semana = forms.MultipleChoiceField(
-        # Las opciones ahora se definen aquí, en el formulario
         choices=[('lunes', 'Lunes'), ('martes', 'Martes'), ('miercoles', 'Miércoles'), ('jueves', 'Jueves'), ('viernes', 'Viernes'), ('sabado', 'Sábado'), ('domingo', 'Domingo')],
         widget=forms.CheckboxSelectMultiple,
         label="Días de la semana para esta regla",
-        required=False # Lo hacemos no requerido a nivel de form, luego validamos
+        required=False
     )
     
     class Meta:
         model = HorarioLaboral
-        # Excluimos los campos de día individuales porque los manejaremos nosotros
         exclude = ['servicio', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo']
         widgets = {
             'horario_apertura': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
@@ -337,16 +319,11 @@ class HorarioLaboralForm(forms.ModelForm):
             # ...
         }
 
-    # --- INICIO DE LA CORRECCIÓN DEL MÉTODO save ---
     def save(self, commit=True):
-        # 1. Obtenemos la instancia del modelo, pero todavía no la guardamos en la DB
         instance = super().save(commit=False)
         
-        # 2. Obtenemos la lista de días que el usuario marcó en los checkboxes
         dias_seleccionados = self.cleaned_data.get('dias_semana', [])
         
-        # 3. Reiniciamos todos los campos de día a False. Esto es importante
-        #    para cuando el usuario edita una regla y desmarca un día.
         instance.lunes = False
         instance.martes = False
         instance.miercoles = False
@@ -355,25 +332,17 @@ class HorarioLaboralForm(forms.ModelForm):
         instance.sabado = False
         instance.domingo = False
 
-        # 4. Recorremos la lista de días seleccionados y ponemos a True los campos correspondientes.
         for dia in dias_seleccionados:
-            # setattr(instance, 'lunes', True) es lo mismo que instance.lunes = True
             if hasattr(instance, dia):
                 setattr(instance, dia, True)
 
-        # 5. Si commit es True, ahora sí guardamos la instancia completa en la base de datos.
         if commit:
             instance.save()
             
         return instance
-    # --- FIN DE LA CORRECCIÓN DEL MÉTODO save ---
-
-    # --- INICIO DE LA LÓGICA DE RELLENADO (para la edición) ---
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Si estamos editando una regla existente...
         if self.instance and self.instance.pk:
-            # ...leemos los valores booleanos del modelo...
             dias_iniciales = []
             if self.instance.lunes: dias_iniciales.append('lunes')
             if self.instance.martes: dias_iniciales.append('martes')
@@ -383,13 +352,10 @@ class HorarioLaboralForm(forms.ModelForm):
             if self.instance.sabado: dias_iniciales.append('sabado')
             if self.instance.domingo: dias_iniciales.append('domingo')
             
-            # ...y los usamos para marcar los checkboxes correspondientes.
             self.fields['dias_semana'].initial = dias_iniciales
-    # --- FIN DE LA LÓGICA DE RELLENADO ---
 
     def clean(self):
         cleaned_data = super().clean()
-        # Validación para asegurar que al menos un día sea seleccionado
         if not cleaned_data.get('dias_semana'):
             self.add_error('dias_semana', 'Debes seleccionar al menos un día para esta regla.')
         return cleaned_data

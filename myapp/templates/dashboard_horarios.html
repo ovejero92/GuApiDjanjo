@@ -72,7 +72,6 @@
                     {% endfor %}
                 </div>
 
-                <!-- Template para clonar -->
                 <template id="regla-horario-template">
                     <div class="regla-horario-card">
                         {{ formset.empty_form.id }}
@@ -153,7 +152,7 @@
 {% endblock %}
 
 {% block scripts_extra %}
-    {{ block.super }} {# ¡CRUCIAL! Esto incluye el script del tour de bienvenida de la plantilla base #}
+    {{ block.super }}
 
  <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -172,7 +171,6 @@
             }
         }
         
-        // Aplica la lógica a todos los formularios que ya existen
         document.querySelectorAll('.regla-horario-card').forEach(setupFormCard);
 
         const addRuleBtn = document.getElementById('add-rule-btn');
@@ -184,20 +182,16 @@
             addRuleBtn.addEventListener('click', function() {
                 let formIdx = parseInt(totalFormsInput.value);
                 
-                // Clonamos el contenido del template
                 let newFormHtml = templateNode.innerHTML.replace(/__prefix__/g, formIdx);
                 
-                // Creamos un nuevo div y le metemos el HTML clonado
                 let newDiv = document.createElement('div');
                 newDiv.innerHTML = newFormHtml;
-                const newCard = newDiv.firstElementChild; // Obtenemos el .regla-horario-card
+                const newCard = newDiv.firstElementChild;
                 
-                // Añadimos el nuevo formulario al contenedor
                 container.appendChild(newCard);
 
                 totalFormsInput.value = formIdx + 1;
 
-                // Aplicamos la lógica al nuevo formulario
                 setupFormCard(newCard);
             });
         }

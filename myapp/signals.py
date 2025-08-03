@@ -10,6 +10,4 @@ def crear_suscripcion_gratuita(sender, instance, created, **kwargs):
             plan_gratuito = Plan.objects.get(slug='free')
             Suscripcion.objects.create(usuario=instance, plan=plan_gratuito, is_active=True)
         except Plan.DoesNotExist:
-            # Esto es importante: si el plan 'free' no existe, no hacemos nada para no romper el registro.
-            # Lo crearemos manualmente desde el admin.
             pass

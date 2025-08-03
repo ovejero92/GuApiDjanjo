@@ -57,8 +57,6 @@
     <div class="contendor-titulo">
       <h1>Servicios Disponibles</h1>
       <form method="GET" action="{% url 'index' %}" class="search-form">
-            <!-- Este input oculto es MAGIA. Se asegura de que si ya estás en una categoría,
-                 la búsqueda se mantenga dentro de esa categoría y no pierda el filtro. -->
             {% if categoria_activa %}
                 <input type="hidden" name="categoria" value="{{ categoria_activa }}">
             {% endif %}
@@ -71,15 +69,12 @@
         <a href="{% url 'index' %}" class="{% if not categoria_activa %}active{% endif %}">Todos</a>
         
         {% for cat in categorias %}
-            {# Usamos forloop.counter para saber la posición del filtro en el bucle #}
-            {# Si es el 5to o más, le añadimos la clase 'extra-filter' para ocultarlo en mobile #}
             <a href="?categoria={{ cat.slug }}" 
                class="{% if categoria_activa == cat.slug %}active{% endif %} {% if forloop.counter > 4 %}extra-filter{% endif %}">
                {{ cat.nombre }}
             </a>
         {% endfor %}
 
-        {# Solo mostramos el botón "Ver más" si hay más de 4 categorías #}
         {% if categorias|length > 4 %}
             <button id="toggle-filters-btn" class="btn-toggle-filters">Ver más</button>
         {% endif %}
@@ -93,7 +88,6 @@
                 <span>{{ servicio.nombre }}</span>
             </div>
             
-            {# Solo mostramos el logo si es premium y lo ha subido #}
             {% if servicio.logo and servicio.tiene_apariencia_premium_activa %}
                 <div class="card-logo">
                     <img src="{{ servicio.logo.url }}" alt="Logo de {{ servicio.nombre }}">
@@ -127,18 +121,14 @@
 document.addEventListener('DOMContentLoaded', function() {
     const toggleBtn = document.getElementById('toggle-filters-btn');
     
-    // Si el botón existe en la página...
     if (toggleBtn) {
         toggleBtn.addEventListener('click', function() {
-            // Buscamos todos los filtros que están ocultos
             const extraFilters = document.querySelectorAll('.category-filters a.extra-filter');
             
-            // Les añadimos o quitamos la clase 'is-visible' para mostrarlos/ocultarlos
             extraFilters.forEach(filter => {
                 filter.classList.toggle('is-visible');
             });
 
-            // Cambiamos el texto del botón
             if (toggleBtn.textContent === 'Ver más') {
                 toggleBtn.textContent = 'Ver menos';
             } else {

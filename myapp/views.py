@@ -52,12 +52,8 @@ def index(request):
 
 def crear_servicio_paso1(request):
     if request.user.is_authenticated:
-        # Si ya está logueado, lo mandamos a crear el servicio
         return redirect('crear_servicio_paso2')
     else:
-        # Si no, lo mandamos a registrarse primero.
-        # El ?next=/crear-servicio/paso2/ le dice a Django que, después del login/signup,
-        # lo redirija a la página de creación de servicio.
         return redirect(f"{reverse('account_signup')}?next={reverse('crear_servicio_paso2')}")
 
 def about(request):
@@ -93,7 +89,6 @@ def get_servicio_activo(request):
     servicio_id_seleccionado = request.GET.get('servicio_id')
     if servicio_id_seleccionado:
         try:
-            # Usamos get() que es más estricto que get_object_or_404 aquí
             servicio_activo = servicios_propietario.get(id=servicio_id_seleccionado)
         except Servicio.DoesNotExist:
             servicio_activo = servicios_propietario.first()
@@ -116,7 +111,6 @@ def precios(request):
 
 @login_required
 def crear_servicio_paso2(request):
-    # Comprobamos si el usuario ya tiene un servicio para no dejarle crear otro
     if request.user.servicios_propios.exists():
         messages.info(request, "Ya tienes un servicio gestionado. Aquí está tu dashboard.")
         return redirect('dashboard_propietario')
@@ -130,7 +124,6 @@ def crear_servicio_paso2(request):
             form.save_m2m()
             
             messages.success(request, f"¡Felicidades! Tu negocio '{nuevo_servicio.nombre}' ha sido creado.")
-            # Lo enviamos al onboarding o al dashboard
             return redirect('dashboard_propietario')
     else:
         form = ServicioCreateForm()
@@ -144,10 +137,7 @@ def crear_suscripcion_mp(request, plan_slug):
     if not plan.mp_plan_id:
         messages.error(request, "Este plan no está configurado para pagos.")
         return redirect('precios')
-
     sdk = mercadopago.SDK(settings.MERCADOPAGO_ACCESS_TOKEN)
-
-    # Definimos el dominio base para las URLs de retorno
     base_url = "https://turnosok.com"
     if settings.DEBUG:
         base_url = "http://127.0.0.1:8000"
@@ -173,15 +163,10 @@ def crear_suscripcion_mp(request, plan_slug):
             "failure": f"{base_url}{reverse('precios')}",
             "pending": f"{base_url}{reverse('precios')}",
         },
-        # ========== HEMOS ELIMINADO LA LÍNEA 'auto_return' ==========
         "preapproval_plan_id": plan.mp_plan_id,
     }
-    
-    # La llamada a la API sigue siendo la misma, pero ahora sin el parámetro conflictivo
     result = sdk.preference().create(preference_data)
-    
     print("Respuesta de Mercado Pago:", result)
-    
     if result and result.get("status") == 201:
         suscripcion_usuario, created = Suscripcion.objects.get_or_create(usuario=request.user)
         suscripcion_usuario.plan = plan
@@ -203,70 +188,41 @@ def crear_suscripcion_mp(request, plan_slug):
 @login_required
 def pago_exitoso(request):
     messages.success(request, "¡Gracias por tu suscripción! Tu plan ha sido activado.")
-    
-    # Comprobamos si el usuario ya tiene un servicio
     if request.user.servicios_propios.exists():
-        # Si ya tiene, lo mandamos al dashboard
         return redirect('dashboard_propietario')
     else:
-        # Si no tiene, lo mandamos a la página para crearlo
         return redirect('crear_servicio_paso2')
 
 @csrf_exempt
 def webhook_mp(request):
     if request.method == 'POST':
         data = json.loads(request.body)
-        
-        # Tipo de notificación que nos interesa: "preapproval" (suscripciones)
         if data.get("type") == "preapproval":
             mp_subscription_id = data.get("data", {}).get("id")
-            
-            # Usamos el SDK para obtener el estado real de la suscripción desde Mercado Pago
             try:
                 sdk = mercadopago.SDK(settings.MERCADOPAGO_ACCESS_TOKEN)
                 subscription_data = sdk.preapproval().get(mp_subscription_id)
-                
                 if subscription_data and subscription_data.get("status") == 200:
                     response_data = subscription_data.get("response", {})
-                    
-                    # Buscamos nuestra suscripción interna usando el ID de MP
                     try:
                         suscripcion = Suscripcion.objects.get(mp_subscription_id=response_data.get("id"))
-                        
                         if response_data.get("status") == "authorized":
-                            # ========== ¡NUEVA LÓGICA DE ANIMACIÓN! ==========
-                            # Si la suscripción NO estaba activa antes...
                             if not suscripcion.is_active:
-                                # ...y el usuario NUNCA ha visto la animación...
                                 if not suscripcion.ha_visto_animacion_premium:
-                                    # ...le dejamos una "bandera" en su sesión para que la vea la próxima vez que cargue el dashboard.
-                                    # (No podemos hacerlo directamente aquí porque esto es una llamada de API)
-                                    # Para esto, necesitamos un sistema de notificaciones o flags en la sesión.
-                                    # Por ahora, activemos el plan y marcaremos que ya la ha visto.
                                     suscripcion.ha_visto_animacion_premium = True
-                            # ===============================================
-
                             suscripcion.is_active = True
                         else:
                             suscripcion.is_active = False
-                        
                         suscripcion.save()
-
                     except Suscripcion.DoesNotExist:
-                        # Ocurrió un pago para una suscripción que no tenemos registrada.
-                        # Aquí podrías registrar un log de error.
                         pass
-
             except Exception as e:
-                # Registrar el error si la llamada a la API de MP falla
                 print(f"Error al procesar webhook de MP: {e}")
-
     return JsonResponse({"status": "received"})
 
 @login_required
 def servicio_detail(request, servicio_slug):
     servicio = get_object_or_404(Servicio, slug=servicio_slug)
-    
     dias_laborables_js = {str(i): False for i in range(7)}
     reglas_horario_activas = servicio.horarios.filter(activo=True)
     for regla in reglas_horario_activas:
@@ -277,21 +233,16 @@ def servicio_detail(request, servicio_slug):
         if regla.jueves: dias_laborables_js['4'] = True
         if regla.viernes: dias_laborables_js['5'] = True
         if regla.sabado: dias_laborables_js['6'] = True
-    
     turnos_reservados = Turno.objects.filter(servicio=servicio)
     fechas_ocupadas = [turno.fecha.strftime('%Y-%m-%d') for turno in turnos_reservados]
-
     if request.method == 'POST':
         form = TurnoForm(request.POST, servicio_id=servicio.id)
         if form.is_valid():
             turno = form.save(commit=False)
             turno.cliente = request.user
             turno.save()
-            
-            # El save_m2m() es para los subservicios del turno
             if 'sub_servicios_solicitados' in form.cleaned_data:
                 turno.sub_servicios_solicitados.set(form.cleaned_data['sub_servicios_solicitados'])
-            
             propietario = servicio.propietario
             enviar_email = False
             try:
@@ -302,7 +253,6 @@ def servicio_detail(request, servicio_slug):
                     enviar_email = True
             except (Suscripcion.DoesNotExist, AttributeError):
                 pass
-
             if enviar_email:
                 try:
                     asunto = f"¡Nuevo Turno Reservado en {servicio.nombre}!"
@@ -310,7 +260,7 @@ def servicio_detail(request, servicio_slug):
                         'turno': turno,
                         'servicio': servicio,
                         'cliente': request.user,
-                        'domain': request.get_host(), # Para construir URLs absolutas
+                        'domain': request.get_host(),
                     }
                     mensaje_texto = render_to_string('emails/nuevo_turno_propietario.txt', contexto_email)
                     mensaje_html = render_to_string('emails/nuevo_turno_propietario.html', contexto_email)
@@ -323,7 +273,6 @@ def servicio_detail(request, servicio_slug):
                         fail_silently=False,
                     )
                 except Exception as e:
-                    # Opcional: registrar el error si el envío de email falla
                     print(f"Error al enviar email de nuevo turno: {e}")
             
             messages.success(request, "¡Turno solicitado con éxito!")
@@ -366,93 +315,63 @@ def dashboard_turnos(request):
     mostrar_animacion = False
     try:
         suscripcion = request.user.suscripcion
-        # Si la suscripción está activa Y el usuario nunca ha visto la animación...
         if suscripcion.is_active and not suscripcion.ha_visto_animacion_premium:
             mostrar_animacion = True
-            # Marcamos que ya la va a ver para que no se repita en futuras visitas
             suscripcion.ha_visto_animacion_premium = True
             suscripcion.save()
     except (Suscripcion.DoesNotExist, AttributeError):
-        # Si no tiene suscripción o hay algún problema, no hacemos nada.
         pass
     servicio_activo = get_servicio_activo(request)
     if not servicio_activo:
         return render(request, 'dashboard_turnos.html', {'no_hay_servicio': True, 'mostrar_animacion': mostrar_animacion})
-    
     if not servicio_activo.esta_activo:
         context = {
             'servicio': servicio_activo,
-            'onboarding_completo': True, # Le decimos a la plantilla que el tour YA se hizo.
-            'servicio_activo': servicio_activo # Es buena práctica pasarlo también
+            'onboarding_completo': True,
+            'servicio_activo': servicio_activo
         }
         return render(request, 'servicio_suspendido.html', context)
-    
     if not servicio_activo.esta_activo:
         context = {
             'servicio': servicio_activo,
-            'onboarding_completo': True, # Le decimos a la plantilla que el tour YA se hizo.
-            'servicio_activo': servicio_activo # Es buena práctica pasarlo también
+            'onboarding_completo': True,
+            'servicio_activo': servicio_activo
         }
         return render(request, 'servicio_suspendido.html', context)
-    
     turnos = Turno.objects.filter(
         servicio=servicio_activo
     ).select_related('cliente').prefetch_related('sub_servicios_solicitados')
-
-    # Obtenemos la fecha y hora actuales, conscientes de la zona horaria
     ahora = timezone.now()
     hoy = ahora.date()
     hora_actual = ahora.time()
-
-    # --- LÓGICA DE FILTRADO MEJORADA ---
-    # Pasados (Historial): Turnos de días anteriores O turnos de hoy cuya hora ya pasó.
     turnos_pasados = turnos.filter(
         Q(fecha__lt=hoy) | Q(fecha=hoy, hora__lt=hora_actual)
     ).order_by('-fecha', '-hora')
-
-    # Próximos: Turnos de días futuros O turnos de hoy cuya hora aún no ha pasado.
     turnos_proximos = turnos.filter(
         Q(fecha__gt=hoy) | Q(fecha=hoy, hora__gte=hora_actual)
     )
-    
-    # Pendientes y Confirmados se filtran a partir de la lista de Próximos
     turnos_pendientes = turnos_proximos.filter(estado='pendiente').order_by('fecha', 'hora').prefetch_related('sub_servicios_solicitados')
     turnos_confirmados = turnos_proximos.filter(estado='confirmado').order_by('fecha', 'hora').prefetch_related('sub_servicios_solicitados')
-    
-    # ================================================================
-    # ========== NUEVA LÓGICA PARA EL HISTORIAL FILTRADO Y PAGINADO ==========
-    # ================================================================
-
-    # 1. Obtenemos el filtro activo desde la URL. Por defecto, mostramos los que están "para finalizar".
     filtro_historial_activo = request.GET.get('filtro_historial', 'por_finalizar')
-
-    # 2. Creamos la consulta base para TODOS los turnos pasados.
     turnos_pasados_base = Turno.objects.filter(
         servicio=servicio_activo
     ).filter(
         Q(fecha__lt=hoy) | Q(fecha=hoy, hora__lt=ahora.time())
     ).select_related('cliente')
-
-    # 3. Aplicamos el filtro correspondiente.
     if filtro_historial_activo == 'finalizados':
-        # Mostramos los que ya están completados o cancelados, ordenados del más reciente al más antiguo.
         turnos_a_mostrar = turnos_pasados_base.filter(estado__in=['completado', 'cancelado']).order_by('-fecha', '-hora')
-    else: # Por defecto, 'por_finalizar'
-        # Mostramos los que pasaron pero siguen pendientes o confirmados, del más antiguo al más reciente.
+    else:
         turnos_a_mostrar = turnos_pasados_base.filter(estado__in=['pendiente', 'confirmado']).order_by('fecha', 'hora')
-
-    # 4. Aplicamos la paginación a la lista de turnos que hemos decidido mostrar.
-    paginator = Paginator(turnos_a_mostrar, 10) # Mostraremos 10 turnos por página. Puedes cambiar este número.
+    paginator = Paginator(turnos_a_mostrar, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
-    
     context = {
         'servicio_activo': servicio_activo,
         'onboarding_completo': servicio_activo.configuracion_inicial_completa,
-        'turnos_pendientes': turnos_pendientes, # Esto no cambia
-        'turnos_confirmados': turnos_confirmados, # Esto no cambia
-        'historial_page_obj': page_obj, # Pasamos el objeto de la página a la plantilla
-        'filtro_historial_activo': filtro_historial_activo, # Le decimos a la plantilla qué botón resaltar
+        'turnos_pendientes': turnos_pendientes,
+        'turnos_confirmados': turnos_confirmados,
+        'historial_page_obj': page_obj,
+        'filtro_historial_activo': filtro_historial_activo,
         'mostrar_animacion': mostrar_animacion,
     }
     return render(request, 'dashboard_turnos.html', context)
@@ -462,7 +381,6 @@ def dashboard_calendario(request):
     servicio_activo = get_servicio_activo(request)
     if not servicio_activo:
         return render(request, 'dashboard_calendario.html', {'no_hay_servicio': True})
-
     if not servicio_activo.esta_activo:
         context = {
             'servicio': servicio_activo,
@@ -470,76 +388,57 @@ def dashboard_calendario(request):
             'servicio_activo': servicio_activo
         }
         return render(request, 'servicio_suspendido.html', context)
-    
     hoy = timezone.localdate()
     año = hoy.year
     mes = hoy.month
-
     primer_dia_semana, num_dias = calendar.monthrange(año, mes)
-    
     turnos_del_mes = Turno.objects.filter(
         servicio=servicio_activo,
         fecha__year=año,
         fecha__month=mes,
         estado__in=['confirmado', 'pendiente']
     ).prefetch_related('sub_servicios_solicitados')
-
     estado_dias = {}
     for dia_num in range(1, num_dias + 1):
         fecha_actual = datetime(año, mes, dia_num).date()
         turnos_del_dia = [t for t in turnos_del_mes if t.fecha == fecha_actual]
-        
         conteo_turnos_dia = len(turnos_del_dia)
-
         if not turnos_del_dia:
             estado_dias[dia_num] = {'estado': 'vacio', 'conteo': 0}
             continue
-
         minutos_laborales = 0
         try:
             dia_de_la_semana_num = fecha_actual.weekday()
             dia_map = {0: 'lunes', 1: 'martes', 2: 'miercoles', 3: 'jueves', 4: 'viernes', 5: 'sabado', 6: 'domingo'}
             campo_dia_a_filtrar = dia_map.get(dia_de_la_semana_num)
-
             regla_horario = servicio_activo.horarios.filter(activo=True, **{campo_dia_a_filtrar: True}).first()
-            
             if regla_horario:
                 minutos_jornada_total = (datetime.combine(datetime.min, regla_horario.horario_cierre) - 
                                        datetime.combine(datetime.min, regla_horario.horario_apertura)).seconds / 60
-                
                 minutos_descanso = 0
                 if regla_horario.tiene_descanso and regla_horario.descanso_inicio and regla_horario.descanso_fin:
                     minutos_descanso = (datetime.combine(datetime.min, regla_horario.descanso_fin) -
                                         datetime.combine(datetime.min, regla_horario.descanso_inicio)).seconds / 60
-                
                 minutos_laborales = minutos_jornada_total - minutos_descanso
-
         except HorarioLaboral.DoesNotExist:
             minutos_laborales = 0
-
         if minutos_laborales > 0:
             minutos_reservados = sum(turno.duracion_total for turno in turnos_del_dia)
             porcentaje_ocupacion = (minutos_reservados / minutos_laborales) * 100
         else:
             porcentaje_ocupacion = 100
-
         estado_css = 'con-turnos'
         if porcentaje_ocupacion >= 90:
             estado_css = 'lleno'
         elif porcentaje_ocupacion >= 50:
             estado_css = 'casi-lleno'
-        
         estado_dias[dia_num] = {'estado': estado_css, 'conteo': conteo_turnos_dia}
-
-
     nombre_del_mes = calendar.month_name[mes].capitalize()
-
     calendar_data_for_js = {
         'año': año,
         'mes': mes,
         'mes_nombre': nombre_del_mes,
     }
-
     context = {
         'servicio_activo': servicio_activo,
         'onboarding_completo': servicio_activo.configuracion_inicial_completa,
@@ -550,32 +449,23 @@ def dashboard_calendario(request):
         'estado_dias': estado_dias,
         'calendar_data': calendar_data_for_js,
     }
-    
     return render(request, 'dashboard_calendario.html', context)
 
 @login_required
 def api_turnos_por_dia(request):
-    """
-    API que devuelve los detalles de los turnos de una fecha específica.
-    """
     fecha_str = request.GET.get('fecha')
     servicio_activo = get_servicio_activo(request)
-
     if not fecha_str or not servicio_activo:
         return JsonResponse({'error': 'Faltan parámetros'}, status=400)
-
     try:
         fecha = datetime.strptime(fecha_str, '%Y-%m-%d').date()
     except ValueError:
         return JsonResponse({'error': 'Formato de fecha inválido'}, status=400)
-
     turnos = Turno.objects.filter(
         servicio=servicio_activo,
         fecha=fecha,
         estado__in=['confirmado', 'pendiente']
     ).select_related('cliente').prefetch_related('sub_servicios_solicitados').order_by('hora')
-
-    # Preparamos los datos para enviarlos como JSON
     datos_turnos = []
     for turno in turnos:
         servicios = [s.nombre for s in turno.sub_servicios_solicitados.all()]
@@ -585,7 +475,6 @@ def api_turnos_por_dia(request):
             'estado': turno.get_estado_display(),
             'servicios': servicios,
         })
-    
     return JsonResponse({'turnos': datos_turnos})
 
 @login_required
@@ -624,15 +513,12 @@ def marcar_onboarding_completo(request):
 def onboarding_propietario(request):
     servicio = request.user.servicios_propios.first()
     if not servicio:
-        return redirect('index') # O a una página de "error"
-
+        return redirect('index')
     if servicio.configuracion_inicial_completa:
         return redirect('dashboard_turnos')
-
     UpdateForm = ServicioUpdateForm(prefix='detalles', instance=servicio)
     SubServicioFormSet = inlineformset_factory(Servicio, SubServicio, fields=('nombre', 'duracion', 'precio'), extra=1, can_delete=False)
     formset = SubServicioFormSet(prefix='catalogo', instance=servicio)
-
     if request.method == 'POST':
         update_form = ServicioUpdateForm(request.POST, prefix='detalles', instance=servicio)
         formset = SubServicioFormSet(request.POST, prefix='catalogo', instance=servicio)
@@ -643,7 +529,6 @@ def onboarding_propietario(request):
             servicio.save()
             messages.success(request, "¡Felicidades! Has completado la configuración inicial. Ahora, define tus horarios.")
             return redirect('dashboard_horarios')
-    
     context = {'update_form': update_form, 'formset': formset}
     return render(request, 'onboarding.html', context)
 
@@ -652,7 +537,6 @@ def dashboard_horarios(request):
     servicio_activo = get_servicio_activo(request)
     if not servicio_activo:
         return render(request, 'dashboard_horarios.html', {'no_hay_servicio': True})
-    
     if not servicio_activo.esta_activo:
         context = {
             'servicio': servicio_activo,
@@ -660,30 +544,24 @@ def dashboard_horarios(request):
             'servicio_activo': servicio_activo
         }
         return render(request, 'servicio_suspendido.html', context)
-
     HorarioFormSet = modelformset_factory(
         HorarioLaboral,
         form=HorarioLaboralForm,
         extra=0,
         can_delete=True
     )
-
     if request.method == 'POST':
         if 'guardar_horarios' in request.POST:
             formset = HorarioFormSet(request.POST, queryset=HorarioLaboral.objects.filter(servicio=servicio_activo))
-            
             if formset.is_valid():
                 instances = formset.save(commit=False)
                 for instance in instances:
                     instance.servicio = servicio_activo
                     instance.save()
-                
                 for obj in formset.deleted_objects:
                     obj.delete()
-
                 messages.success(request, "¡Tus reglas de horario han sido actualizadas correctamente!")
                 return redirect('dashboard_horarios')
-        
         elif 'crear_bloqueo' in request.POST:
             bloqueo_form = BloqueoForm(request.POST, prefix='bloqueo')
             if bloqueo_form.is_valid():
@@ -694,7 +572,6 @@ def dashboard_horarios(request):
                 return redirect('dashboard_horarios')
     else:
         formset = HorarioFormSet(queryset=HorarioLaboral.objects.filter(servicio=servicio_activo))
-
     bloqueo_form = BloqueoForm(prefix='bloqueo')
     bloqueos_existentes = servicio_activo.dias_no_disponibles.filter(fecha_inicio__gte=timezone.localdate()).order_by('fecha_inicio')
     context = {
@@ -713,30 +590,23 @@ def dashboard_metricas(request):
         tiene_acceso = suscripcion.is_active and suscripcion.plan.allow_metrics
     except (Suscripcion.DoesNotExist, AttributeError):
         tiene_acceso = False
-    
     if not tiene_acceso and request.headers.get('x-requested-with') == 'XMLHttpRequest':
-        # Si no tiene acceso, no le devolvemos datos para los gráficos.
         return JsonResponse({'error': 'Acceso denegado'}, status=403)
-    
     servicio_activo = get_servicio_activo(request)
     if not servicio_activo:
         return render(request, 'dashboard_metricas.html', {'no_hay_servicio': True})
-    
     if not servicio_activo.esta_activo:
         context = {
             'servicio': servicio_activo,
-            'onboarding_completo': True, # Le decimos a la plantilla que el tour YA se hizo.
+            'onboarding_completo': True,
             'servicio_activo': servicio_activo,
             'tiene_acceso': tiene_acceso
         }
         return render(request, 'servicio_suspendido.html', context)
-    
-    # --- LÓGICA DE API PARA EL GRÁFICO DE INGRESOS (AJAX) ---
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
         agrupar_por = request.GET.get('agrupar_por', 'dia')
         hoy = timezone.localdate()
         qs = Turno.objects.filter(servicio=servicio_activo, estado='completado')
-        
         if agrupar_por == 'dia':
             fecha_str = request.GET.get('fecha', hoy.strftime('%Y-%m-%d'))
             fecha = datetime.strptime(fecha_str, '%Y-%m-%d').date()
@@ -747,7 +617,7 @@ def dashboard_metricas(request):
             mes = datetime.strptime(mes_str, '%Y-%m')
             datos = qs.filter(fecha__year=mes.year, fecha__month=mes.month).annotate(periodo=TruncDay('fecha')).values('periodo').annotate(total=Sum('ingreso_real')).order_by('periodo')
             labels = [d['periodo'].strftime('%d/%m') for d in datos]
-        else: # año
+        else:
             año_str = request.GET.get('año', str(hoy.year))
             año = int(año_str)
             datos = qs.filter(fecha__year=año).annotate(periodo=TruncMonth('fecha')).values('periodo').annotate(total=Sum('ingreso_real')).order_by('periodo')
@@ -755,8 +625,7 @@ def dashboard_metricas(request):
 
         data_puntos = [float(d['total']) if d['total'] else 0 for d in datos]
         return JsonResponse({'labels': labels, 'data': data_puntos})
-
-    periodo = request.GET.get('periodo', '30d') # <-- Leemos el período para las tarjetas
+    periodo = request.GET.get('periodo', '30d')
     hoy = timezone.localdate()
     
     if periodo == '7d':
@@ -771,10 +640,8 @@ def dashboard_metricas(request):
     else:
         fecha_inicio = hoy - timedelta(days=29)
         titulo_periodo = "Últimos 30 días"
-
-    # -- Cálculo de tarjetas de KPI --
     turnos_completados_periodo = Turno.objects.filter(
-        servicio=servicio_activo, 
+        servicio=servicio_activo,
         estado='completado',
         fecha__gte=fecha_inicio,
         fecha__lte=hoy
@@ -784,18 +651,14 @@ def dashboard_metricas(request):
         turnos_totales=Count('id'),
         ingreso_promedio=Avg('ingreso_real')
     )
-    
-    # -- Cálculo de servicios populares (sobre el total histórico) --
     contador_servicios = {}
     for turno in turnos_completados_periodo.prefetch_related('sub_servicios_solicitados'):
         for sub_servicio in turno.sub_servicios_solicitados.all():
             nombre = sub_servicio.nombre
             contador_servicios[nombre] = contador_servicios.get(nombre, 0) + 1
-    
     servicios_populares_ordenados = sorted(contador_servicios.items(), key=lambda item: item[1], reverse=True)[:5]
     labels_servicios = [item[0] for item in servicios_populares_ordenados]
     data_servicios = [item[1] for item in servicios_populares_ordenados]
-
     context = {
         'servicio_activo': servicio_activo,
         'onboarding_completo': servicio_activo.configuracion_inicial_completa,
@@ -829,8 +692,8 @@ def dashboard_servicios(request): # Apariencia
     if not servicio_activo.esta_activo:
         context = {
             'servicio': servicio_activo,
-            'onboarding_completo': True, # Le decimos a la plantilla que el tour YA se hizo.
-            'servicio_activo': servicio_activo # Es buena práctica pasarlo también
+            'onboarding_completo': True,
+            'servicio_activo': servicio_activo
         }
         return render(request, 'servicio_suspendido.html', context)
 
@@ -853,31 +716,22 @@ def dashboard_servicios(request): # Apariencia
 
 @login_required
 def dashboard_catalogo(request):
-    # Usamos la función auxiliar para obtener el servicio que se está gestionando
     servicio_activo = get_servicio_activo(request)
-
     if not servicio_activo.esta_activo:
         context = {
             'servicio': servicio_activo,
-            'onboarding_completo': True, # Le decimos a la plantilla que el tour YA se hizo.
-            'servicio_activo': servicio_activo # Es buena práctica pasarlo también
+            'onboarding_completo': True,
+            'servicio_activo': servicio_activo
         }
         return render(request, 'servicio_suspendido.html', context)
-    
-    # Si el propietario no tiene ningún servicio, mostramos una página informativa
     if not servicio_activo:
         return render(request, 'dashboard_catalogo.html', {'no_hay_servicio': True})
-
-    # Creamos el FormSet para el catálogo de sub-servicios
     SubServicioFormSet = inlineformset_factory(
         Servicio, SubServicio,
         fields=('nombre', 'descripcion', 'duracion', 'precio'),
         extra=1, can_delete=True
     )
-
-    # Procesamiento del formulario POST
     if request.method == 'POST':
-        # Esta vista ahora SOLO maneja el formset del catálogo
         formset = SubServicioFormSet(request.POST, instance=servicio_activo, prefix='subservicios')
         if formset.is_valid():
             formset.save()
@@ -885,7 +739,6 @@ def dashboard_catalogo(request):
             return redirect('dashboard_catalogo')
     else:
         formset = SubServicioFormSet(instance=servicio_activo, prefix='subservicios')
-
     context = {
         'servicio_activo': servicio_activo,
         'onboarding_completo': servicio_activo.configuracion_inicial_completa,
@@ -902,8 +755,8 @@ def dashboard_detalles_negocio(request):
     if not servicio_activo.esta_activo:
         context = {
             'servicio': servicio_activo,
-            'onboarding_completo': True, # Le decimos a la plantilla que el tour YA se hizo.
-            'servicio_activo': servicio_activo # Es buena práctica pasarlo también
+            'onboarding_completo': True,
+            'servicio_activo': servicio_activo
         }
         return render(request, 'servicio_suspendido.html', context)
     
@@ -932,8 +785,6 @@ def mis_turnos(request):
     ahora = timezone.now()
     hoy = ahora.date()
     hora_actual = ahora.time()
-
-    # --- LÓGICA DE FILTRADO MEJORADA (Idéntica a la del propietario) ---
     turnos_futuros = turnos_del_cliente.filter(
         Q(fecha__gt=hoy) | Q(fecha=hoy, hora__gte=hora_actual)
     ).order_by('fecha', 'hora')
@@ -941,11 +792,8 @@ def mis_turnos(request):
     turnos_pasados = turnos_del_cliente.filter(
         Q(fecha__lt=hoy) | Q(fecha=hoy, hora__lt=hora_actual)
     ).order_by('-fecha', '-hora')
-    
     turnos_no_vistos_ids = list(turnos_del_cliente.filter(visto_por_cliente=False).values_list('id', flat=True))
-    # Marcamos notificaciones como vistas (esto se queda igual)
     turnos_del_cliente.filter(id__in=turnos_no_vistos_ids).update(visto_por_cliente=True)
-    
     context = {
         'turnos_futuros': turnos_futuros,
         'turnos_pasados': turnos_pasados,
@@ -955,14 +803,11 @@ def mis_turnos(request):
 
 @login_required
 def confirmar_turno(request, turno_id):
-    # Buscamos el turno, asegurándonos de que pertenece a un servicio del propietario logueado
     turno = get_object_or_404(Turno, id=turno_id, servicio__propietario=request.user)
-    
     if request.method == 'POST':
         turno.estado = 'confirmado'
         turno.visto_por_cliente = False
         turno.save()
-    
         try:
             asunto = f"¡Tu turno en {turno.servicio.nombre} ha sido confirmado!"
             mensaje = (
@@ -972,32 +817,25 @@ def confirmar_turno(request, turno_id):
                 f"Puedes ver todos tus turnos en tu perfil.\n\n"
                 f"¡Te esperamos!"
             )
-            
             send_mail(
                 asunto,
                 mensaje,
-                None,  # Django usará el DEFAULT_FROM_EMAIL de tus settings
+                None,
                 [turno.cliente.email],
                 fail_silently=False,
             )
             messages.success(request, f"Turno confirmado y notificación enviada a {turno.cliente.first_name}.")
         except Exception as e:
-            # Si el email falla, no queremos que la app se rompa.
-            # Simplemente informamos al propietario del error.
             messages.error(request, f"El turno fue confirmado, pero hubo un error al enviar el email de notificación: {e}")
-    # Redirigimos de vuelta al dashboard
     return redirect('dashboard_propietario')
 
 @login_required
 def cancelar_turno(request, turno_id):
-    # Misma lógica de seguridad que en confirmar_turno
     turno = get_object_or_404(Turno, id=turno_id, servicio__propietario=request.user)
-    
     if request.method == 'POST':
         turno.estado = 'cancelado'
         turno.visto_por_cliente = False
         turno.save()
-        
         try:
             asunto = f"Información importante sobre tu turno en {turno.servicio.nombre}"
             mensaje = (
@@ -1007,7 +845,6 @@ def cancelar_turno(request, turno_id):
                 f"Si crees que esto es un error o quieres reprogramar, por favor, ponte en contacto directamente con el negocio.\n\n"
                 f"Lamentamos las molestias."
             )
-            
             send_mail(
                 asunto,
                 mensaje,
@@ -1018,7 +855,6 @@ def cancelar_turno(request, turno_id):
             messages.info(request, f"Turno cancelado y notificación enviada a {turno.cliente.first_name}.")
         except Exception as e:
             messages.error(request, f"El turno fue cancelado, pero hubo un error al enviar el email de notificación: {e}")
-            
     return redirect('dashboard_propietario')
 
 @login_required
@@ -1034,12 +870,8 @@ def finalizar_turno(request, turno_id):
         form = IngresoTurnoForm(request.POST, instance=turno)
         if form.is_valid():
             instancia_turno = form.save(commit=False)
-            
-            # Siempre nos aseguramos de que el estado final sea 'completado'.
             instancia_turno.estado = 'completado'
             instancia_turno.save()
-
-            # Mensaje dinámico dependiendo de la acción
             if turno.ingreso_real is None:
                 messages.success(request, f"¡Turno de {turno.cliente.username} finalizado con éxito!")
             else:
@@ -1047,57 +879,36 @@ def finalizar_turno(request, turno_id):
 
             return redirect('dashboard_turnos')
     else:
-        # Si el turno ya tiene un ingreso, lo usamos. Si no, calculamos el sugerido.
         if turno.ingreso_real is not None:
-            # El turno ya fue finalizado, estamos editando.
             form = IngresoTurnoForm(instance=turno)
         else:
-            # Es la primera vez que se finaliza, calculamos el precio sugerido.
             precio_sugerido_dict = turno.sub_servicios_solicitados.aggregate(total=Sum('precio'))
             precio_sugerido = precio_sugerido_dict.get('total') or 0.00
             form = IngresoTurnoForm(instance=turno, initial={'ingreso_real': precio_sugerido})
-
-    # Decidimos el título de la página según si estamos finalizando o editando
     titulo_pagina = "Editar Ingreso del Turno" if turno.ingreso_real is not None else "Finalizar y Registrar Ingreso"
-
     context = {
         'form': form,
         'turno': turno,
         'servicio_activo': servicio_activo,
         'onboarding_completo': servicio_activo.configuracion_inicial_completa,
-        'titulo_pagina': titulo_pagina, # Pasamos el título dinámico a la plantilla
+        'titulo_pagina': titulo_pagina,
     }
     return render(request, 'finalizar_turno.html', context)
 
 @login_required
 def obtener_notificaciones(request):
-    """
-    Una vista de API simple que devuelve el número de turnos
-    confirmados o cancelados recientemente para el usuario.
-    """
     if not request.user.is_authenticated:
         return JsonResponse({'conteo': 0})
-    
-    # Buscamos turnos del usuario que hayan sido confirmados o cancelados
-    # y que el usuario aún no ha "visto". Para esto necesitamos un nuevo campo.
-    # Vamos a añadir un campo 'visto_por_cliente' al modelo Turno.
     conteo_notificaciones = Turno.objects.filter(
         cliente=request.user, 
         estado__in=['confirmado', 'cancelado'],
-        visto_por_cliente=False # ¡Necesitamos añadir este campo!
+        visto_por_cliente=False
     ).count()
 
     return JsonResponse({'conteo': conteo_notificaciones})
 
 @login_required
 def obtener_slots_disponibles(request, servicio_id):
-    """
-    Calcula y devuelve los huecos de tiempo disponibles con lógica mejorada para:
-    1. Respetar los descansos y no permitir turnos que los invadan.
-    2. Calcular correctamente los slots después del descanso.
-    3. Mantener el búfer y la reserva en el mismo día.
-    """
-    # --- 1. OBTENCIÓN Y VALIDACIÓN DE PARÁMETROS (Sin cambios) ---
     fecha_str = request.GET.get('fecha')
     duracion_str = request.GET.get('duracion')
     if not fecha_str or not duracion_str:
@@ -1109,7 +920,6 @@ def obtener_slots_disponibles(request, servicio_id):
     except (ValueError, TypeError):
         return JsonResponse({'error': 'Parámetros inválidos.'}, status=400)
 
-    # --- 2. OBTENER LA REGLA DE HORARIO (Lógica mejorada) ---
     dia_de_la_semana_num = fecha.weekday()
     dia_map = {0: 'lunes', 1: 'martes', 2: 'miercoles', 3: 'jueves', 4: 'viernes', 5: 'sabado', 6: 'domingo'}
     campo_dia_a_filtrar = dia_map.get(dia_de_la_semana_num)
@@ -1120,18 +930,15 @@ def obtener_slots_disponibles(request, servicio_id):
     except HorarioLaboral.MultipleObjectsReturned:
         regla_horario = servicio.horarios.filter(activo=True, **{campo_dia_a_filtrar: True}).first()
 
-    # --- 3. PREPARAR DATOS Y DEFINIR UNA FUNCIÓN AUXILIAR ---
     slots_disponibles = []
     turnos_del_dia = Turno.objects.filter(servicio=servicio, fecha=fecha, estado__in=['pendiente', 'confirmado'])
     bloqueos_del_dia = servicio.dias_no_disponibles.filter(fecha_inicio__lte=fecha, fecha_fin__gte=fecha)
     duracion_requerida_td = timedelta(minutes=duracion_requerida)
     
-    # Función auxiliar para generar slots en un período de tiempo
     def generar_slots_en_periodo(hora_inicio_periodo, hora_fin_periodo):
         hora_actual_dt = datetime.combine(fecha, hora_inicio_periodo)
         hora_fin_dt = datetime.combine(fecha, hora_fin_periodo)
 
-        # Redondeamos la hora de inicio al próximo intervalo de 15 minutos
         if hora_actual_dt.minute % 15 != 0:
             hora_actual_dt += timedelta(minutes=(15 - (hora_actual_dt.minute % 15)))
 
@@ -1140,8 +947,6 @@ def obtener_slots_disponibles(request, servicio_id):
             slot_fin_dt = hora_actual_dt + duracion_requerida_td
             slot_esta_disponible = True
 
-            # Comprobaciones de solapamiento (bloqueos y turnos)
-            # (Esta lógica interna se mantiene igual)
             for bloqueo in bloqueos_del_dia:
                 if bloqueo.hora_inicio is None: slot_esta_disponible = False; break
                 if slot_inicio_dt < datetime.combine(fecha, bloqueo.hora_fin) and slot_fin_dt > datetime.combine(fecha, bloqueo.hora_inicio):
@@ -1160,29 +965,23 @@ def obtener_slots_disponibles(request, servicio_id):
             
             hora_actual_dt += timedelta(minutes=15)
 
-    # --- 4. DIVIDIR EL DÍA EN PERÍODOS DE TRABAJO ---
     periodos_de_trabajo = []
     apertura = regla_horario.horario_apertura
     cierre = regla_horario.horario_cierre
 
     if regla_horario.tiene_descanso and regla_horario.descanso_inicio and regla_horario.descanso_fin:
-        # Si hay descanso, tenemos dos períodos: mañana y tarde
         periodos_de_trabajo.append((apertura, regla_horario.descanso_inicio))
         periodos_de_trabajo.append((regla_horario.descanso_fin, cierre))
     else:
-        # Si no hay descanso, solo hay un período
         periodos_de_trabajo.append((apertura, cierre))
 
-    # --- 5. GENERAR SLOTS PARA CADA PERÍODO ---
     for inicio, fin in periodos_de_trabajo:
         hora_inicio_busqueda = inicio
-        # Lógica para turnos en el mismo día: ajustamos la hora de inicio si es hoy
         if fecha == timezone.localdate():
             hora_minima_reserva = (timezone.localtime() + timedelta(minutes=15)).time()
             if hora_minima_reserva > hora_inicio_busqueda:
                 hora_inicio_busqueda = hora_minima_reserva
         
-        # Solo generamos slots si el período de búsqueda tiene sentido
         if hora_inicio_busqueda < fin:
             generar_slots_en_periodo(hora_inicio_busqueda, fin)
 
@@ -1191,16 +990,12 @@ def obtener_slots_disponibles(request, servicio_id):
 @login_required
 def editar_perfil(request):
     if request.method == 'POST':
-        # Pasamos request.POST para procesar los datos enviados y 'instance'
-        # para saber qué usuario estamos actualizando.
         form = UserUpdateForm(request.POST, instance=request.user)
         if form.is_valid():
             form.save()
-            # Enviamos un mensaje de éxito que se mostrará en la plantilla
             messages.success(request, '¡Tu perfil ha sido actualizado correctamente!')
-            return redirect('editar_perfil') # Redirigimos a la misma página
+            return redirect('editar_perfil')
     else:
-        # Si no es POST, simplemente mostramos el formulario con los datos actuales del usuario
         form = UserUpdateForm(instance=request.user)
 
     context = {
@@ -1211,48 +1006,30 @@ def editar_perfil(request):
 @login_required
 def toggle_favorito(request, servicio_id):
     servicio = get_object_or_404(Servicio, id=servicio_id)
-    
-    # request.user.servicios_favoritos es el 'related_name' que definimos
     if servicio in request.user.servicios_favoritos.all():
-        # Si ya es favorito, lo quitamos
         request.user.servicios_favoritos.remove(servicio)
     else:
-        # Si no es favorito, lo añadimos
         request.user.servicios_favoritos.add(servicio)
     
-    # Redirigimos al usuario a la página desde donde vino (si es posible)
-    # o a la página de inicio como fallback.
     return redirect(request.META.get('HTTP_REFERER', 'index'))
 
 @login_required
 def mis_favoritos(request):
-    # Obtenemos solo los servicios que el usuario ha marcado
     servicios_favoritos = request.user.servicios_favoritos.all()
     context = {
         'servicios': servicios_favoritos
     }
-    # Podemos reusar la plantilla index.html para mostrar las tarjetas
     return render(request, 'index.html', context)
 
 def api_get_reseñas(request, servicio_slug):
     servicio = get_object_or_404(Servicio, slug=servicio_slug)
-    
-    # Obtenemos todos los filtros de la URL
     calificacion_filtro = request.GET.get('calificacion')
     page_number = request.GET.get('page', 1)
-
-    # Creamos la consulta base
     reseñas_list = servicio.reseñas.all().select_related('usuario').order_by('-fecha_creacion')
-
-    # Aplicamos el filtro si existe
     if calificacion_filtro and calificacion_filtro.isdigit():
         reseñas_list = reseñas_list.filter(calificacion=int(calificacion_filtro))
-
-    # Paginamos los resultados
-    paginator = Paginator(reseñas_list, 4) # Mostraremos 4 reseñas por cada "Cargar más"
+    paginator = Paginator(reseñas_list, 4)
     page_obj = paginator.get_page(page_number)
-
-    # Preparamos los datos para convertirlos a JSON
     data = {
         'reseñas': [
             {
@@ -1270,15 +1047,12 @@ def api_get_reseñas(request, servicio_slug):
 @login_required
 def crear_reseña(request, turno_id):
     turno = get_object_or_404(Turno, id=turno_id, cliente=request.user)
-
-    # Validaciones de seguridad:
     if turno.estado != 'completado':
         messages.error(request, "Solo puedes dejar una reseña para turnos completados.")
         return redirect('mis_turnos')
     if hasattr(turno, 'reseña'):
         messages.warning(request, "Ya has dejado una reseña para este turno.")
         return redirect('mis_turnos')
-
     if request.method == 'POST':
         form = ReseñaForm(request.POST)
         if form.is_valid():

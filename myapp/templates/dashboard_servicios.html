@@ -167,6 +167,25 @@
                         </div>
                     </div>
                 </div>
+                <h3 class="preview-subtitle">Previsualización de Tarjeta</h3>
+                <div class="card-preview-container">
+                    <div class="card-servicio-nueva has-logo">
+                        <div class="card-titulo-pill">
+                            <span id="preview-card-title">{{ servicio_activo.nombre }}</span>
+                        </div>
+                        <div class="card-logo">
+                            {# Le damos un ID para que JS lo encuentre #}
+                            <img id="preview-card-logo" src="{% if servicio_activo.logo %}{{ servicio_activo.logo.url }}{% else %}https://via.placeholder.com/80x80.png/333/fff?text=Logo{% endif %}" alt="Logo de {{ servicio.nombre }}">
+                        </div>
+                        <div class="card-contenido">
+                            <p class="card-descripcion">Una breve descripción de tu increíble servicio para atraer clientes...</p>
+                            <p class="card-direccion">
+                                <i class="fas fa-map-marker-alt"></i> Tu Dirección Aquí
+                            </p>
+                            <a href="#" class="card-boton" id="preview-card-button">Ver y Reservar</a>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     {% endif %}
@@ -189,6 +208,7 @@
             const bannerInput = document.getElementById('id_imagen_banner');
             const fuenteTitulosInput = document.getElementById('id_fuente_titulos');
             const fuenteCuerpoInput = document.getElementById('id_fuente_cuerpo');
+            const logoInput = document.getElementById('id_logo');
             
             const previewButton = document.getElementById('previewButton');
             const previewCard = document.getElementById('previewCard');
@@ -197,6 +217,7 @@
             const previewTitle = document.getElementById('previewTitle');
             const previewText = document.getElementById('previewText');
             const fontLinkPreview = document.getElementById('fontLinkPreview');
+            const previewCardLogo = document.getElementById('preview-card-logo');
 
             function updateGoogleFonts(fontTitles, fontBody) {
                 const fontTitleName = fontTitles.split(',')[0].replace(/'/g, "").replace(/ /g, "+");
@@ -209,6 +230,8 @@
                 previewCard.style.backgroundColor = colorFondoInput.value;
                 previewTitle.style.color = colorTextoInput.value;
                 previewText.style.color = colorTextoInput.value;
+                
+
                 const previewSlot = document.getElementById('previewSlot');
                 const previewSlotSelected = document.getElementById('previewSlotSelected');
                 if(previewSlot && previewSlotSelected) {
@@ -229,6 +252,16 @@
                         previewBanner.style.backgroundImage = 'none';
                     }
                 }
+
+                if (logoInput.files && logoInput.files[0]) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        if(previewCardLogo) { // Verificamos que el elemento exista
+                            previewCardLogo.src = e.target.result;
+                        }
+                    }
+                    reader.readAsDataURL(logoInput.files[0]);
+                }
                 
                 const selectedFontTitles = fuenteTitulosInput.value;
                 const selectedFontBody = fuenteCuerpoInput.value;
@@ -243,6 +276,7 @@
 
             form.addEventListener('input', updatePreview);
             bannerInput.addEventListener('change', updatePreview);
+            logoInput.addEventListener('change', updatePreview);
 
             const logoErrorsDiv = document.getElementById('logo-errors');
 

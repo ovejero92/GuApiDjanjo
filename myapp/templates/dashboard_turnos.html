@@ -33,13 +33,10 @@
                             <tr>
                                 <td data-label="Cliente"><span class="data-value">{{ turno.cliente.first_name|default:turno.cliente.username }}</span></td>
                                 <td data-label="Servicios">
-                                    <!-- Usamos un contenedor div para aplicar Flexbox y organizar las etiquetas -->
                                     <div class="servicio-tag-container">
                                         {% for ss in turno.sub_servicios_solicitados.all %}
-                                            <!-- Cada servicio será una etiqueta individual -->
                                             <span class="servicio-tag">{{ ss.nombre }}</span>
                                         {% empty %}
-                                            <!-- Mensaje si no hay servicios seleccionados -->
                                             <span><em>Sin subservicios</em></span>
                                         {% endfor %}
                                     </div>
@@ -123,7 +120,6 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <!-- Cambiamos el bucle para que itere sobre el objeto de la página -->
                             {% for turno in historial_page_obj %}
                             <tr>
                                 <td data-label="Cliente">{{ turno.cliente.first_name|default:turno.cliente.username }}</td>
@@ -153,7 +149,6 @@
                     </table>
                 </div>
 
-                <!-- Controles de Paginación -->
                 {% if historial_page_obj.has_other_pages %}
                 <div class="pagination-container">
                     {% if historial_page_obj.has_previous %}
@@ -185,12 +180,10 @@ document.addEventListener('DOMContentLoaded', function() {
             if (botonAyuda) {
                 botonAyuda.addEventListener('click', function() {
                     
-                    // Si hay un tour activo (el de bienvenida), lo cerramos primero
                     if (Shepherd.activeTour) {
                         Shepherd.activeTour.cancel();
                     }
 
-                    // Creamos una nueva instancia del tour aquí mismo
                     const tourAyuda = new Shepherd.Tour({
                         useModalOverlay: true,
                         defaultStepOptions: {
@@ -200,7 +193,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     });
 
-                    // Añadimos los pasos
                     tourAyuda.addSteps([
                         {
                             title: 'Turnos pendientes',
@@ -222,7 +214,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     ]);
                     
-                    // Iniciamos el tour
                     tourAyuda.start();
                 });
             }

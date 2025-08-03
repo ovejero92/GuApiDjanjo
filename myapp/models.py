@@ -1,14 +1,10 @@
-import os
-import sys
-from io import BytesIO
-from PIL import Image
+
 from django.utils.text import slugify
 from django.db import models
 from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.core.exceptions import ValidationError
-from django.core.files.uploadedfile import InMemoryUploadedFile
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 
 def validar_tamaño_maximo_img(value):
@@ -17,9 +13,7 @@ def validar_tamaño_maximo_img(value):
         raise ValidationError('¡El archivo es demasiado grande! El tamaño máximo es de 2 MB.')
 
 class MedioDePago(models.Model):
-    # El identificador que guardaremos en la base de datos (ej: "efectivo")
     slug = models.SlugField(max_length=50, unique=True, help_text="Identificador único para el código, ej: 'efectivo'")
-    # El nombre que verá el usuario (ej: "Efectivo")
     nombre_visible = models.CharField(max_length=100, help_text="El nombre que verá el usuario en el formulario")
 
     def __str__(self):
@@ -42,17 +36,17 @@ class Servicio(models.Model):
     descripcion = models.TextField(default="Sin descripción")
     direccion = models.CharField(max_length=200, default="Sin dirección")
     duracion_buffer_minutos = models.PositiveIntegerField(
-        default=15, # Un default razonable de 15 minutos
+        default=15,
         help_text="Minutos de 'colchón' que se añadirán después de cada turno para preparación."
     )
     color_slot = models.CharField(
-        max_length=7, 
-        default='#4A4A4A', 
+        max_length=7,
+        default='#4A4A4A',
         help_text="Color de fondo para los botones de horarios y servicios."
     )
     color_slot_seleccionado = models.CharField(
-        max_length=7, 
-        default='#28a745', 
+        max_length=7,
+        default='#28a745',
         help_text="Color de fondo para los botones CUANDO están seleccionados."
     )
     favoritos = models.ManyToManyField(User, related_name='servicios_favoritos', blank=True)
@@ -60,7 +54,7 @@ class Servicio(models.Model):
     color_fondo = models.CharField(max_length=7, default='#333333', help_text="Color de fondo")
     medios_de_pago_aceptados = models.ManyToManyField(
         MedioDePago,
-        blank=True, # Un servicio puede no tener ninguno seleccionado al principio
+        blank=True,
         help_text="Selecciona los medios de pago que aceptas en tu negocio."
     )
     imagen_banner = models.ImageField(upload_to='banners/', null=True, blank=True, help_text="Banner (máx 2MB)", validators=[validar_tamaño_maximo_img])
@@ -69,7 +63,7 @@ class Servicio(models.Model):
         null=True,
         blank=True,
         help_text="Sube un logo para tu negocio (recomendado: cuadrado, ej. 400x400px, máx 1MB).",
-        validators=[validar_tamaño_maximo_img] # Reutilizamos tu validador
+        validators=[validar_tamaño_maximo_img]
     )
     footer_personalizado = models.TextField(blank=True, help_text="Texto o HTML simple para el footer")
     configuracion_inicial_completa = models.BooleanField(default=False)
@@ -94,14 +88,12 @@ class Servicio(models.Model):
         help_text="Color para el texto principal. Elige un color oscuro si usas un fondo claro."
     )
     slug = models.SlugField(
-        max_length=120, 
-        unique=True,      # Asegura que no haya dos negocios con la misma URL.
-        blank=True,       # Permite que esté vacío temporalmente para los servicios ya existentes.
+        max_length=120,
+        unique=True,
+        blank=True,
         null=True,
         help_text="Generado automáticamente a partir del nombre para la URL."
     )
-    
-    # --- Campos para el Footer Estructurado ---
     footer_direccion = models.CharField(max_length=255, blank=True, null=True, help_text="Ej: Av. Siempreviva 742, Springfield")
     footer_telefono = models.CharField(max_length=20, blank=True, null=True, help_text="Ej: +54 9 11 1234-5678")
     footer_email = models.EmailField(max_length=255, blank=True, null=True, help_text="El email de contacto de tu negocio.")
@@ -109,42 +101,53 @@ class Servicio(models.Model):
     footer_facebook_url = models.CharField(max_length=100, blank=True, null=True, help_text="Solo el nombre de tu página (ej: cocacola)")
     footer_tiktok_url = models.CharField(max_length=100, blank=True, null=True, help_text="Solo tu nombre de usuario (con @)")    
     def save(self, *args, **kwargs):
-        # Si el servicio no tiene un slug, lo creamos a partir del nombre.
         if not self.slug:
             self.slug = slugify(self.nombre)
         else:
             self.slug = slugify(self.slug)
-        # ... (el resto de tu lógica del método save para borrar imágenes se queda igual)
         super().save(*args, **kwargs)
-
-    def delete(self, *args, **kwargs):
-        if self.imagen_banner:
-            self.imagen_banner.delete(save=False)
-        super().delete(*args, **kwargs)
         
     def __str__(self):
         return self.nombre
     
     @property
     def tiene_apariencia_premium_activa(self):
-        """
-        Comprueba si el propietario tiene una suscripción activa
-        que le permita usar la personalización de apariencia.
-        """
         try:
-            # Buscamos la suscripción del propietario de este servicio
             suscripcion = self.propietario.suscripcion
-            # Devolvemos True SOLO SI la suscripción está activa Y el plan lo permite
             return suscripcion.is_active and suscripcion.plan.allow_customization
         except Suscripcion.DoesNotExist:
-            # Si el usuario no tiene un objeto de suscripción, no tiene acceso.
             return False
         except AttributeError:
-            # Si la suscripción no tiene un plan asignado, no tiene acceso.
             return False
 
+@receiver(models.signals.post_delete, sender=Servicio)
+def auto_delete_file_on_delete(sender, instance, **kwargs):
+    if instance.imagen_banner:
+        instance.imagen_banner.delete(save=False)
+    if instance.logo:
+        instance.logo.delete(save=False)
+
+@receiver(models.signals.pre_save, sender=Servicio)
+def auto_delete_file_on_change(sender, instance, **kwargs):
+    if not instance.pk:
+        return False
+    try:
+        old_instance = Servicio.objects.get(pk=instance.pk)
+    except Servicio.DoesNotExist:
+        return False
+
+    old_banner = old_instance.imagen_banner
+    new_banner = instance.imagen_banner
+    if old_banner and old_banner != new_banner:
+        old_banner.delete(save=False)
+
+    old_logo = old_instance.logo
+    new_logo = instance.logo
+    if old_logo and old_logo != new_logo:
+        old_logo.delete(save=False)
+
+
 class SubServicio(models.Model):
-    # Vinculado al negocio principal
     servicio_padre = models.ForeignKey(Servicio, on_delete=models.CASCADE, related_name='sub_servicios')
     
     nombre = models.CharField(max_length=100)
@@ -199,17 +202,12 @@ class HorarioLaboral(models.Model):
 
 class DiaNoDisponible(models.Model):
     servicio = models.ForeignKey(Servicio, on_delete=models.CASCADE, related_name='dias_no_disponibles')
-    
-    # --- INICIO DE LA CORRECCIÓN DEL MODELO ---
-    # Renombramos 'fecha' a 'fecha_inicio' y añadimos 'fecha_fin'
     fecha_inicio = models.DateField(help_text="Día de inicio del bloqueo (o día único).")
     fecha_fin = models.DateField(
         null=True, 
         blank=True, 
         help_text="Opcional. Rellena este campo solo si quieres bloquear un rango de varios días."
     )
-    # --- FIN DE LA CORRECCIÓN DEL MODELO ---
-
     hora_inicio = models.TimeField(null=True, blank=True)
     hora_fin = models.TimeField(null=True, blank=True)
     motivo = models.CharField(max_length=255, blank=True, help_text="Ej: Vacaciones, Feriado")
@@ -220,12 +218,10 @@ class DiaNoDisponible(models.Model):
         return f"Día completo no disponible en {self.servicio.nombre}: {self.fecha_inicio}"
 
     def clean(self):
-        # Validación para asegurar que el rango de fechas sea lógico
         if self.fecha_fin and self.fecha_fin < self.fecha_inicio:
             raise ValidationError("La fecha de fin no puede ser anterior a la fecha de inicio.")
-        
+
 class Turno(models.Model):
-    # Mantenemos la relación con el Servicio principal para facilitar las consultas y restricciones.
     servicio = models.ForeignKey(Servicio, on_delete=models.CASCADE, related_name='turnos')
     cliente = models.ForeignKey(User, on_delete=models.CASCADE, related_name='turnos_solicitados')
     fecha = models.DateField()
@@ -240,31 +236,23 @@ class Turno(models.Model):
     medio_de_pago = models.CharField(
         max_length=20,
         choices=MEDIO_DE_PAGO_CHOICES,
-        default='efectivo', # Un valor por defecto seguro
+        default='efectivo',
         help_text="El medio de pago elegido por el cliente."
     )
     medio_de_pago_final = models.CharField(
         max_length=50,
-        blank=True, # Puede estar vacío hasta que se finalice el turno.
+        blank=True,
         null=True,
         help_text="El medio de pago real con el que se cobró el turno."
     )
-    # ¡NUEVO CAMPO! La duración total calculada de todos los sub-servicios reservados.
     duracion_total = models.PositiveIntegerField(default=30, help_text="Duración total calculada en minutos")
-    
     ESTADO_CHOICES = [('pendiente', 'Pendiente'), ('confirmado', 'Confirmado'), ('cancelado', 'Cancelado'), ('completado', 'Completado')]
     estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='pendiente')
-    
-    # ¡MODIFICADO! Este campo ahora puede estar vacío, se rellenará al finalizar.
     ingreso_real = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
-    
     visto_por_cliente = models.BooleanField(default=False)
-    
-    # ¡NUEVO CAMPO! Relación "Muchos a Muchos" para los servicios que se solicitaron.
     sub_servicios_solicitados = models.ManyToManyField(SubServicio, blank=True)
 
     class Meta:
-        # La restricción sigue funcionando como antes.
         unique_together = ('servicio', 'fecha', 'hora')
 
     def __str__(self):
@@ -294,15 +282,9 @@ class Plan(models.Model):
     nombre = models.CharField(max_length=50, choices=PLAN_CHOICES, unique=True)
     slug = models.SlugField(unique=True, help_text="Se usa en las URLs. Ej: 'pro'")
     precio_mensual = models.DecimalField(max_digits=8, decimal_places=2, default=0.00)
-    
-    # IDs de suscripción de Mercado Pago (¡Importante!)
-    mp_plan_id = models.CharField(max_length=100, blank=True, null=True, 
-                                  help_text="El ID del Plan de Suscripción creado en Mercado Pago")
-
-    # --- Límites de las Funcionalidades ---
+    mp_plan_id = models.CharField(max_length=100, blank=True, null=True, help_text="El ID del Plan de Suscripción creado en Mercado Pago")
     allow_customization = models.BooleanField(default=False, help_text="Permite personalizar colores y banner.")
     allow_metrics = models.BooleanField(default=False, help_text="Permite acceder al dashboard de métricas.")
-    # Puedes añadir más aquí en el futuro
 
     def __str__(self):
         return self.get_nombre_display()
@@ -325,8 +307,6 @@ class PerfilUsuario(models.Model):
 
     def __str__(self):
         return f'Perfil de {self.usuario.username}'
-
-
 
 @receiver(post_save, sender=User)
 def crear_o_actualizar_perfil_usuario(sender, instance, created, **kwargs):

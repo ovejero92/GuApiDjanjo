@@ -1,7 +1,6 @@
 from django.contrib import admin
 from .models import Servicio, SubServicio, Turno, HorarioLaboral, DiaNoDisponible, Reseña, Plan, Suscripcion, MedioDePago, Categoria, PerfilUsuario
 
-# Registros simples que no necesitan configuración especial
 admin.site.register(MedioDePago)
 admin.site.register(Categoria)
 admin.site.register(PerfilUsuario)
@@ -10,7 +9,6 @@ admin.site.register(DiaNoDisponible)
 admin.site.register(SubServicio)
 
 
-# Acciones personalizadas para el modelo Servicio
 @admin.action(description="Activar servicios seleccionados (pago recibido)")
 def activar_servicios(modeladmin, request, queryset):
     queryset.update(esta_activo=True)
@@ -20,34 +18,27 @@ def desactivar_servicios(modeladmin, request, queryset):
     queryset.update(esta_activo=False)
 
 
-# Clases "Inline" para editar modelos relacionados dentro de la página de Servicio
 
 class SubServicioInline(admin.TabularInline):
     model = SubServicio
     extra = 1
     fields = ('nombre', 'descripcion', 'duracion', 'precio')
 
-# --- INICIO DE LA CORRECCIÓN ---
 class HorarioLaboralInline(admin.TabularInline):
     model = HorarioLaboral
-    # Usamos los campos del NUEVO modelo, agrupados para que se vean bien
     fields = (
         ('lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'),
         ('horario_apertura', 'horario_cierre'),
         ('tiene_descanso', 'descanso_inicio', 'descanso_fin'),
         'activo'
     )
-    extra = 0 # No muestra formularios vacíos por defecto
-# --- FIN DE LA CORRECCIÓN ---
+    extra = 0
 
 class DiaNoDisponibleInline(admin.TabularInline):
     model = DiaNoDisponible
     extra = 1
-    # Usamos los campos correctos para el bloqueo por rangos
     fields = ('fecha_inicio', 'fecha_fin', 'hora_inicio', 'hora_fin', 'motivo')
 
-
-# --- CONFIGURACIÓN PRINCIPAL PARA CADA MODELO ---
 
 @admin.register(Servicio)
 class ServicioAdmin(admin.ModelAdmin):

@@ -13,27 +13,21 @@
 </div>
     <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Django crea el id como "id_" + nombre_del_campo
     const selectMultiple = document.getElementById('id_medios_de_pago_aceptados');
 
     if (selectMultiple) {
-        // Le damos un poco de estilo para que se vea mejor
         selectMultiple.style.height = 'auto';
         selectMultiple.style.padding = '10px';
         selectMultiple.style.backgroundColor = '#333';
         selectMultiple.style.color = '#fff';
         selectMultiple.style.border = '1px solid #555';
 
-        // Variable para evitar el comportamiento por defecto de "deseleccionar"
         let lastSelected = null;
 
-        // Evitamos que se pueda deseleccionar con Ctrl+Clic, es confuso
         selectMultiple.addEventListener('mousedown', function(e) {
             const option = e.target;
             if (option.tagName === 'OPTION') {
-                e.preventDefault(); // ¡Prevenimos el comportamiento por defecto del navegador!
-                
-                // Hacemos el toggle: si está seleccionada la deseleccionamos, y viceversa
+                e.preventDefault();
                 option.selected = !option.selected;
             }
         });

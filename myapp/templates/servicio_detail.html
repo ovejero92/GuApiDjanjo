@@ -44,9 +44,7 @@
                         <div class="subservicio-item" data-id="{{ subservicio.id }}" data-duracion="{{ subservicio.duracion }}" data-precio="{{ subservicio.precio }}" title="{{ subservicio.descripcion }}">
                             <div class="subservicio-info">
                                 <strong>{{ subservicio.nombre }}</strong>
-                                <i class="fas fa-info-circle info-icon" 
-                                   data-descripcion="{{ subservicio.descripcion|escapejs }}"
-                                   data-nombre="{{ subservicio.nombre|escapejs }}"></i>
+                                <i class="fas fa-info-circle info-icon" data-descripcion="{{ subservicio.descripcion|escapejs }}" data-nombre="{{ subservicio.nombre|escapejs }}"></i>
                             </div>
                             <span>({{ subservicio.duracion }} min) - ${{ subservicio.precio|floatformat:2 }}</span>
                         </div>
@@ -275,12 +273,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-
-    // 1. Obtenemos la información que pasamos desde Django.
     const fechasOcupadas = JSON.parse('{{ fechas_ocupadas_json|safe }}');
     const horarioTrabajo = JSON.parse('{{ horario_trabajo_json|safe }}');
 
-    // 2. Inicializamos Flatpickr en el campo de fecha.
     flatpickr(fechaInput, {
         altInput: true,
         altFormat: "F j, Y",
@@ -288,28 +283,16 @@ document.addEventListener('DOMContentLoaded', function() {
         minDate: "today",
         locale: "es",
 
-        // ### LA MAGIA ESTÁ AQUÍ ###
-        // En lugar de deshabilitar, vamos a HABILITAR días específicos.
-        // 'enable' recibe una función que se ejecuta para cada día del calendario.
-        // La función debe devolver 'true' si el día es válido, o 'false' si no lo es.
         enable: [
             function(date) {
-                // Regla 1: ¿El negocio trabaja este día de la semana?
-                // `date.getDay()` devuelve el día (0=Domingo, 1=Lunes...).
-                // Buscamos en nuestro objeto `horarioTrabajo`.
                 const esDiaLaborable = horarioTrabajo[String(date.getDay())];
-
-                // Regla 2: ¿El día completo ya está marcado como ocupado?
-                // Esto es útil si un día se llena por completo.
                 const fechaFormateada = date.toISOString().split('T')[0];
                 const estaOcupado = fechasOcupadas.includes(fechaFormateada);
                 
-                // Un día está habilitado si es un día laborable Y NO está en la lista de ocupados.
                 return esDiaLaborable && !estaOcupado;
             }
         ],
 
-        // Tu lógica para cargar los slots cuando se elige una fecha se mantiene igual.
         onChange: function(selectedDates, dateStr, instance) {
             submitButton.classList.add('is-disabled');
             if (dateStr && duracionTotalCalculada > 0) {
@@ -318,9 +301,6 @@ document.addEventListener('DOMContentLoaded', function() {
         },
     });
 
-    // --- FIN DE LA LÓGICA DE CALENDARIO ---
-
-    // El resto de tu código (listeners de subservicios, etc.) se queda igual.
     subserviciosItems.forEach(item => {
         item.addEventListener('click', function() {
             this.classList.toggle('selected');
@@ -330,21 +310,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
     actualizarResumenYPasos();
 
-    // 1. Seleccionamos todos los íconos de información
     const infoIcons = document.querySelectorAll('.info-icon');
 
-    // 2. Añadimos un 'listener' a cada uno
     infoIcons.forEach(icon => {
         icon.addEventListener('click', function(event) {
-            // Detenemos la propagación para que al hacer clic en el ícono,
-            // no se seleccione también el servicio completo.
             event.stopPropagation();
 
-            // 3. Obtenemos la descripción y el nombre que guardamos en los atributos data-*
             const descripcion = event.currentTarget.dataset.descripcion;
             const nombre = event.currentTarget.dataset.nombre;
 
-            // 4. Mostramos el popup con SweetAlert2
             if (descripcion) {
                 Swal.fire({
                     title: nombre,
@@ -407,7 +381,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     loadMoreButton.textContent = 'Cargar más reseñas';
                     loadMoreButton.disabled = false;
                 } else {
-                    loadMoreButton.style.display = 'none'; 
+                    loadMoreButton.style.display = 'none';
                 }
             } catch (error) {
                 console.error('Error al cargar más reseñas:', error);

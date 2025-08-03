@@ -46,7 +46,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
         star.addEventListener('mouseout', function() {
             resetStars();
-            // Al quitar el mouse, dejamos pintadas las que estén seleccionadas
             const checkedRadio = document.querySelector('input[name="calificacion"]:checked');
             if (checkedRadio) {
                 highlightStars(checkedRadio.value);
@@ -55,7 +54,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
         star.addEventListener('click', function() {
             const value = this.dataset.value;
-            // Marcamos el radio button real correspondiente
             document.getElementById('id_calificacion_' + (value - 1)).checked = true;
             highlightStars(value);
         });
