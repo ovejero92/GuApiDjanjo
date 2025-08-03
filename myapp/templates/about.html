@@ -36,14 +36,27 @@
         </div>
     </div>
 
-    <div class="cta-section">
-        <h2>¿Listo para dar el siguiente paso?</h2>
-        <p>Tanto si buscas tu próximo turno como si quieres transformar la gestión de tu negocio, estás en el lugar correcto.</p>
-        {% if not user.is_authenticated %}
-            <a href="{% url 'account_signup' %}" class="btn-cta">¡Crea tu cuenta ahora!</a>
-        {% else %}
-            <a href="{% url 'index' %}" class="btn-cta">Explora los servicios</a>
-        {% endif %}
+    <div class="cta-section-content">
+        <div class="cta-section">
+            <h2>¿Listo para dar el siguiente paso?</h2>
+            <p>Tanto si buscas tu próximo turno como si quieres transformar la gestión de tu negocio, estás en el lugar correcto.</p>
+            {% if not user.is_authenticated %}
+                <a href="{% url 'account_signup' %}" class="btn-cta">¡Crea tu cuenta ahora!</a>
+            {% else %}
+                <a href="{% url 'index' %}" class="btn-cta">Explora los servicios</a>
+            {% endif %}
+        </div>
+        <div class="cta-section">
+            <h2>¿Listo para manejar tus turnos con nosotros?</h2>
+            <p>Tanto si buscas tu próximo turno como si quieres transformar la gestión de tu negocio, estás en el lugar correcto.</p>
+            {% if not user.is_authenticated %}
+                <a href="{% url 'precios' %}" class="btn-cta">Crea tu tienda</a>
+            {% else %}
+                {% if user.suscripcion.is_active %}
+                <a href="{% url 'dashboard_propietario' %}" class="btn-cta">Ir a mi Dashboard</a>
+                {% endif %}
+            {% endif %}
+        </div>
     </div>
 </div>
 {% endblock %}

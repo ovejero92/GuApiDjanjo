@@ -696,8 +696,7 @@ def dashboard_horarios(request):
         formset = HorarioFormSet(queryset=HorarioLaboral.objects.filter(servicio=servicio_activo))
 
     bloqueo_form = BloqueoForm(prefix='bloqueo')
-    bloqueos_existentes = servicio_activo.dias_no_disponibles.filter(fecha__gte=timezone.localdate()).order_by('fecha')
-
+    bloqueos_existentes = servicio_activo.dias_no_disponibles.filter(fecha_inicio__gte=timezone.localdate()).order_by('fecha_inicio')
     context = {
         'servicio_activo': servicio_activo,
         'onboarding_completo': servicio_activo.configuracion_inicial_completa,

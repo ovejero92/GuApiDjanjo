@@ -199,14 +199,20 @@ class HorarioLaboral(models.Model):
 
 class DiaNoDisponible(models.Model):
     servicio = models.ForeignKey(Servicio, on_delete=models.CASCADE, related_name='dias_no_disponibles')
+    
+    # --- INICIO DE LA CORRECCIÓN DEL MODELO ---
+    # Renombramos 'fecha' a 'fecha_inicio' y añadimos 'fecha_fin'
     fecha_inicio = models.DateField(help_text="Día de inicio del bloqueo (o día único).")
     fecha_fin = models.DateField(
         null=True, 
         blank=True, 
-        help_text="Opcional. Rellena este campo solo si quieres bloquear un rango de varios días.")
+        help_text="Opcional. Rellena este campo solo si quieres bloquear un rango de varios días."
+    )
+    # --- FIN DE LA CORRECCIÓN DEL MODELO ---
+
     hora_inicio = models.TimeField(null=True, blank=True)
     hora_fin = models.TimeField(null=True, blank=True)
-    motivo = models.CharField(max_length=255, blank=True, help_text="Ej: Vacaciones, Feriado, Cita médica")
+    motivo = models.CharField(max_length=255, blank=True, help_text="Ej: Vacaciones, Feriado")
 
     def __str__(self):
         if self.fecha_fin and self.fecha_fin != self.fecha_inicio:
@@ -214,9 +220,10 @@ class DiaNoDisponible(models.Model):
         return f"Día completo no disponible en {self.servicio.nombre}: {self.fecha_inicio}"
 
     def clean(self):
+        # Validación para asegurar que el rango de fechas sea lógico
         if self.fecha_fin and self.fecha_fin < self.fecha_inicio:
             raise ValidationError("La fecha de fin no puede ser anterior a la fecha de inicio.")
-
+        
 class Turno(models.Model):
     # Mantenemos la relación con el Servicio principal para facilitar las consultas y restricciones.
     servicio = models.ForeignKey(Servicio, on_delete=models.CASCADE, related_name='turnos')
