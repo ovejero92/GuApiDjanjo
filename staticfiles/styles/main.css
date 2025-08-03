@@ -361,6 +361,7 @@ form input, form select, form textarea {
 
 body {
     font-family: 'Roboto', sans-serif; /* Fuente base */
+
 }
 
 .container {
@@ -379,14 +380,14 @@ body {
 }
 .hero {
     display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
-    padding: 60px 20px; background: linear-gradient(135deg, #F9F8FF, #E0E7FF);
+    padding: 40px 20px; background: linear-gradient(135deg, #F9F8FF, #E0E7FF);
     border-radius: 20px; overflow: hidden; gap: 40px;
 }
 .hero-content { flex: 1 1 400px; padding: 20px; text-align: left; }
 .hero-content h1 { font-size: 2.5em; margin-bottom: 20px; color: #2c3e50; }
 .hero-content p { font-size: 1.2em; color: #555; margin-bottom: 30px; }
-.hero-image { flex: 1 1 300px; text-align: center; }
-.hero-image img { max-width: 100%; height: auto; border-radius: 10px; }
+.hero-image { flex: 1 1 300px; text-align: center;width: 100px; }
+.hero-image img { max-width: 80%; height: 400px; border-radius: 10px; }
 
 .benefits { display: flex; justify-content: center; gap: 40px; padding: 40px 20px; flex-wrap: wrap; }
 .benefit-card { background: white; border-radius: 20px; padding: 30px; text-align: center; width: 300px; box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08); transition: transform 0.3s ease, box-shadow 0.3s ease; }
@@ -1276,13 +1277,8 @@ body {
 /* dashboard servicios */
 .dashboard-grid {
         display: grid;
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr 1fr;
         gap: 30px;
-    }
-    @media (min-width: 992px) {
-        .dashboard-grid {
-            grid-template-columns: 1fr 1fr;
-        }
     }
 
     .form-section fieldset {
@@ -1459,6 +1455,10 @@ body {
     margin-bottom: 10px;
     color: #ccc;
 }
+.cta-section-content{
+    display: flex;
+    gap: 10px;
+}
 .cta-section {
     text-align: center;
     background-color: #007bff;
@@ -1629,7 +1629,7 @@ body {
 .card-servicio-nueva {
     background-color: #4a4a4a;
     border-radius: 12px;
-    padding: 25px 20px 20px 20px;
+    padding: 20px 15px 15px 15px;
     width: 320px;
     position: relative;
     box-shadow: 0 4px 15px rgba(0,0,0,0.3);
@@ -1642,6 +1642,9 @@ body {
 .card-servicio-nueva.has-logo {
     grid-template-columns: 80px 1fr; /* Columna para el logo, columna para el contenido */
     grid-template-areas: "logo contenido";
+    padding: 10px;
+    height: 130px;
+    width: 340px;
 }
 
 /* Estilo para la tarjeta SIN logo (Free) */
@@ -1688,6 +1691,10 @@ body {
     font-size: 1em;
     margin: 10px 0;
 }
+.card-servicio-nueva.has-logo .card-descripcion{
+    margin: 0;
+    font-size: 0.8em;
+}
 .card-direccion {
     font-size: 0.9em;
     color: #ccc;
@@ -1707,14 +1714,20 @@ body {
     font-weight: bold;
     transition: background-color 0.2s;
 }
+
 .card-boton:hover {
     background-color: #0056b3;
 }
-
+.card-servicio-nueva.has-logo .card-boton{
+    padding: 5px 10px;
+    position: absolute;
+    right: 5px;
+    bottom: 5px;
+}
 .card-favorito-btn {
     position: absolute;
-    top: 15px;
-    right: 15px;
+    top: 5px;
+    right: 5px;
     width: 35px;
     height: 35px;
     border-radius: 50%;
@@ -1779,7 +1792,6 @@ body {
         .mobile-sidebar-toggle i {
         transition: transform 0.3s ease;
     }
-        .dashboard-content { overflow-y: visible; padding-right: 0; }
         .premium-blocker-overlay {
         /* En mobile, el .dashboard-content empieza desde arriba */
         top: -190px;
@@ -1801,6 +1813,12 @@ body {
     .btn-toggle-filters { display: inline-block; }
     .banner-servicio { height: 25vh; width: 100vw; position: relative; left: 50%; right: 50%; margin-left: -50vw; margin-right: -50vw; }
     .info-icon { display: inline-block; margin: 0 15px ;}
+    .hero-content{
+        position: relative;
+        top: 400px;
+    }
+    .hero-image img { max-width: 100%; height: auto; border-radius: 10px; transform: scale(4);position: relative;
+        bottom: 300px; }
 }
 
 /* Contenedores principales */

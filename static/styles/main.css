@@ -1277,7 +1277,7 @@ body {
 /* dashboard servicios */
 .dashboard-grid {
         display: grid;
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr 1fr;
         gap: 30px;
     }
 
@@ -1792,7 +1792,6 @@ body {
         .mobile-sidebar-toggle i {
         transition: transform 0.3s ease;
     }
-        .dashboard-content { overflow-y: visible; padding-right: 0; }
         .premium-blocker-overlay {
         /* En mobile, el .dashboard-content empieza desde arriba */
         top: -190px;

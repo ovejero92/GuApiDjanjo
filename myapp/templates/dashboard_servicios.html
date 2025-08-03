@@ -81,11 +81,18 @@
                             <label for="{{ form.logo.id_for_label }}">Logo de tu Negocio:</label>
                             {{ form.logo }}
                             {% if form.logo.help_text %}
-                                <small class="form-help-text">{{ form.logo.help_text }}</small>
+                                <small class.form-help-text">{{ form.logo.help_text }}</small>
                             {% endif %}
                             {% if servicio_activo.logo %}
                                 <small>Logo actual: <a href="{{ servicio_activo.logo.url }}" target="_blank">ver logo</a></small>
                             {% endif %}
+
+                            {# Este div oculto contendrá los errores para que JS los lea #}
+                            <div id="logo-errors" style="display: none;">
+                                {% for error in form.logo.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
                         </div>
                     </fieldset>
 
@@ -236,6 +243,19 @@
 
             form.addEventListener('input', updatePreview);
             bannerInput.addEventListener('change', updatePreview);
+
+            const logoErrorsDiv = document.getElementById('logo-errors');
+
+            if (logoErrorsDiv && logoErrorsDiv.textContent.trim() !== '') {
+                const errorMessage = logoErrorsDiv.textContent.trim();
+
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error al Cargar el Logo',
+                    text: errorMessage,
+                    footer: '<b>Especificaciones a seguir:</b> La imagen debe ser cuadrada, de al menos 200x200px y pesar menos de 1MB.'
+                });
+            }
         });
     </script>
 {% endblock %}

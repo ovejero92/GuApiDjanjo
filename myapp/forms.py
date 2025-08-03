@@ -2,6 +2,7 @@ from django import forms
 from django.contrib.auth.models import User
 from .models import Turno, HorarioLaboral, DiaNoDisponible, Reseña, Servicio, SubServicio, MedioDePago
 from django.utils.text import slugify
+from PIL import Image
 from django.shortcuts import  get_object_or_404
 
 
@@ -193,6 +194,34 @@ class ServicioPersonalizacionForm(forms.ModelForm):
         
         return slug_limpio
     
+    def clean_logo(self):
+        logo = self.cleaned_data.get('logo')
+        
+        # Si no se subió un logo nuevo, no hacemos nada
+        if not logo:
+            return logo
+
+        # Si el logo es más grande que 1MB, el validador del modelo ya lo habrá rechazado.
+        # Ahora validamos las dimensiones.
+        try:
+            image = Image.open(logo)
+            width, height = image.size
+
+            # Verificamos si es (aproximadamente) cuadrado
+            # Damos un pequeño margen de tolerancia del 5%
+            if abs(width - height) / width > 0.05:
+                raise forms.ValidationError("La imagen del logo debe ser cuadrada (ej: 400x400px).")
+
+            # Verificamos si es demasiado pequeño
+            if width < 200 or height < 200:
+                raise forms.ValidationError("La imagen del logo es demasiado pequeña. Debe ser de al menos 200x200px.")
+
+        except Exception as e:
+            # Si Pillow no puede abrir la imagen, es un archivo corrupto o no es una imagen.
+            raise forms.ValidationError(f"No se pudo procesar el archivo. Asegúrate de que sea una imagen válida. Error: {e}")
+
+        return logo
+
     class Meta:
         model = Servicio
         fields = [
@@ -213,9 +242,9 @@ class ServicioPersonalizacionForm(forms.ModelForm):
             'footer_direccion': forms.TextInput(attrs={'placeholder': 'Ej: Av. Siempreviva 742'}),
             'footer_telefono': forms.TextInput(attrs={'placeholder': 'Ej: +54 9 11 1234-5678'}),
             'footer_email': forms.EmailInput(attrs={'placeholder': 'Ej: contacto@minegocio.com'}),
-            'footer_instagram_url': forms.URLInput(attrs={'placeholder': 'https://instagram.com/tu-usuario'}),
-            'footer_facebook_url': forms.URLInput(attrs={'placeholder': 'https://facebook.com/tu-pagina'}),
-            'footer_tiktok_url': forms.URLInput(attrs={'placeholder': 'https://tiktok.com/@tu.usuario'}),
+            'footer_instagram_url': forms.TextInput(attrs={'placeholder': 'https://instagram.com/tu-usuario'}),
+            'footer_facebook_url': forms.TextInput(attrs={'placeholder': 'https://facebook.com/tu-pagina'}),
+            'footer_tiktok_url': forms.TextInput(attrs={'placeholder': 'https://tiktok.com/@tu.usuario'}),
         }
         help_texts = { 
             'slug': "Esta será la URL de tu negocio. Usa solo letras, números y guiones. Sin espacios."
