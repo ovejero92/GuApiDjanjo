@@ -339,7 +339,7 @@ form input, form select, form textarea {
     }
     form {
         max-width: 360px;
-        margin: 0;
+        margin: 0 ;
     }
 form p {
     margin: 0;
@@ -1802,11 +1802,18 @@ body {
         z-index: 10;
     }
      form {
-        max-width: 350px;
+        max-width: 330px;
         margin: 0;
     }
     .form-section .footerBox{
-    padding: 10px;
+    padding: 2px 0 0 2px;
+    width: 90%;
+    }
+    .form-section .footerBox input{
+        width: 90%
+    }
+    .form-section .footerBox .url-preview {
+        width: 90%
     }
         .mobile-sidebar-toggle i {
         transition: transform 0.3s ease;
