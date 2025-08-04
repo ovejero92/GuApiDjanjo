@@ -145,7 +145,8 @@
                 </form>
             </div>
 
-            <div class="dashboard-section preview-section">
+            <div class="dashboard-section preview-section" id="prevFinal">
+                <span class="close-preview">X</span>
                 <h2>Previsualización</h2>
                 <div class="preview-container" data-existing-banner-url="{% if servicio_activo.imagen_banner %}{{ servicio_activo.imagen_banner.url }}{% endif %}">
                     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -158,7 +159,7 @@
                         <p id="previewText">Un texto de ejemplo para que veas cómo queda.</p>
                         <button class="preview-button" id="previewButton">Botón de Ejemplo</button>
 
-                        <div style="margin-top: 20px; border-top: 1px dashed #555; padding-top: 15px;">
+                        <div class="preview-slot">
                             <p style="font-size: 0.9em; margin-bottom: 10px;">Ejemplo de Slots:</p>
                             <div style="display: flex; justify-content: center; gap: 10px;">
                                 <button class="preview-button" id="previewSlot">10:00</button>
@@ -174,7 +175,6 @@
                             <span id="preview-card-title">{{ servicio_activo.nombre }}</span>
                         </div>
                         <div class="card-logo">
-                            {# Le damos un ID para que JS lo encuentre #}
                             <img id="preview-card-logo" src="{% if servicio_activo.logo %}{{ servicio_activo.logo.url }}{% else %}https://via.placeholder.com/80x80.png/333/fff?text=Logo{% endif %}" alt="Logo de {{ servicio.nombre }}">
                         </div>
                         <div class="card-contenido">
@@ -188,6 +188,9 @@
                 </div>
             </div>
         </div>
+
+        <button id="togglePreviewMobile" class="preview-toggle-button">👁 Ver Previsualización</button>
+
     {% endif %}
 
 {% endblock %}
@@ -290,6 +293,13 @@
                     footer: '<b>Especificaciones a seguir:</b> La imagen debe ser cuadrada, de al menos 200x200px y pesar menos de 1MB.'
                 });
             }
+            const prevCont = document.getElementById('prevFinal')
+            const btnToggle = document.getElementById('togglePreviewMobile');
+            const btnClosePrev = document.querySelector('.close-preview');
+
+            btnClosePrev.addEventListener('click', () => {prevCont.style.display = "none" })
+            btnToggle.addEventListener('click', () => {prevCont.style.display= "block"})
+
         });
     </script>
 {% endblock %}

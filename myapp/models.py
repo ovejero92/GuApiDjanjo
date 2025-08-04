@@ -311,3 +311,13 @@ class PerfilUsuario(models.Model):
 @receiver(post_save, sender=User)
 def crear_o_actualizar_perfil_usuario(sender, instance, created, **kwargs):
     PerfilUsuario.objects.get_or_create(usuario=instance)
+    
+@receiver(post_save, sender=User)
+def crear_suscripcion_por_defecto(sender, instance, created, **kwargs):
+    if created:
+        if not Suscripcion.objects.filter(usuario=instance).exists():
+            try:
+                plan_gratuito = Plan.objects.get(slug='free')
+                Suscripcion.objects.create(usuario=instance, plan=plan_gratuito, is_active=True)
+            except Plan.DoesNotExist:
+                print(f"ADVERTENCIA: El Plan 'free' no existe. No se pudo asignar suscripción por defecto al usuario {instance.username}.")
