@@ -135,42 +135,42 @@ def crear_suscripcion_mp(request, plan_slug):
     plan = get_object_or_404(Plan, slug=plan_slug)
     
     if not plan.mp_plan_id:
-        messages.error(request, "Este plan no está configurado para pagos.")
+        messages.error(request, "Este plan no está configurado para pagos online.")
         return redirect('precios')
+
+    suscripcion_usuario, created = Suscripcion.objects.get_or_create(
+        usuario=request.user,
+        defaults={'plan': plan, 'is_active': False}
+    )
+    if not created:
+        suscripcion_usuario.plan = plan
+        suscripcion_usuario.save()
+    
     sdk = mercadopago.SDK(settings.MERCADOPAGO_ACCESS_TOKEN)
     base_url = "https://turnosok.com"
     if settings.DEBUG:
         base_url = "http://127.0.0.1:8000"
 
-    preference_data = {
-        "items": [
-            {
-                "id": plan.slug,
-                "title": f"Suscripción Plan {plan.get_nombre_display()}",
-                "description": f"Acceso mensual al plan {plan.get_nombre_display()} de TurnosOK.",
-                "quantity": 1,
-                "unit_price": float(plan.precio_mensual),
-                "currency_id": "ARS",
-            }
-        ],
-        "payer": {
-            "email": request.user.email,
-            "name": request.user.first_name,
-            "surname": request.user.last_name,
-        },
+    preapproval_data = {
+        "preapproval_plan_id": plan.mp_plan_id,
+        "payer_email": request.user.email,
         "back_urls": {
             "success": f"{base_url}{reverse('pago_exitoso')}",
             "failure": f"{base_url}{reverse('precios')}",
             "pending": f"{base_url}{reverse('precios')}",
         },
-        "preapproval_plan_id": plan.mp_plan_id,
+        "auto_return": "approved",
+        "external_reference": str(suscripcion_usuario.id)
     }
-    result = sdk.preference().create(preference_data)
-    print("Respuesta de Mercado Pago:", result)
+
+    result = sdk.preapproval().create(preapproval_data)
+    
+    print("Respuesta de Suscripción de Mercado Pago:", result)
+
     if result and result.get("status") == 201:
-        suscripcion_usuario, created = Suscripcion.objects.get_or_create(usuario=request.user)
-        suscripcion_usuario.plan = plan
-        suscripcion_usuario.mp_subscription_id = result["response"]["preapproval_id"]
+        mp_id_suscripcion = result["response"]["id"]
+        
+        suscripcion_usuario.mp_subscription_id = mp_id_suscripcion
         suscripcion_usuario.is_active = False
         suscripcion_usuario.save()
         
@@ -182,7 +182,7 @@ def crear_suscripcion_mp(request, plan_slug):
         return redirect(init_point)
     else:
         error_message = result.get("response", {}).get("message", "Intenta de nuevo.")
-        messages.error(request, f"Hubo un error al crear la preferencia de pago: {error_message}")
+        messages.error(request, f"Hubo un error al crear la suscripción: {error_message}")
         return redirect('precios')
 
 @login_required

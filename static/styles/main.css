@@ -420,6 +420,9 @@ body {font-family: 'Roboto', sans-serif;}
         margin: 40px auto;
         padding: 20px;
 }
+.title-metricas{
+    display: flex; align-items: center; gap: 15px;
+}
 .turnos-section {
     background-color: #2c2c2c;
     padding: 25px;
@@ -1254,6 +1257,11 @@ body {font-family: 'Roboto', sans-serif;}
 .pagination-container a:hover {
     background-color: #444;
 }
+/*VIsta note boob*/
+@media (max-width:1440px) {
+    .preview-container { border: 2px dashed #555; border-radius: 8px; padding: 15px; overflow: hidden; position: static; }
+    .card-preview-container{border: 2px dashed #555; border-radius: 8px; padding: 15px; overflow: hidden; position: static;}
+}
 @media (max-width: 992px){
     .historial-filtros{
         display: flex;
@@ -1263,6 +1271,8 @@ body {font-family: 'Roboto', sans-serif;}
     .historial-filtros a{
         margin-top: 10px;
     }
+    .preview-container { border: 2px dashed #d90e0e; border-radius: 8px; padding: 15px; overflow: hidden; position: sticky; top: -20px; }
+    .card-preview-container{border: 2px dashed #555; border-radius: 8px; padding: 15px; overflow: hidden; position: sticky; top: 520px; }
 }
 .about-container {
     max-width: 1000px;
@@ -1751,7 +1761,7 @@ color: var(--color-texto-servicio, #fff);  margin-bottom: 15px; border-bottom: 1
     position:fixed;
     top: 10px;
     width: 95%;
-    border: white 1px solid;
+    border: white 3px solid;
     z-index: 3000;
   }
   .preview-section h2{text-align: center;margin: 5px;}
@@ -1770,11 +1780,50 @@ color: var(--color-texto-servicio, #fff);  margin-bottom: 15px; border-bottom: 1
   .close-preview{
     display: block;
     position: absolute;
-    right: 0px;
-    top: 0;
+    right: -1px;
+    top: -1px;
     background-color: red;
     padding: 5px;
     border-start-end-radius: 7px;
-    border: 1px solid white;
+    border: 2px solid white;
+    }
+}
+@media (max-width: 320px) {
+    .user-button{
+        position: relative;
+        left: 25px;
+        bottom: 10px;
+        padding: 6px ;
+    }
+    .plan-badge{
+        margin: 0;
+    }
+    .logo {
+        left: -10px !important;
+    }
+    .contenedor-servicios{
+        padding: 10px;
+    }
+    .card-servicio-nueva .card-descripcion{
+        margin-top: 20px;
+    }
+    .dashboard-sidebar{
+        width: 86%;
+    }
+    .dashboard-section{
+        padding: 5px;
+    }
+    .title-metricas {
+        gap: 0;
+        position: relative;
+        right: 30px;
+    }
+    .dashboard-section{
+        width: 92%;
+        padding: 0;
+    }
+    .dashboard-section fieldset{
+        margin: 1px;
+        padding: 1px;
     }
 }
