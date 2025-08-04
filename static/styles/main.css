@@ -1747,7 +1747,7 @@ color: var(--color-texto-servicio, #fff);  margin-bottom: 15px; border-bottom: 1
 }
 @media (max-width: 768px) {
   .preview-section {
-    display: none !important;
+    display: none ;
     position:fixed;
     top: 10px;
     width: 95%;
@@ -1762,7 +1762,7 @@ color: var(--color-texto-servicio, #fff);  margin-bottom: 15px; border-bottom: 1
   .preview-section .preview-slot { margin-top: 0; padding-top: 0; }
   .preview-subtitle{display: none;}
   .card-preview-container{margin: 0 0 0 5px; padding: 0; width: 94%;}
-  .card-servicio-nueva{transform: scale(0.8); position: relative; right: 20px;}
+  .preview-section .card-servicio-nueva{transform: scale(0.8); position: relative; right: 20px;}
   .preview-toggle-button {
     display: block;
     z-index: 1000;
