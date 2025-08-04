@@ -4,7 +4,7 @@
 {% block dashboard_content %}
 
 {% if not tiene_acceso %}
-    <div class="premium-blocker-overlay">
+    <div class="premium-blocker-overlay" id="ser">
         <div class="premium-blocker-content">
             <span class="premium-icon">👑</span>
             <h2>Esta es una Función Premium</h2>
@@ -189,7 +189,7 @@
             </div>
         </div>
 
-        <button id="togglePreviewMobile" class="preview-toggle-button">👁 Ver Previsualización</button>
+        <button id="togglePreviewMobile"  class="{% if not servicio_activo.permite_multiples_profesionales %} DN {% else %} preview-toggle-button  {% endif %}">👁 Ver Previsualización</button>
 
     {% endif %}
 

@@ -59,6 +59,18 @@
                 <p><strong>Duración Total:</strong> <span id="duracion-total">0</span> minutos</p>
                 <p><strong>Precio Total Estimado:</strong> $<span id="precio-total">0.00</span></p>
             </div>
+
+            {% if servicio.permite_multiples_profesionales %}
+                <div class="form-group mt-4">
+                    <label for="profesional-select">Elige con quién atenderte:</label>
+                    <select id="profesional-select" class="form-control">
+                        <option value="">Selecciona un profesional...</option>
+                        {% for profesional in profesionales %}
+                            <option value="{{ profesional.id }}">{{ profesional.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            {% endif %}
             
             <div id="reserva-pasos-siguientes" style="display: none;">
                 <div class="form-group">
@@ -196,6 +208,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const slotsContainer = document.getElementById('slotsContainer');
     const submitButton = document.querySelector('button.btn-submit');
     const formCheckboxes = document.querySelectorAll('input[name="sub_servicios_solicitados"]');
+    
+    const profesionalSelect = document.getElementById('profesional-select');
+    const profesionalHiddenInput = document.getElementById('id_profesional');
+    
+    const esServicioPrime = {{ servicio.permite_multiples_profesionales|yesno:"true,false" }};
 
     let duracionTotalCalculada = 0;
     let selectedSlotButton = null;
@@ -239,16 +256,26 @@ document.addEventListener('DOMContentLoaded', function() {
         submitButton.classList.add('is-disabled');
         selectedSlotButton = null;
         horaInput.value = '';
-
+        
+        let profesionalId = '';
+        if (esServicioPrime && profesionalSelect) {
+            profesionalId = profesionalSelect.value;
+            if (!profesionalId) {
+                slotsContainer.innerHTML = '<p class="text-info">Por favor, elige un profesional para ver sus horarios.</p>';
+                return;
+            }
+        }
         try {
-            const url = `/api/slots-disponibles/{{ servicio.id }}/?fecha=${fecha}&duracion=${duracion}`;
+            const url = `/api/slots-disponibles/{{ servicio.id }}/?fecha=${fecha}&duracion=${duracion}&profesional_id=${profesionalId}`;
             const response = await fetch(url);
             if (!response.ok) throw new Error('Respuesta del servidor no fue OK');
             const data = await response.json();
             
             slotsContainer.innerHTML = '';
-            if (data.slots && data.slots.length > 0) {
-                data.slots.forEach(slot => {
+            if (data.mensaje) {
+                slotsContainer.innerHTML = `<p class="text-info">${data.mensaje}</p>`;
+            } else if (data.slots && data.slots.length > 0) {
+                    data.slots.forEach(slot => {
                     const button = document.createElement('button');
                     button.type = 'button';
                     button.className = 'slot-button';
@@ -300,6 +327,15 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         },
     });
+
+    if (profesionalSelect && profesionalHiddenInput) {
+        profesionalSelect.addEventListener('change', function() {
+            profesionalHiddenInput.value = this.value;
+            if (fechaInput.value && duracionTotalCalculada > 0) {
+                cargarSlots(fechaInput.value, duracionTotalCalculada);
+            }
+        });
+    }
 
     subserviciosItems.forEach(item => {
         item.addEventListener('click', function() {

@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth.models import User
-from .models import Turno, HorarioLaboral, DiaNoDisponible, Reseña, Servicio, SubServicio, MedioDePago
+from .models import Turno,Profesional , HorarioLaboral, DiaNoDisponible, Reseña, Servicio, SubServicio, MedioDePago
 from django.utils.text import slugify
 from PIL import Image
 from django.shortcuts import  get_object_or_404
@@ -45,23 +45,29 @@ class TurnoForm(forms.ModelForm):
         label="¿Cómo deseas pagar?",
         required=True
     )
+    profesional = forms.ModelChoiceField(
+        queryset=Profesional.objects.all(),
+        required=False,
+        widget=forms.HiddenInput()
+    )
     class Meta:
         model = Turno
-        fields = ['fecha', 'hora', 'medio_de_pago']
+        fields = ['fecha', 'hora', 'sub_servicios_solicitados', 'medio_de_pago', 'profesional']
         widgets = {
-            'fecha': forms.DateInput(format='%Y-%m-%d', attrs={'type': 'date'}),
-            'hora': forms.TimeInput(attrs={'type': 'time'}),
+            'fecha': forms.HiddenInput(),
+            'hora': forms.HiddenInput(),
         }
-    def __init__(self, *args, servicio_id=None, **kwargs):
+    def __init__(self, *args, **kwargs):
+        servicio = kwargs.pop('servicio', None)
         super().__init__(*args, **kwargs)
-        if servicio_id:
-            servicio = get_object_or_404(Servicio, id=servicio_id)
-            self.fields['sub_servicios_solicitados'].queryset = SubServicio.objects.filter(servicio_padre_id=servicio_id)
-            opciones_disponibles = [
-                (mdp.slug, mdp.nombre_visible) 
-                for mdp in servicio.medios_de_pago_aceptados.all()
-            ]
-            self.fields['medio_de_pago'].choices = opciones_disponibles
+
+        if servicio:
+            self.fields['sub_servicios_solicitados'].queryset = SubServicio.objects.filter(servicio_padre=servicio)
+            opciones_pago = [(mdp.slug, mdp.nombre_visible) for mdp in servicio.medios_de_pago_aceptados.all()]
+            self.fields['medio_de_pago'].choices = opciones_pago
+            
+            if servicio.permite_multiples_profesionales:
+                self.fields['profesional'].queryset = Profesional.objects.filter(servicio=servicio, activo=True)
 
     def clean(self):
         cleaned_data = super().clean()
@@ -359,3 +365,23 @@ class HorarioLaboralForm(forms.ModelForm):
         if not cleaned_data.get('dias_semana'):
             self.add_error('dias_semana', 'Debes seleccionar al menos un día para esta regla.')
         return cleaned_data
+    
+class ProfesionalForm(forms.ModelForm):
+    class Meta:
+        model = Profesional
+        fields = ['nombre', 'email', 'foto', 'activo', 'sub_servicios_ofrecidos']
+        widgets = {
+            'nombre': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: Dra. Ana Pérez'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'Email (opcional)'}),
+            'foto': forms.FileInput(attrs={'class': 'form-control'}),
+            'activo': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'sub_servicios_ofrecidos': forms.CheckboxSelectMultiple,
+        }
+        help_texts = {
+            'sub_servicios_ofrecidos': 'Selecciona los tratamientos o servicios que realiza esta persona.'
+        }
+    def __init__(self, *args, **kwargs):
+        servicio = kwargs.pop('servicio', None)
+        super().__init__(*args, **kwargs)
+        if servicio:
+            self.fields['sub_servicios_ofrecidos'].queryset = servicio.sub_servicios.all()

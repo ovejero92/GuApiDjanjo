@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Servicio, SubServicio, Turno, HorarioLaboral, DiaNoDisponible, Reseña, Plan, Suscripcion, MedioDePago, Categoria, PerfilUsuario
+from .models import Servicio, Profesional, SubServicio, Turno, HorarioLaboral, DiaNoDisponible, Reseña, Plan, Suscripcion, MedioDePago, Categoria, PerfilUsuario
 
 admin.site.register(MedioDePago)
 admin.site.register(Categoria)
@@ -32,27 +32,34 @@ class HorarioLaboralInline(admin.TabularInline):
         ('tiene_descanso', 'descanso_inicio', 'descanso_fin'),
         'activo'
     )
-    extra = 0
+    extra = 1
 
 class DiaNoDisponibleInline(admin.TabularInline):
     model = DiaNoDisponible
     extra = 1
     fields = ('fecha_inicio', 'fecha_fin', 'hora_inicio', 'hora_fin', 'motivo')
 
+@admin.register(Profesional)
+class ProfesionalAdmin(admin.ModelAdmin):
+    inlines = [HorarioLaboralInline, DiaNoDisponibleInline]
+    list_display = ('nombre', 'servicio', 'activo')
+    list_filter = ('servicio',)
+    search_fields = ('nombre', 'email')
 
 @admin.register(Servicio)
 class ServicioAdmin(admin.ModelAdmin):
-    list_display = ('nombre', 'propietario', 'esta_activo')
+    list_display = ('nombre', 'propietario', 'esta_activo','permite_multiples_profesionales')
+    readonly_fields = ('permite_multiples_profesionales',)
     list_filter = ('esta_activo',)
     search_fields = ('nombre', 'propietario__username')
     actions = [activar_servicios, desactivar_servicios]
     prepopulated_fields = {'slug': ('nombre',)}
     
-    inlines = [
-        SubServicioInline,
-        HorarioLaboralInline,
-        DiaNoDisponibleInline,
-    ]
+    # inlines = [
+    #     SubServicioInline,
+    #     HorarioLaboralInline,
+    #     DiaNoDisponibleInline,
+    # ]
 
 @admin.register(Turno)
 class TurnoAdmin(admin.ModelAdmin):

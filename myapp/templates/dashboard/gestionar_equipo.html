@@ -1,0 +1,82 @@
+{% extends 'layouts/dashboard_base.html' %}
+{% block dashboard_title %}Gestionar Equipo{% endblock %}
+
+{% block dashboard_content %}
+
+{# --- INICIO: PANTALLA DE BLOQUEO PREMIUM --- #}
+{# Usamos exactamente la misma lógica que en tus otras plantillas. #}
+{% if not tiene_acceso_prime %}
+    <div class="premium-blocker-overlay" id="GES">
+        <div class="premium-blocker-content">
+            <span class="premium-icon">👑</span>
+            <h2>Esta es una Función Prime</h2>
+            <p>
+                Gestiona un equipo de múltiples profesionales y asigna turnos individualmente.
+                ¡Mejora tu plan a Prime para desbloquear esta potente funcionalidad!
+            </p>
+            <div class="blocker-actions">
+                <a href="{% url 'precios' %}" class="btn-upgrade">Ver Planes</a>
+                <a href="{% url 'dashboard_propietario' %}" class="btn-back">Volver al Dashboard</a>
+            </div>
+        </div>
+    </div>
+{% endif %}
+{# --- FIN: PANTALLA DE BLOQUEO PREMIUM --- #}
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Equipo de "{{ servicio.nombre }}"</h1>
+        {# Este botón solo será visible si no está el overlay de bloqueo #}
+        <a href="{% url 'dashboard_propietario' %}" class="btn btn-secondary">Volver al Dashboard</a>
+    </div>
+
+    <div class="row">
+        <!-- Columna para ver la lista de profesionales -->
+        <div class="col-md-7">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Miembros del Equipo</h3>
+                </div>
+                <div class="card-body">
+                    {% if profesionales %}
+                        <ul class="list-group list-group-flush">
+                            {% for prof in profesionales %}
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div>
+                                        {% if prof.foto %}<img src="{{ prof.foto.url }}" alt="{{ prof.nombre }}" class="rounded-circle me-2" width="40" height="40">{% endif %}
+                                        <strong>{{ prof.nombre }}</strong>
+                                        <small class="text-muted d-block">{{ prof.email|default:"" }}</small>
+                                    </div>
+                                    <div>
+                                        <a href="{% url 'editar_profesional' prof.id %}" class="btn btn-sm btn-outline-primary">Editar</a>
+                                        <form action="{% url 'eliminar_profesional' prof.id %}" method="post" class="d-inline" onsubmit="return confirm('¿Estás seguro de que quieres eliminar a {{ prof.nombre }}?');">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">Eliminar</button>
+                                        </form>
+                                    </div>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p>Aún no has añadido a nadie. ¡Empieza con el formulario!</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Columna para añadir un nuevo profesional -->
+        <div class="col-md-5">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Añadir Nuevo Miembro</h3>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        {{ form.as_p }}
+                        <button type="submit" class="btn btn-primary w-100 mt-3">Añadir al Equipo</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

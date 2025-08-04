@@ -2,8 +2,8 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth import login
 from django.contrib import messages
 from django.forms import inlineformset_factory, modelformset_factory
-from .models import Servicio, Turno, HorarioLaboral, SubServicio, Categoria, Plan, Suscripcion
-from .forms import BloqueoForm, HorarioLaboralForm, TurnoForm, UserUpdateForm, IngresoTurnoForm, ReseñaForm, ServicioPersonalizacionForm, ServicioUpdateForm, ServicioCreateForm
+from .models import Servicio, Profesional , Turno, HorarioLaboral, SubServicio, Categoria, Plan, Suscripcion
+from .forms import BloqueoForm, ProfesionalForm , HorarioLaboralForm, TurnoForm, UserUpdateForm, IngresoTurnoForm, ReseñaForm, ServicioPersonalizacionForm, ServicioUpdateForm, ServicioCreateForm
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from django.http import JsonResponse
@@ -17,6 +17,7 @@ from django.utils.encoding import force_str
 from django.contrib.auth.tokens import default_token_generator
 from django.contrib.auth.models import User
 import json
+from django.views.decorators.http import require_POST
 from django.db.models import Q
 from django.core.mail import send_mail
 from django.contrib.auth.views import LoginView
@@ -223,8 +224,18 @@ def webhook_mp(request):
 @login_required
 def servicio_detail(request, servicio_slug):
     servicio = get_object_or_404(Servicio, slug=servicio_slug)
+    profesionales = None
+    reglas_horario_activas = HorarioLaboral.objects.none()
+
+    if servicio.permite_multiples_profesionales:
+        profesionales = servicio.profesionales.filter(activo=True)
+        reglas_horario_activas = HorarioLaboral.objects.filter(profesional__in=profesionales, activo=True)
+    else:
+        profesional_defecto = servicio.profesionales.first()
+        if profesional_defecto:
+            reglas_horario_activas = profesional_defecto.horarios.filter(activo=True)
+
     dias_laborables_js = {str(i): False for i in range(7)}
-    reglas_horario_activas = servicio.horarios.filter(activo=True)
     for regla in reglas_horario_activas:
         if regla.domingo: dias_laborables_js['0'] = True
         if regla.lunes: dias_laborables_js['1'] = True
@@ -236,11 +247,27 @@ def servicio_detail(request, servicio_slug):
     turnos_reservados = Turno.objects.filter(servicio=servicio)
     fechas_ocupadas = [turno.fecha.strftime('%Y-%m-%d') for turno in turnos_reservados]
     if request.method == 'POST':
-        form = TurnoForm(request.POST, servicio_id=servicio.id)
+        form = TurnoForm(request.POST, servicio=servicio)
+        if form.is_valid():
+            form = TurnoForm(request.POST, servicio=servicio)
         if form.is_valid():
             turno = form.save(commit=False)
             turno.cliente = request.user
+            turno.servicio = servicio
+
+            if servicio.permite_multiples_profesionales:
+                turno.profesional = form.cleaned_data.get('profesional')
+            else:
+                turno.profesional = servicio.profesionales.first()
+            
+            if not turno.profesional:
+                messages.error(request, 'No se pudo asignar un profesional al turno. Por favor, contacte a soporte.')
+                return redirect('servicio_detail', servicio_slug=servicio_slug)
+
+            turno.duracion_total = sum(sub.duracion for sub in form.cleaned_data['sub_servicios_solicitados'])
             turno.save()
+            form.save_m2m()
+            
             if 'sub_servicios_solicitados' in form.cleaned_data:
                 turno.sub_servicios_solicitados.set(form.cleaned_data['sub_servicios_solicitados'])
             propietario = servicio.propietario
@@ -260,6 +287,7 @@ def servicio_detail(request, servicio_slug):
                         'turno': turno,
                         'servicio': servicio,
                         'cliente': request.user,
+                        'profesionales': profesionales,
                         'domain': request.get_host(),
                     }
                     mensaje_texto = render_to_string('emails/nuevo_turno_propietario.txt', contexto_email)
@@ -278,7 +306,7 @@ def servicio_detail(request, servicio_slug):
             messages.success(request, "¡Turno solicitado con éxito!")
             return redirect('index')
     else:
-        form = TurnoForm(servicio_id=servicio.id, initial={'fecha': timezone.localdate()})
+        form = TurnoForm(servicio=servicio, initial={'fecha': timezone.localdate()})
 
     calificacion_filtro = request.GET.get('calificacion')
     reseñas_base = servicio.reseñas.all().select_related('usuario').order_by('-fecha_creacion')
@@ -298,6 +326,7 @@ def servicio_detail(request, servicio_slug):
     context = {
         'servicio': servicio,
         'form': form,
+        'profesionales': profesionales,
         'calificacion_promedio': calificacion_promedio,
         'reseñas': reseñas_iniciales,
         'tiene_mas_paginas': reseñas_iniciales.has_next(),
@@ -388,43 +417,56 @@ def dashboard_calendario(request):
             'servicio_activo': servicio_activo
         }
         return render(request, 'servicio_suspendido.html', context)
+    
     hoy = timezone.localdate()
     año = hoy.year
     mes = hoy.month
     primer_dia_semana, num_dias = calendar.monthrange(año, mes)
+    
     turnos_del_mes = Turno.objects.filter(
         servicio=servicio_activo,
         fecha__year=año,
         fecha__month=mes,
         estado__in=['confirmado', 'pendiente']
     ).prefetch_related('sub_servicios_solicitados')
+    profesionales_del_servicio = servicio_activo.profesionales.all()
+
     estado_dias = {}
     for dia_num in range(1, num_dias + 1):
         fecha_actual = datetime(año, mes, dia_num).date()
         turnos_del_dia = [t for t in turnos_del_mes if t.fecha == fecha_actual]
         conteo_turnos_dia = len(turnos_del_dia)
+
         if not turnos_del_dia:
             estado_dias[dia_num] = {'estado': 'vacio', 'conteo': 0}
             continue
-        minutos_laborales = 0
-        try:
-            dia_de_la_semana_num = fecha_actual.weekday()
-            dia_map = {0: 'lunes', 1: 'martes', 2: 'miercoles', 3: 'jueves', 4: 'viernes', 5: 'sabado', 6: 'domingo'}
-            campo_dia_a_filtrar = dia_map.get(dia_de_la_semana_num)
-            regla_horario = servicio_activo.horarios.filter(activo=True, **{campo_dia_a_filtrar: True}).first()
-            if regla_horario:
-                minutos_jornada_total = (datetime.combine(datetime.min, regla_horario.horario_cierre) - 
-                                       datetime.combine(datetime.min, regla_horario.horario_apertura)).seconds / 60
-                minutos_descanso = 0
-                if regla_horario.tiene_descanso and regla_horario.descanso_inicio and regla_horario.descanso_fin:
-                    minutos_descanso = (datetime.combine(datetime.min, regla_horario.descanso_fin) -
-                                        datetime.combine(datetime.min, regla_horario.descanso_inicio)).seconds / 60
-                minutos_laborales = minutos_jornada_total - minutos_descanso
-        except HorarioLaboral.DoesNotExist:
-            minutos_laborales = 0
-        if minutos_laborales > 0:
+
+        # Calculamos los minutos laborales totales de TODOS los profesionales para ese día
+        minutos_laborales_totales_del_dia = 0
+        for prof in profesionales_del_servicio:
+            try:
+                dia_de_la_semana_num = fecha_actual.weekday()
+                dia_map = {0: 'lunes', 1: 'martes', 2: 'miercoles', 3: 'jueves', 4: 'viernes', 5: 'sabado', 6: 'domingo'}
+                campo_dia_a_filtrar = dia_map.get(dia_de_la_semana_num)
+                
+                # ¡Buscamos la regla del PROFESIONAL!
+                regla_horario = prof.horarios.filter(activo=True, **{campo_dia_a_filtrar: True}).first()
+
+                if regla_horario:
+                    minutos_jornada = (datetime.combine(datetime.min, regla_horario.horario_cierre) - 
+                                           datetime.combine(datetime.min, regla_horario.horario_apertura)).seconds / 60
+                    minutos_descanso = 0
+                    if regla_horario.tiene_descanso and regla_horario.descanso_inicio and regla_horario.descanso_fin:
+                        minutos_descanso = (datetime.combine(datetime.min, regla_horario.descanso_fin) -
+                                            datetime.combine(datetime.min, regla_horario.descanso_inicio)).seconds / 60
+                    minutos_laborales_totales_del_dia += (minutos_jornada - minutos_descanso)
+            except HorarioLaboral.DoesNotExist:
+                continue # Este profesional no trabaja ese día
+        
+        # El resto de tu lógica de cálculo de porcentaje de ocupación usa el nuevo total
+        if minutos_laborales_totales_del_dia > 0:
             minutos_reservados = sum(turno.duracion_total for turno in turnos_del_dia)
-            porcentaje_ocupacion = (minutos_reservados / minutos_laborales) * 100
+            porcentaje_ocupacion = (minutos_reservados / minutos_laborales_totales_del_dia) * 100
         else:
             porcentaje_ocupacion = 100
         estado_css = 'con-turnos'
@@ -544,19 +586,30 @@ def dashboard_horarios(request):
             'servicio_activo': servicio_activo
         }
         return render(request, 'servicio_suspendido.html', context)
+    
+    profesional_a_gestionar = servicio_activo.profesionales.first()
+
+    if not profesional_a_gestionar:
+        messages.warning(request, "Este servicio no tiene ningún profesional asignado. No se pueden gestionar horarios.")
+        return render(request, 'dashboard/horarios.html', {'servicio_activo': servicio_activo, 'no_hay_profesional': True})
+
     HorarioFormSet = modelformset_factory(
         HorarioLaboral,
         form=HorarioLaboralForm,
-        extra=0,
+        extra=0, # Ponemos 1 para que pueda añadir nuevas reglas
         can_delete=True
     )
+
+    # El queryset ahora filtra por el profesional
+    queryset_horarios = HorarioLaboral.objects.filter(profesional=profesional_a_gestionar)
+    
     if request.method == 'POST':
         if 'guardar_horarios' in request.POST:
-            formset = HorarioFormSet(request.POST, queryset=HorarioLaboral.objects.filter(servicio=servicio_activo))
+            formset = HorarioFormSet(request.POST, queryset=queryset_horarios)
             if formset.is_valid():
                 instances = formset.save(commit=False)
                 for instance in instances:
-                    instance.servicio = servicio_activo
+                    instance.profesional = profesional_a_gestionar
                     instance.save()
                 for obj in formset.deleted_objects:
                     obj.delete()
@@ -566,16 +619,19 @@ def dashboard_horarios(request):
             bloqueo_form = BloqueoForm(request.POST, prefix='bloqueo')
             if bloqueo_form.is_valid():
                 nuevo_bloqueo = bloqueo_form.save(commit=False)
-                nuevo_bloqueo.servicio = servicio_activo
+                nuevo_bloqueo.profesional = profesional_a_gestionar
                 nuevo_bloqueo.save()
                 messages.success(request, "¡Nuevo bloqueo creado exitosamente!")
                 return redirect('dashboard_horarios')
     else:
-        formset = HorarioFormSet(queryset=HorarioLaboral.objects.filter(servicio=servicio_activo))
+        formset = HorarioFormSet(queryset=queryset_horarios)
+
     bloqueo_form = BloqueoForm(prefix='bloqueo')
-    bloqueos_existentes = servicio_activo.dias_no_disponibles.filter(fecha_inicio__gte=timezone.localdate()).order_by('fecha_inicio')
+    bloqueos_existentes = profesional_a_gestionar.dias_no_disponibles.filter(fecha_inicio__gte=timezone.localdate()).order_by('fecha_inicio')
+    
     context = {
         'servicio_activo': servicio_activo,
+        'profesional_gestionado': profesional_a_gestionar, # Pasamos el profesional para más claridad
         'onboarding_completo': servicio_activo.configuracion_inicial_completa,
         'formset': formset,
         'bloqueo_form': bloqueo_form,
@@ -911,6 +967,8 @@ def obtener_notificaciones(request):
 def obtener_slots_disponibles(request, servicio_id):
     fecha_str = request.GET.get('fecha')
     duracion_str = request.GET.get('duracion')
+    profesional_id_str = request.GET.get('profesional_id')
+    
     if not fecha_str or not duracion_str:
         return JsonResponse({'error': 'Faltan parámetros de fecha o duración.'}, status=400)
     try:
@@ -919,20 +977,37 @@ def obtener_slots_disponibles(request, servicio_id):
         duracion_requerida = int(duracion_str)
     except (ValueError, TypeError):
         return JsonResponse({'error': 'Parámetros inválidos.'}, status=400)
+    
+    profesional_a_consultar = None
+    if servicio.permite_multiples_profesionales:
+        # Si es PRIME, esperamos un ID de profesional
+        if not profesional_id_str:
+            return JsonResponse({'slots': [], 'mensaje': 'Por favor, selecciona un profesional.'})
+        try:
+            profesional_a_consultar = Profesional.objects.get(id=int(profesional_id_str), servicio=servicio, activo=True)
+        except (Profesional.DoesNotExist, ValueError):
+            return JsonResponse({'error': 'Profesional no válido.'}, status=404)
+    else:
+        # Si NO es PRIME, buscamos su único profesional por defecto
+        profesional_a_consultar = servicio.profesionales.first()
+
+    if not profesional_a_consultar:
+        # Si por alguna razón no hay profesional, no hay slots.
+        return JsonResponse({'slots': [], 'mensaje': 'No hay profesionales disponibles para este servicio.'})
 
     dia_de_la_semana_num = fecha.weekday()
     dia_map = {0: 'lunes', 1: 'martes', 2: 'miercoles', 3: 'jueves', 4: 'viernes', 5: 'sabado', 6: 'domingo'}
     campo_dia_a_filtrar = dia_map.get(dia_de_la_semana_num)
     try:
-        regla_horario = servicio.horarios.get(activo=True, **{campo_dia_a_filtrar: True})
+        regla_horario = profesional_a_consultar.horarios.get(activo=True, **{campo_dia_a_filtrar: True})
     except HorarioLaboral.DoesNotExist:
         return JsonResponse({'slots': []})
     except HorarioLaboral.MultipleObjectsReturned:
-        regla_horario = servicio.horarios.filter(activo=True, **{campo_dia_a_filtrar: True}).first()
+        regla_horario = profesional_a_consultar.horarios.filter(activo=True, **{campo_dia_a_filtrar: True}).first()
 
     slots_disponibles = []
-    turnos_del_dia = Turno.objects.filter(servicio=servicio, fecha=fecha, estado__in=['pendiente', 'confirmado'])
-    bloqueos_del_dia = servicio.dias_no_disponibles.filter(fecha_inicio__lte=fecha, fecha_fin__gte=fecha)
+    turnos_del_dia = Turno.objects.filter(profesional=profesional_a_consultar, fecha=fecha, estado__in=['pendiente', 'confirmado'])
+    bloqueos_del_dia = profesional_a_consultar.dias_no_disponibles.filter(fecha_inicio__lte=fecha, fecha_fin__gte=fecha)
     duracion_requerida_td = timedelta(minutes=duracion_requerida)
     
     def generar_slots_en_periodo(hora_inicio_periodo, hora_fin_periodo):
@@ -1072,6 +1147,84 @@ class CustomLoginView(LoginView):
     template_name = 'registration/login.html'
     success_url = reverse_lazy('index')
     redirect_authenticated_user = True
+
+@login_required
+def gestionar_equipo(request, servicio_id):
+    servicio = get_object_or_404(Servicio, id=servicio_id, propietario=request.user)
+
+    # --- LÓGICA DE ACCESO MODIFICADA ---
+    # En lugar de redirigir, pasamos una variable a la plantilla.
+    tiene_acceso_prime = servicio.permite_multiples_profesionales
+
+    # Si es un POST, y no tiene acceso, lo bloqueamos aquí para seguridad.
+    if request.method == 'POST' and not tiene_acceso_prime:
+        messages.error(request, "No tienes permiso para realizar esta acción.")
+        return redirect('gestionar_equipo', servicio_id=servicio.id)
+
+    # El resto de la lógica del formulario se ejecuta igual.
+    if request.method == 'POST':
+        form = ProfesionalForm(request.POST, request.FILES, servicio=servicio)
+        if form.is_valid():
+            profesional = form.save(commit=False)
+            profesional.servicio = servicio
+            profesional.save()
+            form.save_m2m()
+            messages.success(request, f"¡{profesional.nombre} ha sido añadido al equipo!")
+            return redirect('gestionar_equipo', servicio_id=servicio.id)
+    else:
+        form = ProfesionalForm(servicio=servicio)
+
+    profesionales = servicio.profesionales.all().order_by('nombre')
+    
+    context = {
+        'servicio_activo': servicio, # <-- ¡LA CLAVE! Le pasamos al contexto la variable que la plantilla base espera.
+        'servicio': servicio, # Mantenemos esta por si la plantilla específica la usa
+        'profesionales': profesionales,
+        'form': form,
+        'tiene_acceso_prime': tiene_acceso_prime,
+        'onboarding_completo': True,
+    }
+    return render(request, 'dashboard/gestionar_equipo.html', context)
+
+# VISTA 2: Página para EDITAR un profesional existente
+@login_required
+def editar_profesional(request, profesional_id):
+    # Security check: nos aseguramos que el profesional a editar pertenezca a un servicio del usuario logueado.
+    profesional = get_object_or_404(Profesional, id=profesional_id, servicio__propietario=request.user)
+    servicio = profesional.servicio
+
+    if request.method == 'POST':
+        form = ProfesionalForm(request.POST, request.FILES, instance=profesional, servicio=servicio)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f"Los datos de {profesional.nombre} han sido actualizados.")
+            return redirect('gestionar_equipo', servicio_id=servicio.id)
+    else:
+        form = ProfesionalForm(instance=profesional, servicio=servicio)
+
+    context = {
+        'form': form,
+        'profesional': profesional,
+        'servicio': servicio
+    }
+    return render(request, 'dashboard/editar_profesional.html', context)
+
+# VISTA 3: Lógica para ELIMINAR un profesional (se llama desde un botón)
+@login_required
+@require_POST # Para más seguridad, esta acción solo se permite via POST
+def eliminar_profesional(request, profesional_id):
+    profesional = get_object_or_404(Profesional, id=profesional_id, servicio__propietario=request.user)
+    servicio_id = profesional.servicio.id
+    
+    # Lógica de seguridad: No permitir borrar el último profesional
+    if profesional.servicio.profesionales.count() <= 1:
+        messages.error(request, "No puedes eliminar al último miembro del equipo. Un servicio debe tener al menos un profesional.")
+        return redirect('gestionar_equipo', servicio_id=servicio_id)
+
+    nombre_profesional = profesional.nombre
+    profesional.delete()
+    messages.success(request, f"{nombre_profesional} ha sido eliminado del equipo.")
+    return redirect('gestionar_equipo', servicio_id=servicio_id)
 
 @login_required
 def obtener_notificaciones_propietario(request):

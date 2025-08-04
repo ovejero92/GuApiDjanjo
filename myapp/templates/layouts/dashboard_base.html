@@ -29,6 +29,17 @@
                     <li class="{% if request.resolver_match.url_name == 'dashboard_detalles_negocio' %}active{% endif %}">
                     <a href="{% url 'dashboard_detalles_negocio' %}"><i class="fas fa-store"></i> <span>Detalles del Negocio</span></a>
                     </li>
+                    <li class="{% if request.resolver_match.url_name == 'gestionar_equipo' %}active{% endif %}">
+                        <a href="{% url 'gestionar_equipo' servicio_activo.id %}"
+                           class="sidebar-link {% if request.resolver_match.url_name == 'gestionar_equipo' %}active{% endif %}" 
+                           title="{% if not servicio_activo.permite_multiples_profesionales %}Función exclusiva del Plan Prime{% endif %}">
+                            <i class="fas fa-users"></i>
+                            <span>Gestionar Equipo</span>
+                            {% if not servicio_activo.permite_multiples_profesionales %}
+                                <span class="premium-badge">👑</span>
+                            {% endif %}
+                        </a>
+                    </li>
                     <li class="{% if request.resolver_match.url_name == 'dashboard_metricas' %}active{% endif %}">
                         <a href="{% url 'dashboard_metricas' %}" class="sidebar-link {% if request.resolver_match.url_name == 'dashboard_metricas' %}active{% endif %}" title="{% if not user.suscripcion.plan.allow_metrics %}Función Premium{% endif %}">
                             <i class="fas fa-chart-line"></i>

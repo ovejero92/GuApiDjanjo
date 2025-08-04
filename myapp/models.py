@@ -119,6 +119,19 @@ class Servicio(models.Model):
             return False
         except AttributeError:
             return False
+        
+    @property
+    def permite_multiples_profesionales(self):
+        """
+        Devuelve True si el plan del propietario es 'Prime' y está activo.
+        """
+        try:
+            suscripcion = self.propietario.suscripcion
+            # Comprueba si la suscripción está activa Y si el slug del plan es 'prime'
+            return suscripcion.is_active and suscripcion.plan.slug == 'prime'
+        except (Suscripcion.DoesNotExist, AttributeError):
+            # Si no tiene suscripción o algo falla, no tiene acceso.
+            return False
 
 @receiver(models.signals.post_delete, sender=Servicio)
 def auto_delete_file_on_delete(sender, instance, **kwargs):
@@ -146,7 +159,6 @@ def auto_delete_file_on_change(sender, instance, **kwargs):
     if old_logo and old_logo != new_logo:
         old_logo.delete(save=False)
 
-
 class SubServicio(models.Model):
     servicio_padre = models.ForeignKey(Servicio, on_delete=models.CASCADE, related_name='sub_servicios')
     
@@ -158,9 +170,26 @@ class SubServicio(models.Model):
     def __str__(self):
         return f"{self.nombre} ({self.servicio_padre.nombre})"
 
-class HorarioLaboral(models.Model):
-    servicio = models.ForeignKey(Servicio, on_delete=models.CASCADE, related_name='horarios')
+class Profesional(models.Model):
+    servicio = models.ForeignKey(Servicio, on_delete=models.CASCADE, related_name='profesionales')
+    nombre = models.CharField(max_length=100, help_text="Nombre del miembro del equipo, ej: 'Dra. Ana Pérez' o 'Estilista Juan'")
+    email = models.EmailField(blank=True, null=True, help_text="Email opcional para notificaciones internas.")
+    foto = models.ImageField(upload_to='fotos_profesionales/', null=True, blank=True)
+    activo = models.BooleanField(default=True, help_text="Desmarcar para que no aparezca como opción para reservar turnos.")
     
+    # Este campo es para vincular servicios específicos a este profesional
+    sub_servicios_ofrecidos = models.ManyToManyField(
+        SubServicio, 
+        blank=True, 
+        help_text="Selecciona qué servicios específicos ofrece esta persona."
+    )
+
+    def __str__(self):
+        return f"{self.nombre} ({self.servicio.nombre})"
+
+class HorarioLaboral(models.Model):
+    #servicio = models.ForeignKey(Servicio, on_delete=models.CASCADE, related_name='horarios')
+    profesional = models.ForeignKey(Profesional, on_delete=models.CASCADE, related_name='horarios')
     lunes = models.BooleanField(default=False)
     martes = models.BooleanField(default=False)
     miercoles = models.BooleanField(default=False)
@@ -201,7 +230,8 @@ class HorarioLaboral(models.Model):
             raise ValidationError("El descanso debe estar dentro del horario de apertura y cierre.")
 
 class DiaNoDisponible(models.Model):
-    servicio = models.ForeignKey(Servicio, on_delete=models.CASCADE, related_name='dias_no_disponibles')
+    #servicio = models.ForeignKey(Servicio, on_delete=models.CASCADE, related_name='dias_no_disponibles')
+    profesional = models.ForeignKey(Profesional, on_delete=models.CASCADE, related_name='dias_no_disponibles')
     fecha_inicio = models.DateField(help_text="Día de inicio del bloqueo (o día único).")
     fecha_fin = models.DateField(
         null=True, 
@@ -222,7 +252,17 @@ class DiaNoDisponible(models.Model):
             raise ValidationError("La fecha de fin no puede ser anterior a la fecha de inicio.")
 
 class Turno(models.Model):
-    servicio = models.ForeignKey(Servicio, on_delete=models.CASCADE, related_name='turnos')
+    # Añadimos esta línea de nuevo
+    servicio = models.ForeignKey(Servicio, on_delete=models.CASCADE, related_name='turnos_del_servicio')
+    
+    # Y tu campo de profesional se queda como estaba (con el cambio de nombre sugerido)
+    profesional = models.ForeignKey(
+        Profesional,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='turnos_asignados'
+    )
     cliente = models.ForeignKey(User, on_delete=models.CASCADE, related_name='turnos_solicitados')
     fecha = models.DateField()
     hora = models.TimeField()
@@ -253,7 +293,7 @@ class Turno(models.Model):
     sub_servicios_solicitados = models.ManyToManyField(SubServicio, blank=True)
 
     class Meta:
-        unique_together = ('servicio', 'fecha', 'hora')
+        unique_together = ('profesional', 'fecha', 'hora')
 
     def __str__(self):
         return f"Turno para {self.cliente.username} en {self.servicio.nombre} el {self.fecha} a las {self.hora}"
@@ -300,7 +340,8 @@ class Suscripcion(models.Model):
 
     def __str__(self):
         return f"{self.usuario.username} - {self.plan.nombre if self.plan else 'Sin Plan'}"
-    
+
+
 class PerfilUsuario(models.Model):
     usuario = models.OneToOneField(User, on_delete=models.CASCADE, related_name='perfil')
     telefono = models.CharField(max_length=25, blank=True, null=True, help_text="Número de teléfono de contacto")
