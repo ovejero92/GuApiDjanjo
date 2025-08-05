@@ -1,0 +1,110 @@
+{% extends 'layouts/dashboard_base.html' %}
+
+{% block dashboard_title %}{{ form_title|default:"Gestionar Profesional" }}{% endblock %}
+
+{% block dashboard_content %}
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>{{ form_title|default:"Gestionar Profesional" }}</h1>
+        <a href="{% url 'gestionar_equipo' servicio.id %}" class="btn btn-secondary">Volver al Equipo</a>
+    </div>
+
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="row">
+            <!-- Columna para los datos del Profesional -->
+            <div class="col-md-5">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Datos Personales</h3>
+                    </div>
+                    <div class="card-body">
+                        {{ form.as_p }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Columna para el Horario Laboral -->
+            <div class="col-md-7">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Horario de Trabajo Semanal</h3>
+                    </div>
+                    <div class="card-body">
+                        {# Esto es crucial para que el formset funcione #}
+                        {{ formset.management_form }}
+
+                        {# Iteramos sobre el único formulario del formset y lo renderizamos a mano #}
+                        {% for horario_form in formset %}
+                            <div class="regla-horario-card">
+                                {% if horario_form.non_field_errors %}
+                                    <div class="form-error-box">{{ horario_form.non_field_errors }}</div>
+                                {% endif %}
+                                {{ horario_form.id }}
+
+                                <div class="form-group">
+                                    <label>{{ horario_form.dias_semana.label }}</label>
+                                    <div class="dias-botones-container">
+                                        {% for checkbox in horario_form.dias_semana %}
+                                            {{ checkbox.tag }}
+                                            <label for="{{ checkbox.id_for_label }}">{{ checkbox.choice_label }}</label>
+                                        {% endfor %}
+                                    </div>
+                                    {% if horario_form.dias_semana.errors %}<div class="form-error-text">{{ horario_form.dias_semana.errors }}</div>{% endif %}
+                                </div>
+
+                                <div class="horas-grid">
+                                    <div class="form-group">
+                                        {{ horario_form.horario_apertura.label_tag }} {{ horario_form.horario_apertura }}
+                                    </div>
+                                    <div class="form-group">
+                                        {{ horario_form.horario_cierre.label_tag }} {{ horario_form.horario_cierre }}
+                                    </div>
+                                </div>
+
+                                <div class="descanso-toggle">
+                                    {{ horario_form.tiene_descanso }} <label for="{{ horario_form.tiene_descanso.id_for_label }}">Tiene descanso</label>
+                                </div>
+                                <div class="horas-grid descanso-horas">
+                                    <div class="form-group">
+                                        {{ horario_form.descanso_inicio.label_tag }} {{ horario_form.descanso_inicio }}
+                                    </div>
+                                    <div class="form-group">
+                                        {{ horario_form.descanso_fin.label_tag }} {{ horario_form.descanso_fin }}
+                                    </div>
+                                </div>
+
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-4 text-center">
+            <button type="submit" class="btn btn-success btn-lg">Guardar Cambios</button>
+        </div>
+    </form>
+{% endblock %}
+
+
+{% block scripts_extra %}
+    {{ block.super }}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            function setupFormCard(cardElement) {
+                const descansoCheckbox = cardElement.querySelector('input[name$="-tiene_descanso"]');
+                const horasDiv = cardElement.querySelector('.descanso-horas');
+                
+                if (descansoCheckbox && horasDiv) {
+                    function toggleDescanso() {
+                        horasDiv.style.display = descansoCheckbox.checked ? 'grid' : 'none';
+                    }
+                    toggleDescanso();
+                    descansoCheckbox.addEventListener('change', toggleDescanso);
+                }
+            }
+            
+            document.querySelectorAll('.regla-horario-card').forEach(setupFormCard);
+        });
+    </script>
+{% endblock %}

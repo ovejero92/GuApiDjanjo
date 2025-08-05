@@ -65,18 +65,10 @@
 
         <!-- Columna para añadir un nuevo profesional -->
         <div class="col-md-5">
-            <div class="card">
-                <div class="card-header">
-                    <h3>Añadir Nuevo Miembro</h3>
-                </div>
-                <div class="card-body">
-                    <form method="post" enctype="multipart/form-data">
-                        {% csrf_token %}
-                        {{ form.as_p }}
-                        <button type="submit" class="btn btn-primary w-100 mt-3">Añadir al Equipo</button>
-                    </form>
-                </div>
-            </div>
-        </div>
+        <div class="d-grid gap-2">
+        <a href="{% url 'crear_profesional' servicio.id %}" class="btn btn-primary btn-lg">
+            <i class="fas fa-plus-circle"></i> Añadir Nuevo Miembro
+        </a>
     </div>
+</div>
 {% endblock %}

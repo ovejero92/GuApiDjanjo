@@ -942,6 +942,50 @@ body {font-family: 'Roboto', sans-serif;}
     padding: 8px;
     color-scheme: dark;
 }
+.dias-botones-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+/* Ocultamos el checkbox real */
+.dias-botones-container input[type="checkbox"] {
+    display: none;
+}
+
+/* Estilizamos el label para que parezca un botón */
+.dias-botones-container label {
+    display: inline-block;
+    padding: 8px 16px;
+    border: 1px solid #555;
+    background-color: #333;
+    color: #eee;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+}
+
+/* Cambiamos el estilo cuando el checkbox está seleccionado (marcado) */
+.dias-botones-container input[type="checkbox"]:checked + label {
+    background-color: #007bff; /* Un azul primario, ajústalo a tu color */
+    border-color: #007bff;
+    color: #fff;
+    font-weight: bold;
+}
+
+/* Estilos para el toggle de descanso y las horas */
+.descanso-toggle {
+    margin-top: 15px;
+    margin-bottom: 10px;
+}
+.horas-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+}
+.descanso-horas {
+    display: none; /* Oculto por defecto */
+}
 .metricas-header {
     display: flex;
     flex-direction: column;
@@ -1944,7 +1988,31 @@ color: var(--color-texto-servicio, #fff);  margin-bottom: 15px; border-bottom: 1
     #ser .premium-blocker-content{
         bottom: 1060px;
     }
+    .dashboard-content{
+        width: 100%;
+    }
+    .dashboard-section{
+        width: 100%;
+    }
+    .regla-horario-card {
+        margin-left: 5px;
+    }
+    .form-actions{
+        margin-left: 0;
+    }
+    .dashboard-sidebar{
+        width: 80%;
+    }
+    .dashboard-section form{
+        width: 80%;
+    }
+    .form-section .footerBox {
+       transform: scale(0.9);
+       position: relative;
+       right: 20px;
+       bottom: 10px;
+    }
 }
-.DN{
+/* .DN{
     display: none;
-}
+} */

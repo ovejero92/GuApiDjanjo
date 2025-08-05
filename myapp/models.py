@@ -176,7 +176,13 @@ class Profesional(models.Model):
     email = models.EmailField(blank=True, null=True, help_text="Email opcional para notificaciones internas.")
     foto = models.ImageField(upload_to='fotos_profesionales/', null=True, blank=True)
     activo = models.BooleanField(default=True, help_text="Desmarcar para que no aparezca como opción para reservar turnos.")
-    
+    user_account = models.OneToOneField(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='perfil_profesional'
+    )
     # Este campo es para vincular servicios específicos a este profesional
     sub_servicios_ofrecidos = models.ManyToManyField(
         SubServicio, 

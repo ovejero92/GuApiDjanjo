@@ -4,6 +4,8 @@ from .models import Turno,Profesional , HorarioLaboral, DiaNoDisponible, Reseña
 from django.utils.text import slugify
 from PIL import Image
 from django.shortcuts import  get_object_or_404
+from django.forms import inlineformset_factory
+
 
 class CustomImageWidget(forms.widgets.ClearableFileInput):
     template_name = 'widgets/mi_widget_de_imagen.html'
@@ -366,22 +368,83 @@ class HorarioLaboralForm(forms.ModelForm):
             self.add_error('dias_semana', 'Debes seleccionar al menos un día para esta regla.')
         return cleaned_data
     
+class ProfesionalHorarioForm(forms.ModelForm):
+    # Definimos los días como un campo de checkboxes múltiples para tener el control.
+    dias_semana = forms.MultipleChoiceField(
+        choices=[('lunes', 'Lunes'), ('martes', 'Martes'), ('miercoles', 'Miércoles'), ('jueves', 'Jueves'), ('viernes', 'Viernes'), ('sabado', 'Sábado'), ('domingo', 'Domingo')],
+        widget=forms.CheckboxSelectMultiple, # Lo renderizaremos a mano en la plantilla.
+        label="Días de la semana para esta regla:",
+        required=False
+    )
+    
+    class Meta:
+        model = HorarioLaboral
+        # Excluimos los campos booleanos individuales porque usaremos 'dias_semana'
+        exclude = ['profesional', 'servicio', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo']
+        widgets = {
+            'horario_apertura': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
+            'horario_cierre': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
+            'descanso_inicio': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
+            'descanso_fin': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
+            'tiene_descanso': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+
+    # Esta lógica es crucial: lee los campos booleanos del modelo (lunes, martes...)
+    # y los usa para pre-seleccionar los checkboxes en 'dias_semana'.
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk:
+            dias_iniciales = []
+            for dia in ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo']:
+                if getattr(self.instance, dia, False):
+                    dias_iniciales.append(dia)
+            self.fields['dias_semana'].initial = dias_iniciales
+
+    # Esta lógica es la inversa: toma los checkboxes seleccionados
+    # y actualiza los campos booleanos del modelo antes de guardar.
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        dias_seleccionados = self.cleaned_data.get('dias_semana', [])
+        
+        for dia in ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo']:
+            setattr(instance, dia, dia in dias_seleccionados)
+
+        if commit:
+            instance.save()
+            
+        return instance
+
+# 2. Ahora le decimos al inlineformset_factory que use NUESTRO formulario personalizado.
+HorarioLaboralFormSet = inlineformset_factory(
+    Profesional,
+    HorarioLaboral,
+    form=ProfesionalHorarioForm,  # ¡LA LÍNEA MÁGICA!
+    extra=1,
+    max_num=1,
+    can_delete=False,
+)
+
+
 class ProfesionalForm(forms.ModelForm):
     class Meta:
         model = Profesional
-        fields = ['nombre', 'email', 'foto', 'activo', 'sub_servicios_ofrecidos']
+        # Quitamos 'activo' de aquí porque se manejará en el formset del horario.
+        fields = ['nombre', 'email', 'foto', 'sub_servicios_ofrecidos']
         widgets = {
             'nombre': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: Dra. Ana Pérez'}),
             'email': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'Email (opcional)'}),
             'foto': forms.FileInput(attrs={'class': 'form-control'}),
-            'activo': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'sub_servicios_ofrecidos': forms.CheckboxSelectMultiple,
         }
         help_texts = {
             'sub_servicios_ofrecidos': 'Selecciona los tratamientos o servicios que realiza esta persona.'
         }
+    
     def __init__(self, *args, **kwargs):
+        # Este __init__ está perfecto, lo dejamos como está.
         servicio = kwargs.pop('servicio', None)
         super().__init__(*args, **kwargs)
         if servicio:
             self.fields['sub_servicios_ofrecidos'].queryset = servicio.sub_servicios.all()
+            
+            
