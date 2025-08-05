@@ -1848,6 +1848,9 @@ color: var(--color-texto-servicio, #fff);  margin-bottom: 15px; border-bottom: 1
     .card-servicio h2 {font-size: 20px;}
 }
 @media (max-width: 425px) {
+    .dashboard-wrapper{
+        width: 100%;
+    }
     .dashboard-layout{
         max-width: 100%;
     }
@@ -1864,7 +1867,7 @@ color: var(--color-texto-servicio, #fff);  margin-bottom: 15px; border-bottom: 1
         margin-left: 30px;
     }
     .dashboard-sidebar{
-        width: 360px;
+        width: 90%;
     }
     .bloqueo-form p{
         margin-left: 10px;
@@ -1926,6 +1929,9 @@ color: var(--color-texto-servicio, #fff);  margin-bottom: 15px; border-bottom: 1
     #ser .premium-blocker-content{
         bottom: 1130px;
     }
+    .dashboard-sidebar{
+        width: 90%;
+    }
 }
 @media (max-width: 320px) {
     .user-button{
@@ -1945,9 +1951,6 @@ color: var(--color-texto-servicio, #fff);  margin-bottom: 15px; border-bottom: 1
     }
     .card-servicio-nueva .card-descripcion{
         margin-top: 20px;
-    }
-    .dashboard-sidebar{
-        width: 86%;
     }
     .dashboard-section{
         padding: 5px;
@@ -2001,7 +2004,7 @@ color: var(--color-texto-servicio, #fff);  margin-bottom: 15px; border-bottom: 1
         margin-left: 0;
     }
     .dashboard-sidebar{
-        width: 80%;
+        width: 90%;
     }
     .dashboard-section form{
         width: 80%;
