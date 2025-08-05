@@ -1472,7 +1472,25 @@ color: var(--color-texto-servicio, #fff);  margin-bottom: 15px; border-bottom: 1
     font-size: 1.1em;
     text-decoration: none;
 }
+.flatpickr-day.dia-no-laborable {
+        /* Usamos !important para asegurar que estos estilos no sean sobrescritos
+           por otras reglas de CSS para móviles. Es una herramienta poderosa. */
+        background-color: transparent !important;
+        color: #adb5bd !important; /* Texto gris muy apagado */
+        text-decoration: line-through !important; /* Tachado */
+        font-style: italic !important; /* Opcional: añade cursiva para más claridad */
+        
+        /* Estas reglas impiden que el usuario pueda interactuar con el día */
+        pointer-events: none !important;
+        cursor: not-allowed !important;
+    }
 
+    /* Opcional: Regla para asegurar que el día de "hoy" también se vea deshabilitado
+       si es un día no laborable. */
+    .flatpickr-day.today.dia-no-laborable {
+        border-color: #dee2e6 !important;
+        color: #adb5bd !important;
+    }
 
 .pagina-servicio-personalizada .turno-form-container, 
 .pagina-servicio-personalizada .reseñas-container {
