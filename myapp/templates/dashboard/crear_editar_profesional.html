@@ -30,10 +30,8 @@
                         <h3>Horario de Trabajo Semanal</h3>
                     </div>
                     <div class="card-body">
-                        {# Esto es crucial para que el formset funcione #}
                         {{ formset.management_form }}
 
-                        {# Iteramos sobre el único formulario del formset y lo renderizamos a mano #}
                         {% for horario_form in formset %}
                             <div class="regla-horario-card">
                                 {% if horario_form.non_field_errors %}

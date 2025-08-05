@@ -1134,7 +1134,6 @@ def gestionar_equipo(request, servicio_id):
     }
     return render(request, 'dashboard/gestionar_equipo.html', context)
 
-
 @login_required
 def crear_profesional(request, servicio_id):
     servicio = get_object_or_404(Servicio, id=servicio_id, propietario=request.user)
@@ -1144,7 +1143,7 @@ def crear_profesional(request, servicio_id):
 
     if request.method == 'POST':
         form = ProfesionalForm(request.POST, request.FILES, servicio=servicio)
-        formset = HorarioLaboralFormSet(request.POST)
+        formset = HorarioLaboralFormSet(request.POST, prefix='horarios')
 
         if form.is_valid() and formset.is_valid():
             profesional = form.save(commit=False)
@@ -1154,11 +1153,31 @@ def crear_profesional(request, servicio_id):
             formset.instance = profesional
             formset.save()
             
-            messages.success(request, f"¡{profesional.nombre} y su horario han sido creados!")
+            horarios_creados = profesional.horarios.all()
+            horario_valido_encontrado = None
+            
+            for horario in horarios_creados:
+                dias_seleccionados = (
+                    horario.lunes or horario.martes or horario.miercoles or
+                    horario.jueves or horario.viernes or horario.sabado or horario.domingo
+                )
+                if not dias_seleccionados or not horario.horario_apertura:
+                    horario.delete() 
+                else:
+                    horario_valido_encontrado = horario
+            
+            if horario_valido_encontrado and not horario_valido_encontrado.activo:
+                horario_valido_encontrado.activo = True
+                horario_valido_encontrado.save()
+            
+            messages.success(request, f"¡{profesional.nombre} y su horario han sido creados correctamente!")
             return redirect('gestionar_equipo', servicio_id=servicio.id)
+        else:
+            messages.error(request, "Hubo un error en el formulario. Por favor, revisa los datos.")
+
     else:
         form = ProfesionalForm(servicio=servicio)
-        formset = HorarioLaboralFormSet(queryset=HorarioLaboral.objects.none())
+        formset = HorarioLaboralFormSet(queryset=HorarioLaboral.objects.none(), prefix='horarios')
 
     context = {
         'form': form,
@@ -1170,8 +1189,6 @@ def crear_profesional(request, servicio_id):
     }
     return render(request, 'dashboard/crear_editar_profesional.html', context)
 
-
-# VISTA MODIFICADA: Para editar un profesional Y SU HORARIO
 @login_required
 def editar_profesional(request, profesional_id):
     profesional = get_object_or_404(Profesional, id=profesional_id, servicio__propietario=request.user)
@@ -1233,3 +1250,24 @@ def obtener_notificaciones_propietario(request):
         total_pendientes += Turno.objects.filter(servicio=servicio, estado='pendiente').count()
 
     return JsonResponse({'conteo': total_pendientes})
+
+def get_horario_profesional_api(request, profesional_id):
+    try:
+        profesional = get_object_or_404(Profesional, id=profesional_id)
+        horarios_activos = profesional.horarios.filter(activo=True)
+        
+        dias_laborables = set()
+        dias_map = {
+            'lunes': 1, 'martes': 2, 'miercoles': 3, 'jueves': 4,
+            'viernes': 5, 'sabado': 6, 'domingo': 0
+        }
+
+        for horario in horarios_activos:
+            for dia_nombre, dia_numero in dias_map.items():
+                if getattr(horario, dia_nombre):
+                    dias_laborables.add(dia_numero)
+                    
+        return JsonResponse({'dias_laborables': list(dias_laborables)})
+
+    except Profesional.DoesNotExist:
+        return JsonResponse({'error': 'Profesional no encontrado'}, status=404)

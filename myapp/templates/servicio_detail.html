@@ -211,15 +211,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const slotsContainer = document.getElementById('slotsContainer');
     const submitButton = document.querySelector('button.btn-submit');
     const formCheckboxes = document.querySelectorAll('input[name="sub_servicios_solicitados"]');
-    
-    // --- Selector de Profesional: ahora más genérico para capturar ambos casos ---
-    // Intentará encontrar el <select> (Prime) o el <input type="hidden"> (Free)
     const profesionalInput = document.querySelector('[name="profesional_id"]');
 
     let duracionTotalCalculada = 0;
     let selectedSlotButton = null;
 
-    // --- Tu función `actualizarResumenYPasos` (está perfecta, no se toca) ---
+    let calendarioInstance = null;
+    let diasLaborablesDelProfesional = [];
+
     function actualizarResumenYPasos() {
         let duracionTotal = 0;
         let precioTotal = 0.0;
@@ -248,7 +247,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // --- Función `cargarSlots` (¡AQUÍ ESTÁ LA CORRECCIÓN MÁS IMPORTANTE!) ---
     async function cargarSlots() {
         // Limpiamos el estado anterior
         slotsContainer.innerHTML = '<p>Buscando horarios...</p>';
@@ -306,34 +304,68 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // --- Lógica del Calendario (Eliminamos la dependencia del JSON) ---
-    // Tu calendario ya no necesita `horario_trabajo_json` ni `fechas_ocupadas_json`
-    // porque la API hace todo el trabajo pesado.
-    flatpickr(fechaInput, {
-        altInput: true,
-        altFormat: "F j, Y",
-        dateFormat: "Y-m-d",
-        minDate: "today",
-        locale: "es",
-        // Ya no necesitamos la lógica 'enable'. El calendario muestra todos los días,
-        // y si un día no tiene slots, la API nos lo dirá.
-        onChange: function(selectedDates, dateStr, instance) {
-            submitButton.classList.add('is-disabled');
-            if (dateStr && duracionTotalCalculada > 0) {
-                cargarSlots(); // Llamamos sin argumentos
-            }
-        },
-    });
+    function inicializarCalendario() {
+        if (calendarioInstance) {
+            calendarioInstance.destroy(); // Destruye la instancia anterior para evitar conflictos
+        }
+        calendarioInstance = flatpickr(fechaInput, {
+            altInput: true,
+            altFormat: "F j, Y",
+            dateFormat: "Y-m-d",
+            minDate: "today",
+            locale: "es",
+            // onDayCreate se ejecuta para cada día que se dibuja en el calendario.
+            onDayCreate: function(dObj, dStr, fp, dayElem) {
+                // dayElem.dateObj.getDay() devuelve 0 para Domingo, 1 para Lunes, etc.
+                const diaDeLaSemana = dayElem.dateObj.getDay();
+                
+                // Si tenemos una lista de días laborables y este día NO está en la lista...
+                if (diasLaborablesDelProfesional.length > 0 && !diasLaborablesDelProfesional.includes(diaDeLaSemana)) {
+                    dayElem.classList.add("dia-no-laborable"); // ...le aplicamos nuestra clase CSS.
+                }
+            },
+            onChange: function(selectedDates, dateStr, instance) {
+                submitButton.classList.add('is-disabled');
+                if (dateStr && duracionTotalCalculada > 0) {
+                    cargarSlots();
+                }
+            },
+        });
+    }
 
-    // --- Lógica de Eventos (Ahora más simple y robusta) ---
+    // --- NUEVA FUNCIÓN PARA OBTENER EL HORARIO Y ACTUALIZAR EL CALENDARIO ---
+    async function actualizarHorarioParaCalendario() {
+        const profesionalId = profesionalInput.value;
+        if (!profesionalId) {
+            diasLaborablesDelProfesional = []; // Reseteamos los días
+            inicializarCalendario(); // Reiniciamos el calendario sin reglas
+            slotsContainer.innerHTML = '<p class="text-info">Por favor, elige un profesional para ver sus horarios.</p>';
+            return;
+        }
 
-    // El selector de profesional (si es visible) dispara la carga de slots
-    if (profesionalInput && profesionalInput.tagName === 'SELECT') {
-        profesionalInput.addEventListener('change', function() {
-            if (fechaInput.value && duracionTotalCalculada > 0) {
+        try {
+            const response = await fetch(`/api/horario-profesional/${profesionalId}/`);
+            if (!response.ok) throw new Error('No se pudo cargar el horario.');
+            
+            const data = await response.json();
+            diasLaborablesDelProfesional = data.dias_laborables || [];
+            
+            inicializarCalendario(); // Re-inicializa el calendario con los nuevos días laborables
+            
+            // Si ya había una fecha seleccionada, recargamos los slots
+            if (fechaInput.value) {
                 cargarSlots();
             }
-        });
+        } catch (error) {
+            console.error("Error al cargar horario:", error);
+            diasLaborablesDelProfesional = []; // En caso de error, no aplicamos reglas
+            inicializarCalendario();
+        }
+    }
+
+    // --- LÓGICA DE EVENTOS ---
+    if (profesionalInput && profesionalInput.tagName === 'SELECT') {
+        profesionalInput.addEventListener('change', actualizarHorarioParaCalendario);
     }
 
     // Los subservicios disparan la actualización general
@@ -346,6 +378,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // --- Inicialización y Lógica de íconos (se queda igual) ---
     actualizarResumenYPasos();
+    actualizarHorarioParaCalendario();
+
 
     const infoIcons = document.querySelectorAll('.info-icon');
     infoIcons.forEach(icon => {

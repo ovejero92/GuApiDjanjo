@@ -49,6 +49,7 @@ urlpatterns = [
     path('crear-suscripcion/<slug:plan_slug>/', views.crear_suscripcion_mp, name='crear_suscripcion'),
     path('pago-exitoso/', views.pago_exitoso, name='pago_exitoso'),
     path('webhooks/mp/', views.webhook_mp, name='webhook_mp'),
+    path('api/horario-profesional/<int:profesional_id>/', views.get_horario_profesional_api, name='api_get_horario_profesional'),
     path('editar-perfil/', views.editar_perfil, name='editar_perfil'),
     path('api/', include(router.urls)),
     path('api/notificaciones/', views.obtener_notificaciones, name='obtener_notificaciones'),

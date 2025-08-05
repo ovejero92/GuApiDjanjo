@@ -1472,7 +1472,19 @@ color: var(--color-texto-servicio, #fff);  margin-bottom: 15px; border-bottom: 1
     font-size: 1.1em;
     text-decoration: none;
 }
+ .flatpickr-day.dia-no-laborable {
+        background-color: transparent !important; /* Le quitamos el fondo para que no interfiera */
+        color: #adb5bd; /* Un color de texto muy apagado */
+        text-decoration: line-through; /* Lo tachamos para que sea obvio */
+        pointer-events: none; /* El cursor no cambia y no se puede hacer clic */
+        cursor: not-allowed;
+    }
 
+    /* Opcional: Para que el día "hoy", si no es laborable, también se vea apagado */
+    .flatpickr-day.today.dia-no-laborable {
+        border-color: #dee2e6;
+        color: #adb5bd;
+    }
 
 .pagina-servicio-personalizada .turno-form-container, 
 .pagina-servicio-personalizada .reseñas-container {
