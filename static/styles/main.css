@@ -805,13 +805,6 @@ body {font-family: 'Roboto', sans-serif;}
     background: transparent; border: 1px solid #666; color: #ccc; padding: 10px 15px;
     border-radius: 5px; cursor: pointer; transition: background-color 0.2s;
 }
- .regla-horario-card {
-    background-color: #3a3a3a;
-    border: 1px solid #555;
-    border-radius: 8px;
-    padding: 20px;
-    margin-bottom: 20px;
-}
 .form-group { margin-bottom: 15px; }
 .form-group label { display: block; margin-bottom: 8px; font-weight: bold; }
 .dias-botones-container {
@@ -1861,7 +1854,7 @@ color: var(--color-texto-servicio, #fff);  margin-bottom: 15px; border-bottom: 1
         text-align: center;
     }
     .regla-horario-card{
-        margin-left: 40px;
+        margin-left: 20px;
     }
     .form-actions{
         margin-left: 30px;

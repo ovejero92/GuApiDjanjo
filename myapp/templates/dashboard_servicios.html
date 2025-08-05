@@ -298,8 +298,15 @@
             const btnToggle = document.getElementById('togglePreviewMobile');
             const btnClosePrev = document.querySelector('.close-preview');
 
-            btnClosePrev.addEventListener('click', () => {prevCont.style.display = "none" })
-            btnToggle.addEventListener('click', () => {prevCont.style.display= "block"})
+            btnClosePrev.addEventListener('click', () => {
+                prevCont.style.display = "none"
+                btnToggle.style.display = "block"
+            })
+            btnToggle.addEventListener('click', () => {
+                prevCont.style.display= "block"
+                prevCont.style.width = "90%"
+                btnToggle.style.display="none"
+            })
 
         });
     </script>
