@@ -41,6 +41,15 @@
         <div class="metric-card" id="IT"><h3>Ingresos Totales</h3><p class="metric-value">${{ ingresos_totales|floatformat:2 }}</p></div>
         <div class="metric-card" id="TC"><h3>Turnos Completados</h3><p class="metric-value">{{ turnos_totales }}</p></div>
         <div class="metric-card" id="IP"><h3>Ingreso Promedio / Turno</h3><p class="metric-value">${{ ingreso_promedio|floatformat:2 }}</p></div>
+        <div class="metric-card" id="MC">
+            <h3>Mejor Cliente</h3>
+            {% if cliente_top and cliente_top.total_gastado > 0 %}
+                <p class="metric-value" style="font-size: 1.5em; line-height: 1.2;">{{ cliente_top.cliente__first_name|default:'' }} {{ cliente_top.cliente__last_name|default:'' }}</p>
+                <small style="color: #aaa;">Total: ${{ cliente_top.total_gastado|floatformat:2 }}</small>
+            {% else %}
+                <p class="metric-value">-</p>
+            {% endif %}
+        </div>
     </div>
 
      <div class="charts-grid" id="zona-graficos">
@@ -51,106 +60,160 @@
                     <button class="control-btn active" data-agrupar="dia">Día</button>
                     <button class="control-btn" data-agrupar="mes">Mes</button>
                     <button class="control-btn" data-agrupar="año">Año</button>
-                    <input type="date" id="filtro-dia" class="filtro-fecha">
+                    <input type="date" id="filtro-dia" class="filtro-fecha" placeholder="dd/mm/aaaa" value="">
                     <input type="month" id="filtro-mes" class="filtro-fecha" style="display: none;">
                     <input type="number" id="filtro-año" class="filtro-fecha" style="display: none;" min="2020" max="2050" step="1">
                 </div>
             </div>
-            <canvas id="ingresosChart"></canvas>
+<canvas id="ingresosChart" data-api-url="{% url 'api_metricas_grafico' %}"></canvas>
         </div>
         <div class="dashboard-section chart-container" id="SP">
             <h2>Servicios Populares (Total)</h2>
-            <canvas id="serviciosPopularesChart"></canvas>
+            <canvas id="serviciosPopularesChart" ></canvas>
         </div>
     </div>
+
+    {% if es_propietario_prime %}
+    <div class="dashboard-section" id="metricas-profesionales" style="margin-top: 20px;">
+        <div class="chart-header">
+            <h2>Rendimiento por Profesional</h2>
+        </div>
+        {% if metricas_por_profesional %}
+            <div class="table-responsive-wrapper">
+                <!-- Reutilizamos tus clases para mantener la estética -->
+                <table class="turnos-table responsive-table">
+                    <thead>
+                        <tr>
+                            <th>Profesional</th>
+                            <th>Ingresos Generados</th>
+                            <th>Turnos Atendidos</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for metrica in metricas_por_profesional %}
+                        <tr>
+                            <td data-label="Profesional"><span class="data-value">{{ metrica.profesional__nombre }}</span></td>
+                            <td data-label="Ingresos"><span class="data-value">${{ metrica.total_ingresos|floatformat:2 }}</span></td>
+                            <td data-label="Turnos"><span class="data-value">{{ metrica.cantidad_turnos }}</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p style="text-align: center; color: #aaa; padding: 20px 0;">No hay datos de rendimiento de profesionales para el período seleccionado.</p>
+        {% endif %}
+    </div>
+    {% endif %}
 </div>
     
 {{ labels_servicios_json|json_script:"labels-servicios-data" }}
 {{ data_servicios_json|json_script:"data-servicios-data" }}
     {% endblock %}
 
-    {% block scripts_extra %}
-    {{ block.super }}
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+{% block scripts_extra %}
+    {{ block.super }}
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('turbolinks:load', function() {
+            
+            // Buscamos un elemento que SOLO exista en esta página
+            const seccionMetricas = document.getElementById('seccion-metricas');
+            if (!seccionMetricas) {
+                return; // Si no es la página de métricas, no hacemos nada.
+            }
+
+            // --- DESTRUCCIÓN PREVENTIVA ---
+            // Usamos el método oficial de Chart.js para buscar y destruir instancias viejas.
+            if (window.doughnutChart) { window.doughnutChart.destroy(); }
+            if (window.lineChart) { window.lineChart.destroy(); }
+            
+            // --- GRÁFICO 1: SERVICIOS POPULARES ---
             try {
                 const labelsServicios = JSON.parse(document.getElementById('labels-servicios-data').textContent);
                 const dataServicios = JSON.parse(document.getElementById('data-servicios-data').textContent);
                 const canvasServicios = document.getElementById('serviciosPopularesChart');
-                if (canvasServicios && Array.isArray(labelsServicios) && Array.isArray(dataServicios) && dataServicios.length > 0) {
-                    new Chart(canvasServicios.getContext('2d'), {
+                
+                if (Array.isArray(labelsServicios) && Array.isArray(dataServicios) && dataServicios.length > 0) {
+                    window.doughnutChart = new Chart(canvasServicios.getContext('2d'), { // Asignamos a window
                         type: 'doughnut',
                         data: {
                             labels: labelsServicios,
-                            datasets: [{
-                                label: 'Nº de Turnos',
-                                data: dataServicios,
-                                backgroundColor: ['#007bff', '#28a745', '#ffc107', '#dc3545', '#6f42c1']
-                            }]
-                        }
+                            datasets: [{ data: dataServicios, backgroundColor: ['#007bff', '#28a745', '#ffc107', '#dc3545', '#6f42c1'] }]
+                        },
+                        options: { responsive: true, maintainAspectRatio: false }
                     });
-                } else if (canvasServicios) {
+                } else {
                     const ctx = canvasServicios.getContext('2d');
+                    ctx.clearRect(0, 0, canvasServicios.width, canvasServicios.height);
                     ctx.textAlign = 'center'; ctx.font = '14px Segoe UI'; ctx.fillStyle = '#888';
-                    ctx.fillText('No hay datos de servicios populares.', canvasServicios.width / 2, canvasServicios.height / 2);
+                    ctx.fillText('No hay datos de servicios para este período.', canvasServicios.width / 2, canvasServicios.height / 2);
                 }
-            } catch (e) { console.error("Error en gráfico de servicios:", e); }
+            } catch (e) { console.error("Error en gráfico de torta:", e); }
 
-
-            const ctxIngresos = document.getElementById('ingresosChart').getContext('2d');
-            let ingresosChart = new Chart(ctxIngresos, {
-                type: 'line',
-                data: { labels: [], datasets: [{ label: 'Ingresos ($)', data: [], borderColor: 'aqua', backgroundColor: 'rgba(0, 255, 255, 0.2)', fill: true, tension: 0.1 }] },
+            // --- GRÁFICO 2: ANÁLISIS DE INGRESOS ---
+            const canvasIngresos = document.getElementById('ingresosChart');
+            window.lineChart = new Chart(canvasIngresos.getContext('2d'), { // Asignamos a window
+                type: 'line', 
+                data: { labels: [], datasets: [{ label: 'Ingresos ($)', data: [] }] }, 
                 options: { scales: { y: { beginAtZero: true } } }
             });
 
             const controles = document.querySelectorAll('.control-btn');
-            const filtrosFecha = document.querySelectorAll('.filtro-fecha');
-            const filtroDia = document.getElementById('filtro-dia');
-            const filtroMes = document.getElementById('filtro-mes');
-            const filtroAño = document.getElementById('filtro-año');
             let agrupacionActual = 'dia';
 
-            async function actualizarGrafico() {
+            function actualizarGraficoLineal() {
+                const apiUrl = canvasIngresos.dataset.apiUrl;
+                if (!apiUrl) return;
+                
+                const filtroDia = document.getElementById('filtro-dia');
+                const filtroMes = document.getElementById('filtro-mes');
+                const filtroAño = document.getElementById('filtro-año');
                 let params = new URLSearchParams({ agrupar_por: agrupacionActual });
                 if (agrupacionActual === 'dia') params.append('fecha', filtroDia.value);
                 if (agrupacionActual === 'mes') params.append('mes', filtroMes.value);
                 if (agrupacionActual === 'año') params.append('año', filtroAño.value);
                 
-                try {
-                    const response = await fetch(`{% url 'dashboard_metricas' %}?${params.toString()}`, {
-                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
-                    });
-                    const data = await response.json();
-                    
-                    ingresosChart.data.labels = data.labels;
-                    ingresosChart.data.datasets[0].data = data.data;
-                    ingresosChart.update();
-                } catch (e) { console.error("Error al actualizar el gráfico:", e); }
+                fetch(`${apiUrl}?${params.toString()}`, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(response => response.json())
+                .then(data => {
+                    if (window.lineChart) {
+                        window.lineChart.data.labels = data.labels;
+                        window.lineChart.data.datasets[0].data = data.data;
+                        window.lineChart.data.datasets[0].borderColor = 'aqua';
+                        window.lineChart.data.datasets[0].backgroundColor = 'rgba(0, 255, 255, 0.2)';
+                        window.lineChart.data.datasets[0].fill = true;
+                        window.lineChart.data.datasets[0].tension = 0.1;
+                        window.lineChart.update();
+                    }
+                });
             }
 
-            controles.forEach(btn => btn.addEventListener('click', function() {
-                agrupacionActual = this.dataset.agrupar;
-                controles.forEach(b => b.classList.remove('active'));
-                this.classList.add('active');
-                filtrosFecha.forEach(f => f.style.display = 'none');
-                document.getElementById(`filtro-${agrupacionActual}`).style.display = 'block';
-                actualizarGrafico();
-            }));
-            filtrosFecha.forEach(filtro => filtro.addEventListener('change', actualizarGrafico));
-            
+            controles.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    agrupacionActual = this.dataset.agrupar;
+                    controles.forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    document.querySelectorAll('.filtro-fecha').forEach(f => f.style.display = 'none');
+                    document.getElementById(`filtro-${agrupacionActual}`).style.display = 'block';
+                    actualizarGraficoLineal();
+                });
+            });
+            document.querySelectorAll('.filtro-fecha').forEach(filtro => {
+                filtro.addEventListener('change', actualizarGraficoLineal);
+            });
+
             const hoy = new Date();
             const yyyy = hoy.getFullYear();
             const mm = String(hoy.getMonth() + 1).padStart(2, '0');
             const dd = String(hoy.getDate()).padStart(2, '0');
-            filtroDia.value = `${yyyy}-${mm}-${dd}`;
-            filtroMes.value = `${yyyy}-${mm}`;
-            filtroAño.value = yyyy;
+            document.getElementById('filtro-dia').value = `${yyyy}-${mm}-${dd}`;
+            document.getElementById('filtro-mes').value = `${yyyy}-${mm}`;
+            document.getElementById('filtro-año').value = yyyy;
             
-            actualizarGrafico();
-
+            actualizarGraficoLineal();
+            
+            // Código del tour de ayuda
             const botonAyuda = document.getElementById('ayudaMetricasBtn');
             if (botonAyuda) {
                 botonAyuda.addEventListener('click', function() {
@@ -211,5 +274,9 @@
                 });
             }
         });
+    </script>
+    <script>
+        
+            
     </script>
 {% endblock %}

@@ -360,7 +360,7 @@ def dashboard_turnos(request):
         return render(request, 'servicio_suspendido.html', context)
     turnos = Turno.objects.filter(
         servicio=servicio_activo
-    ).select_related('cliente').prefetch_related('sub_servicios_solicitados')
+    ).select_related('cliente', 'profesional').prefetch_related('sub_servicios_solicitados')
     ahora = timezone.now()
     hoy = ahora.date()
     hora_actual = ahora.time()
@@ -377,7 +377,7 @@ def dashboard_turnos(request):
         servicio=servicio_activo
     ).filter(
         Q(fecha__lt=hoy) | Q(fecha=hoy, hora__lt=ahora.time())
-    ).select_related('cliente')
+    ).select_related('cliente', 'profesional')
     if filtro_historial_activo == 'finalizados':
         turnos_a_mostrar = turnos_pasados_base.filter(estado__in=['completado', 'cancelado']).order_by('-fecha', '-hora')
     else:
@@ -385,6 +385,9 @@ def dashboard_turnos(request):
     paginator = Paginator(turnos_a_mostrar, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
+    
+    es_propietario_prime = servicio_activo.permite_multiples_profesionales
+        
     context = {
         'servicio_activo': servicio_activo,
         'onboarding_completo': servicio_activo.configuracion_inicial_completa,
@@ -393,6 +396,7 @@ def dashboard_turnos(request):
         'historial_page_obj': page_obj,
         'filtro_historial_activo': filtro_historial_activo,
         'mostrar_animacion': mostrar_animacion,
+        'es_propietario_prime': es_propietario_prime,
     }
     return render(request, 'dashboard_turnos.html', context)
 
@@ -632,46 +636,23 @@ def dashboard_horarios(request):
 
 @login_required
 def dashboard_metricas(request):
+    # Verificación de acceso y servicio (se mantiene igual)
     try:
         suscripcion = request.user.suscripcion
         tiene_acceso = suscripcion.is_active and suscripcion.plan.allow_metrics
     except (Suscripcion.DoesNotExist, AttributeError):
         tiene_acceso = False
-    if not tiene_acceso and request.headers.get('x-requested-with') == 'XMLHttpRequest':
-        return JsonResponse({'error': 'Acceso denegado'}, status=403)
+        
     servicio_activo = get_servicio_activo(request)
     if not servicio_activo:
         return render(request, 'dashboard_metricas.html', {'no_hay_servicio': True})
+    
     if not servicio_activo.esta_activo:
-        context = {
-            'servicio': servicio_activo,
-            'onboarding_completo': True,
-            'servicio_activo': servicio_activo,
-            'tiene_acceso': tiene_acceso
-        }
-        return render(request, 'servicio_suspendido.html', context)
-    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
-        agrupar_por = request.GET.get('agrupar_por', 'dia')
-        hoy = timezone.localdate()
-        qs = Turno.objects.filter(servicio=servicio_activo, estado='completado')
-        if agrupar_por == 'dia':
-            fecha_str = request.GET.get('fecha', hoy.strftime('%Y-%m-%d'))
-            fecha = datetime.strptime(fecha_str, '%Y-%m-%d').date()
-            datos = qs.filter(fecha=fecha).annotate(periodo=TruncHour('hora')).values('periodo').annotate(total=Sum('ingreso_real')).order_by('periodo')
-            labels = [d['periodo'].strftime('%H:%M hs') for d in datos]
-        elif agrupar_por == 'mes':
-            mes_str = request.GET.get('mes', hoy.strftime('%Y-%m'))
-            mes = datetime.strptime(mes_str, '%Y-%m')
-            datos = qs.filter(fecha__year=mes.year, fecha__month=mes.month).annotate(periodo=TruncDay('fecha')).values('periodo').annotate(total=Sum('ingreso_real')).order_by('periodo')
-            labels = [d['periodo'].strftime('%d/%m') for d in datos]
-        else:
-            año_str = request.GET.get('año', str(hoy.year))
-            año = int(año_str)
-            datos = qs.filter(fecha__year=año).annotate(periodo=TruncMonth('fecha')).values('periodo').annotate(total=Sum('ingreso_real')).order_by('periodo')
-            labels = [d['periodo'].strftime('%b %Y') for d in datos]
+        return render(request, 'servicio_suspendido.html', {'servicio': servicio_activo, 'tiene_acceso': tiene_acceso})
 
-        data_puntos = [float(d['total']) if d['total'] else 0 for d in datos]
-        return JsonResponse({'labels': labels, 'data': data_puntos})
+    # --- LÓGICA PARA RENDERIZAR LA PÁGINA (YA NO HAY BLOQUE AJAX) ---
+    
+    # Definir el período de tiempo
     periodo = request.GET.get('periodo', '30d')
     hoy = timezone.localdate()
     
@@ -684,41 +665,86 @@ def dashboard_metricas(request):
     elif periodo == 'año_actual':
         fecha_inicio = hoy.replace(day=1, month=1)
         titulo_periodo = "Este Año"
-    else:
+    else: # 30d
         fecha_inicio = hoy - timedelta(days=29)
         titulo_periodo = "Últimos 30 días"
+        
+    # Queryset base filtrado
     turnos_completados_periodo = Turno.objects.filter(
-        servicio=servicio_activo,
-        estado='completado',
-        fecha__gte=fecha_inicio,
-        fecha__lte=hoy
+        servicio=servicio_activo, estado='completado', fecha__gte=fecha_inicio, fecha__lte=hoy
     )
+    
+    # Calcular KPIs
     agregados = turnos_completados_periodo.aggregate(
-        ingresos_totales=Sum('ingreso_real'),
-        turnos_totales=Count('id'),
-        ingreso_promedio=Avg('ingreso_real')
+        ingresos_totales=Sum('ingreso_real'), turnos_totales=Count('id'), ingreso_promedio=Avg('ingreso_real')
     )
-    contador_servicios = {}
-    for turno in turnos_completados_periodo.prefetch_related('sub_servicios_solicitados'):
-        for sub_servicio in turno.sub_servicios_solicitados.all():
-            nombre = sub_servicio.nombre
-            contador_servicios[nombre] = contador_servicios.get(nombre, 0) + 1
-    servicios_populares_ordenados = sorted(contador_servicios.items(), key=lambda item: item[1], reverse=True)[:5]
-    labels_servicios = [item[0] for item in servicios_populares_ordenados]
-    data_servicios = [item[1] for item in servicios_populares_ordenados]
+    cliente_top = turnos_completados_periodo.values('cliente__first_name', 'cliente__last_name').annotate(
+        total_gastado=Sum('ingreso_real')).order_by('-total_gastado').first()
+    
+    subservicios_populares_data = turnos_completados_periodo.values('sub_servicios_solicitados__nombre').annotate(
+        cantidad=Count('sub_servicios_solicitados__nombre')).exclude(sub_servicios_solicitados__nombre=None).order_by('-cantidad')[:5]
+
+    labels_servicios = [item['sub_servicios_solicitados__nombre'] for item in subservicios_populares_data]
+    data_servicios = [item['cantidad'] for item in subservicios_populares_data]
+    
+    es_propietario_prime = servicio_activo.permite_multiples_profesionales
+    metricas_por_profesional = None
+    if es_propietario_prime:
+        metricas_por_profesional = turnos_completados_periodo.filter(profesional__isnull=False).values(
+            'profesional__nombre').annotate(total_ingresos=Sum('ingreso_real'), cantidad_turnos=Count('id')).order_by('-total_ingresos')
+        
     context = {
         'servicio_activo': servicio_activo,
-        'onboarding_completo': servicio_activo.configuracion_inicial_completa,
+        'tiene_acceso': tiene_acceso,
+        'periodo_seleccionado': periodo,
+        'titulo_periodo': titulo_periodo,
+        'onboarding_completo': True,
         'ingresos_totales': agregados['ingresos_totales'] or 0,
         'turnos_totales': agregados['turnos_totales'] or 0,
         'ingreso_promedio': agregados['ingreso_promedio'] or 0,
-        'labels_servicios_json': json.dumps(labels_servicios),
-        'data_servicios_json': json.dumps(data_servicios),
-        'titulo_periodo': titulo_periodo,
-        'tiene_acceso': tiene_acceso,
-        'periodo_seleccionado': periodo,
+        'cliente_top': cliente_top,
+        'labels_servicios_json': labels_servicios,
+        'data_servicios_json': data_servicios,
+        'es_propietario_prime': es_propietario_prime,
+        'metricas_por_profesional': metricas_por_profesional,
     }
+    # Esta vista ahora SOLO renderiza el HTML.
     return render(request, 'dashboard_metricas.html', context)
+
+
+# === VISTA 2: La nueva API que SOLO devuelve JSON (AÑADE ESTA FUNCIÓN) ===
+@login_required
+def api_metricas_grafico(request):
+    # Verificación de acceso
+    servicio_activo = get_servicio_activo(request)
+    if not servicio_activo:
+        return JsonResponse({'error': 'Servicio no encontrado'}, status=404)
+
+    # Copiamos la lógica que tenías en tu bloque if AJAX aquí
+    agrupar_por = request.GET.get('agrupar_por', 'dia')
+    hoy = timezone.localdate()
+    qs = Turno.objects.filter(servicio=servicio_activo, estado='completado')
+    
+    if agrupar_por == 'dia':
+        fecha_str = request.GET.get('fecha', hoy.strftime('%Y-%m-%d'))
+        fecha = datetime.strptime(fecha_str, '%Y-%m-%d').date()
+        datos = qs.filter(fecha=fecha).annotate(periodo=TruncHour('hora')).values('periodo').annotate(total=Sum('ingreso_real')).order_by('periodo')
+        labels = [d['periodo'].strftime('%H:%M hs') for d in datos]
+    elif agrupar_por == 'mes':
+        mes_str = request.GET.get('mes', hoy.strftime('%Y-%m'))
+        mes = datetime.strptime(mes_str, '%Y-%m')
+        datos = qs.filter(fecha__year=mes.year, fecha__month=mes.month).annotate(periodo=TruncDay('fecha')).values('periodo').annotate(total=Sum('ingreso_real')).order_by('periodo')
+        labels = [d['periodo'].strftime('%d/%m') for d in datos]
+    else: # año
+        año_str = request.GET.get('año', str(hoy.year))
+        año = int(año_str)
+        datos = qs.filter(fecha__year=año).annotate(periodo=TruncMonth('fecha')).values('periodo').annotate(total=Sum('ingreso_real')).order_by('periodo')
+        labels = [d['periodo'].strftime('%b %Y') for d in datos]
+
+    data_puntos = [float(d['total']) if d['total'] else 0 for d in datos]
+    
+    # Esta vista ahora SOLO devuelve JSON.
+    return JsonResponse({'labels': labels, 'data': data_puntos})
 
 @login_required
 def dashboard_servicios(request): # Apariencia

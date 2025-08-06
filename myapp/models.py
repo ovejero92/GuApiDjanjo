@@ -291,6 +291,7 @@ class Turno(models.Model):
         null=True,
         help_text="El medio de pago real con el que se cobró el turno."
     )
+    anotaciones = models.TextField(blank=True, null=True, verbose_name="Anotaciones Adicionales")
     duracion_total = models.PositiveIntegerField(default=30, help_text="Duración total calculada en minutos")
     ESTADO_CHOICES = [('pendiente', 'Pendiente'), ('confirmado', 'Confirmado'), ('cancelado', 'Cancelado'), ('completado', 'Completado')]
     estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='pendiente')

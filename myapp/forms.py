@@ -101,9 +101,13 @@ class IngresoTurnoForm(forms.ModelForm):
 
     class Meta:
         model = Turno
-        fields = ['ingreso_real']
+        fields = ['ingreso_real', 'anotaciones']
         labels = {
-            'ingreso_real': 'Monto Final Cobrado ($)'
+            'ingreso_real': 'Monto Final Cobrado ($)',
+            'anotaciones': 'Anotaciones del Turno (Opcional)'
+        }
+        widgets = {
+            'anotaciones': forms.Textarea(attrs={'rows': 3, 'placeholder': 'Ej: El cliente llegó 10 minutos tarde, se aplicó descuento, etc.'})
         }
     
     def __init__(self, *args, **kwargs):
@@ -119,6 +123,7 @@ class IngresoTurnoForm(forms.ModelForm):
             self.fields['medio_de_pago_final'].initial = turno.medio_de_pago_final or turno.medio_de_pago
             
         self.fields['ingreso_real'].required = True
+        self.fields['anotaciones'].required = False
 
     def save(self, commit=True):
         instance = super().save(commit=False)

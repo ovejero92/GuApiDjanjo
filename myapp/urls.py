@@ -43,6 +43,7 @@ urlpatterns = [
     path('dashboard/equipo/eliminar/<int:profesional_id>/', views.eliminar_profesional, name='eliminar_profesional'),
     path('api/turnos-por-dia/', views.api_turnos_por_dia, name='api_turnos_por_dia'),
     path('turno/confirmar/<int:turno_id>/', views.confirmar_turno, name='confirmar_turno'),
+    path('api/metricas-grafico/', views.api_metricas_grafico, name='api_metricas_grafico'),
     path('turno/cancelar/<int:turno_id>/', views.cancelar_turno, name='cancelar_turno'),
     path('turno/finalizar/<int:turno_id>/', views.finalizar_turno, name='finalizar_turno'),
     path('precios/', views.precios, name='precios'),
