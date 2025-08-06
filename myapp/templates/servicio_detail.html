@@ -306,7 +306,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function inicializarCalendario() {
         if (calendarioInstance) {
-            calendarioInstance.destroy(); // Destruye la instancia anterior para evitar conflictos
+            calendarioInstance.destroy();
         }
         calendarioInstance = flatpickr(fechaInput, {
             altInput: true,
@@ -314,14 +314,11 @@ document.addEventListener('DOMContentLoaded', function() {
             dateFormat: "Y-m-d",
             minDate: "today",
             locale: "es",
-            // onDayCreate se ejecuta para cada día que se dibuja en el calendario.
+            disableMobile: true,
             onDayCreate: function(dObj, dStr, fp, dayElem) {
-                // dayElem.dateObj.getDay() devuelve 0 para Domingo, 1 para Lunes, etc.
                 const diaDeLaSemana = dayElem.dateObj.getDay();
-                
-                // Si tenemos una lista de días laborables y este día NO está en la lista...
                 if (diasLaborablesDelProfesional.length > 0 && !diasLaborablesDelProfesional.includes(diaDeLaSemana)) {
-                    dayElem.classList.add("dia-no-laborable"); // ...le aplicamos nuestra clase CSS.
+                    dayElem.classList.add("dia-no-laborable");
                 }
             },
             onChange: function(selectedDates, dateStr, instance) {
@@ -333,12 +330,11 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // --- NUEVA FUNCIÓN PARA OBTENER EL HORARIO Y ACTUALIZAR EL CALENDARIO ---
     async function actualizarHorarioParaCalendario() {
         const profesionalId = profesionalInput.value;
         if (!profesionalId) {
-            diasLaborablesDelProfesional = []; // Reseteamos los días
-            inicializarCalendario(); // Reiniciamos el calendario sin reglas
+            diasLaborablesDelProfesional = [];
+            inicializarCalendario();
             slotsContainer.innerHTML = '<p class="text-info">Por favor, elige un profesional para ver sus horarios.</p>';
             return;
         }
@@ -350,25 +346,22 @@ document.addEventListener('DOMContentLoaded', function() {
             const data = await response.json();
             diasLaborablesDelProfesional = data.dias_laborables || [];
             
-            inicializarCalendario(); // Re-inicializa el calendario con los nuevos días laborables
+            inicializarCalendario();
             
-            // Si ya había una fecha seleccionada, recargamos los slots
             if (fechaInput.value) {
                 cargarSlots();
             }
         } catch (error) {
             console.error("Error al cargar horario:", error);
-            diasLaborablesDelProfesional = []; // En caso de error, no aplicamos reglas
+            diasLaborablesDelProfesional = [];
             inicializarCalendario();
         }
     }
 
-    // --- LÓGICA DE EVENTOS ---
     if (profesionalInput && profesionalInput.tagName === 'SELECT') {
         profesionalInput.addEventListener('change', actualizarHorarioParaCalendario);
     }
 
-    // Los subservicios disparan la actualización general
     subserviciosItems.forEach(item => {
         item.addEventListener('click', function() {
             this.classList.toggle('selected');
@@ -376,10 +369,8 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // --- Inicialización y Lógica de íconos (se queda igual) ---
     actualizarResumenYPasos();
     actualizarHorarioParaCalendario();
-
 
     const infoIcons = document.querySelectorAll('.info-icon');
     infoIcons.forEach(icon => {

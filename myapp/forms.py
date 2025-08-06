@@ -56,7 +56,7 @@ class TurnoForm(forms.ModelForm):
         model = Turno
         fields = ['fecha', 'hora', 'sub_servicios_solicitados', 'medio_de_pago', 'profesional']
         widgets = {
-            'fecha': forms.HiddenInput(),
+            'fecha': forms.TextInput(attrs={'placeholder': 'dd/mm/aaaa', 'readonly': 'readonly'}),
             'hora': forms.HiddenInput(),
         }
     def __init__(self, *args, **kwargs):
