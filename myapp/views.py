@@ -1142,7 +1142,7 @@ def crear_profesional(request, servicio_id):
         return redirect('dashboard_propietario')
 
     if request.method == 'POST':
-        form = ProfesionalForm(request.POST, request.FILES, servicio=servicio)
+        form = ProfesionalForm(request.POST, servicio=servicio)
         formset = HorarioLaboralFormSet(request.POST, prefix='horarios')
 
         if form.is_valid() and formset.is_valid():
@@ -1195,8 +1195,7 @@ def editar_profesional(request, profesional_id):
     servicio = profesional.servicio
 
     if request.method == 'POST':
-        form = ProfesionalForm(request.POST, request.FILES, instance=profesional, servicio=servicio)
-        # ¡USAMOS EL FORMSET REAL!
+        form = ProfesionalForm(request.POST, instance=profesional, servicio=servicio)
         formset = HorarioLaboralFormSet(request.POST, instance=profesional)
 
         if form.is_valid() and formset.is_valid():

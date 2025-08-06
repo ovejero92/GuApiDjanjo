@@ -387,7 +387,7 @@ body {font-family: 'Roboto', sans-serif;}
     border-collapse: collapse;
 }
 .turnos-table th, .turnos-table td {
-    padding: 12px 15px;
+    padding: 6px 9px;
     text-align: left;
     border-bottom: 1px solid #444;
 }
@@ -584,7 +584,7 @@ body {font-family: 'Roboto', sans-serif;}
 /* --- Estilos para las tablas y botones (los que ya tenías) --- */
 .turnos-table { width: 100%; border-collapse: collapse; margin-top: 15px; color: #ccc; }
 .turnos-table th { padding: 12px 15px; text-align: left; font-weight: bold; color: #fff; text-transform: uppercase; font-size: 0.85em; letter-spacing: 0.05em; background-color: #444; }
-.turnos-table td { padding: 12px 15px; vertical-align: middle; }
+.turnos-table td { padding: 6px 9px; vertical-align: middle; }
 .turnos-table tbody tr { border-bottom: 1px solid #4a4a4a; }
 .turnos-table tbody tr:last-child { border-bottom: none; }
 .turnos-table td::before { display: none; }
@@ -1472,24 +1472,18 @@ color: var(--color-texto-servicio, #fff);  margin-bottom: 15px; border-bottom: 1
     font-size: 1.1em;
     text-decoration: none;
 }
-.flatpickr-day.dia-no-laborable {
-        /* Usamos !important para asegurar que estos estilos no sean sobrescritos
-           por otras reglas de CSS para móviles. Es una herramienta poderosa. */
-        background-color: transparent !important;
-        color: #adb5bd !important; /* Texto gris muy apagado */
-        text-decoration: line-through !important; /* Tachado */
-        font-style: italic !important; /* Opcional: añade cursiva para más claridad */
-        
-        /* Estas reglas impiden que el usuario pueda interactuar con el día */
-        pointer-events: none !important;
-        cursor: not-allowed !important;
+ .flatpickr-day.dia-no-laborable {
+        background-color: transparent !important; /* Le quitamos el fondo para que no interfiera */
+        color: #adb5bd; /* Un color de texto muy apagado */
+        text-decoration: line-through; /* Lo tachamos para que sea obvio */
+        pointer-events: none; /* El cursor no cambia y no se puede hacer clic */
+        cursor: not-allowed;
     }
 
-    /* Opcional: Regla para asegurar que el día de "hoy" también se vea deshabilitado
-       si es un día no laborable. */
+    /* Opcional: Para que el día "hoy", si no es laborable, también se vea apagado */
     .flatpickr-day.today.dia-no-laborable {
-        border-color: #dee2e6 !important;
-        color: #adb5bd !important;
+        border-color: #dee2e6;
+        color: #adb5bd;
     }
 
 .pagina-servicio-personalizada .turno-form-container, 
@@ -1542,7 +1536,44 @@ color: var(--color-texto-servicio, #fff);  margin-bottom: 15px; border-bottom: 1
     background-color: var(--color-primario-servicio);
 }
 
-
+.irNeg{
+    text-decoration: none;
+    color: white;
+    font-weight: 700;
+    border: 1px solid gray;
+    padding: 2px;
+    border-radius: 5px;
+    
+}
+.irNeg:hover{
+    color: aqua;;
+}
+.subservicio-botones-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    .subservicio-botones-container input[type="checkbox"] {
+        display: none; /* Ocultamos el checkbox real */
+    }
+    .subservicio-botones-container label {
+        display: inline-block;
+        padding: 8px 15px;
+        border: 1px solid #ccc;
+        border-radius: 20px;
+        cursor: pointer;
+        transition: all 0.2s ease-in-out;
+        background-color: #f8f9fa;
+    }
+    .subservicio-botones-container input[type="checkbox"]:checked + label {
+        background-color: #033f63; /* O un color de éxito como #28a745 */
+        color: white;
+        border-color: #033f63;
+    }
+    .form-group small.form-text {
+        display: block;
+        margin-top: 5px;
+    }
 /* Botón flotante solo en mobile */
 .preview-toggle-button {
   position: fixed;

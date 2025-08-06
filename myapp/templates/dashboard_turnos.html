@@ -31,7 +31,19 @@
                         <tbody>
                             {% for turno in turnos_pendientes %}
                             <tr>
-                                <td data-label="Cliente"><span class="data-value">{{ turno.cliente.first_name|default:turno.cliente.username }}</span></td>
+                                <td data-label="Cliente">
+                                    <div class="cliente-info-trigger"
+                                        style="cursor: pointer; text-decoration: none; color: #033f63; padding: 2px; background-color: rgba(255, 255, 255, 0.656); border-radius: 20px; text-align: center;"
+                                        title="Haz clic para ver detalles del cliente"
+                                        data-nombre="{{ turno.cliente.first_name|default:'' }}"
+                                        data-apellido="{{ turno.cliente.last_name|default:'' }}"
+                                        data-email="{{ turno.cliente.email|default:'No especificado' }}"
+                                        data-telefono="{{ turno.cliente.perfil.telefono|default:'No especificado' }}"
+                                        data-es-prime="{{ turno.servicio.permite_multiples_profesionales|yesno:'true,false' }}"
+                                        data-profesional-nombre="{{ turno.profesional.nombre|default:'' }}">
+                                        <span class="data-value">{{ turno.cliente.first_name|default:turno.cliente.username }} {{ turno.cliente.last_name }}</span>
+                                    </div>
+                                </td>
                                 <td data-label="Servicios">
                                     <div class="servicio-tag-container">
                                         {% for ss in turno.sub_servicios_solicitados.all %}
@@ -75,7 +87,19 @@
                         <tbody>
                             {% for turno in turnos_confirmados %}
                             <tr>
-                                <td data-label="Cliente"><span class="data-value">{{ turno.cliente.first_name|default:turno.cliente.username }}</span></td>
+                                <td data-label="Cliente">
+                                    <div class="cliente-info-trigger" 
+                                        style="cursor: pointer; text-decoration: none; color: #033f63; padding: 2px; background-color: rgba(255, 255, 255, 0.656); border-radius: 20px; text-align: center;"
+                                        title="Haz clic para ver detalles del cliente"
+                                        data-nombre="{{ turno.cliente.first_name|default:'' }}"
+                                        data-apellido="{{ turno.cliente.last_name|default:'' }}"
+                                        data-email="{{ turno.cliente.email|default:'No especificado' }}"
+                                        data-telefono="{{ turno.cliente.perfil.telefono|default:'No especificado' }}"
+                                        data-es-prime="{{ turno.servicio.permite_multiples_profesionales|yesno:'true,false' }}"
+                                        data-profesional-nombre="{{ turno.profesional.nombre|default:'' }}">
+                                        <span class="data-value">{{ turno.cliente.first_name|default:turno.cliente.username }} {{ turno.cliente.last_name }}</span>
+                                    </div>
+                                </td>
                                 <td data-label="Servicios">
                                     <div class="servicio-tag-container">
                                         {% for sub in turno.sub_servicios_solicitados.all %}
@@ -122,7 +146,19 @@
                         <tbody>
                             {% for turno in historial_page_obj %}
                             <tr>
-                                <td data-label="Cliente">{{ turno.cliente.first_name|default:turno.cliente.username }}</td>
+                                <td data-label="Cliente">
+                                    <div class="cliente-info-trigger" 
+                                        style="cursor: pointer; text-decoration: none; color: #033f63; padding: 2px; background-color: rgba(255, 255, 255, 0.656); border-radius: 20px; text-align: center;"
+                                        title="Haz clic para ver detalles del cliente"
+                                        data-nombre="{{ turno.cliente.first_name|default:'' }}"
+                                        data-apellido="{{ turno.cliente.last_name|default:'' }}"
+                                        data-email="{{ turno.cliente.email|default:'No especificado' }}"
+                                        data-telefono="{{ turno.cliente.perfil.telefono|default:'No especificado' }}"
+                                        data-es-prime="{{ turno.servicio.permite_multiples_profesionales|yesno:'true,false' }}"
+                                        data-profesional-nombre="{{ turno.profesional.nombre|default:'' }}">
+                                        {{ turno.cliente.first_name|default:turno.cliente.username }} {{ turno.cliente.last_name }}
+                                    </div>
+                                </td>
                                 <td data-label="Fecha y Hora">{{ turno.fecha|date:"d/m/Y" }} - {{ turno.hora|time:"H:i" }}</td>
                                 <td data-label="Estado">{{ turno.get_estado_display }}</td>
                                 <td data-label="Ingreso">{% if turno.ingreso_real %}${{ turno.ingreso_real|floatformat:2 }}{% else %}-{% endif %}</td>
@@ -176,6 +212,44 @@
     {{ block.super }}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+
+    const clienteTriggers = document.querySelectorAll('.cliente-info-trigger');
+
+        clienteTriggers.forEach(trigger => {
+            trigger.addEventListener('click', function() {
+                const nombre = this.dataset.nombre;
+                const apellido = this.dataset.apellido;
+                const email = this.dataset.email;
+                const telefono = this.dataset.telefono;
+                const esPrime = this.dataset.esPrime === 'true';
+                const profesionalNombre = this.dataset.profesionalNombre;
+                let modalContent = `
+                    <div style="text-align: left; padding: 0 1rem;">
+                        <p><strong>Nombre:</strong> ${nombre} ${apellido}</p>
+                        <p><strong>Email:</strong> ${email}</p>
+                        <p><strong>Teléfono:</strong> ${telefono}</p>
+                        <hr>
+                `;
+
+                if (esPrime && profesionalNombre) {
+                    modalContent += `<p><strong>Será atendido por:</strong> <span style="font-weight: bold; color: #033f63;">${profesionalNombre}</span></p>`;
+                } else if (esPrime && !profesionalNombre) {
+                    modalContent += `<p><strong>Profesional:</strong> <span style="color: #cc8e35;">Aún no asignado.</span></p>`;
+                }
+
+                modalContent += `</div>`;
+                Swal.fire({
+                    title: `<strong>Información del Cliente</strong>`,
+                    icon: 'info',
+                    html: modalContent,
+                    showCloseButton: true,
+                    confirmButtonText: 'Cerrar',
+                    confirmButtonColor: '#033f63',
+                });
+            });
+        });
+
+
     const botonAyuda = document.getElementById('ayudaGestionBtn');
             if (botonAyuda) {
                 botonAyuda.addEventListener('click', function() {

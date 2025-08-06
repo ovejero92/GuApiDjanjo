@@ -426,25 +426,33 @@ HorarioLaboralFormSet = inlineformset_factory(
 
 
 class ProfesionalForm(forms.ModelForm):
+    sub_servicios_ofrecidos = forms.ModelMultipleChoiceField(
+        queryset=SubServicio.objects.none(),
+        widget=forms.CheckboxSelectMultiple,
+        required=False,
+        label="Sub servicios ofrecidos"
+    )
     class Meta:
         model = Profesional
-        # Quitamos 'activo' de aquí porque se manejará en el formset del horario.
-        fields = ['nombre', 'email', 'foto', 'sub_servicios_ofrecidos']
-        widgets = {
-            'nombre': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: Dra. Ana Pérez'}),
-            'email': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'Email (opcional)'}),
-            'foto': forms.FileInput(attrs={'class': 'form-control'}),
-            'sub_servicios_ofrecidos': forms.CheckboxSelectMultiple,
+        fields = ['nombre', 'email', 'sub_servicios_ofrecidos']
+        labels = {
+            'nombre': 'Nombre:',
+            'email': 'Email (opcional):'
         }
         help_texts = {
-            'sub_servicios_ofrecidos': 'Selecciona los tratamientos o servicios que realiza esta persona.'
+            'nombre': "Nombre del miembro del equipo, ej: 'Dra. Ana Pérez' o 'Estilista Juan'",
+            'email': "Email opcional para notificaciones internas.",
+        }
+        widgets = {
+            'nombre': forms.TextInput(attrs={'placeholder': 'Ej: Dra. Ana Pérez'}),
+            'email': forms.EmailInput(attrs={'placeholder': 'Email (opcional)'}),
         }
     
     def __init__(self, *args, **kwargs):
-        # Este __init__ está perfecto, lo dejamos como está.
         servicio = kwargs.pop('servicio', None)
         super().__init__(*args, **kwargs)
+
         if servicio:
             self.fields['sub_servicios_ofrecidos'].queryset = servicio.sub_servicios.all()
-            
-            
+        
+        self.fields['email'].required = False

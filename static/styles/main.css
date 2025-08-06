@@ -387,7 +387,7 @@ body {font-family: 'Roboto', sans-serif;}
     border-collapse: collapse;
 }
 .turnos-table th, .turnos-table td {
-    padding: 12px 15px;
+    padding: 6px 9px;
     text-align: left;
     border-bottom: 1px solid #444;
 }
@@ -584,7 +584,7 @@ body {font-family: 'Roboto', sans-serif;}
 /* --- Estilos para las tablas y botones (los que ya tenías) --- */
 .turnos-table { width: 100%; border-collapse: collapse; margin-top: 15px; color: #ccc; }
 .turnos-table th { padding: 12px 15px; text-align: left; font-weight: bold; color: #fff; text-transform: uppercase; font-size: 0.85em; letter-spacing: 0.05em; background-color: #444; }
-.turnos-table td { padding: 12px 15px; vertical-align: middle; }
+.turnos-table td { padding: 6px 9px; vertical-align: middle; }
 .turnos-table tbody tr { border-bottom: 1px solid #4a4a4a; }
 .turnos-table tbody tr:last-child { border-bottom: none; }
 .turnos-table td::before { display: none; }
@@ -1536,7 +1536,44 @@ color: var(--color-texto-servicio, #fff);  margin-bottom: 15px; border-bottom: 1
     background-color: var(--color-primario-servicio);
 }
 
-
+.irNeg{
+    text-decoration: none;
+    color: white;
+    font-weight: 700;
+    border: 1px solid gray;
+    padding: 2px;
+    border-radius: 5px;
+    
+}
+.irNeg:hover{
+    color: aqua;;
+}
+.subservicio-botones-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    .subservicio-botones-container input[type="checkbox"] {
+        display: none; /* Ocultamos el checkbox real */
+    }
+    .subservicio-botones-container label {
+        display: inline-block;
+        padding: 8px 15px;
+        border: 1px solid #ccc;
+        border-radius: 20px;
+        cursor: pointer;
+        transition: all 0.2s ease-in-out;
+        background-color: #f8f9fa;
+    }
+    .subservicio-botones-container input[type="checkbox"]:checked + label {
+        background-color: #033f63; /* O un color de éxito como #28a745 */
+        color: white;
+        border-color: #033f63;
+    }
+    .form-group small.form-text {
+        display: block;
+        margin-top: 5px;
+    }
 /* Botón flotante solo en mobile */
 .preview-toggle-button {
   position: fixed;

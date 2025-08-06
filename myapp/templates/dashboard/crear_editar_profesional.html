@@ -8,21 +8,51 @@
         <a href="{% url 'gestionar_equipo' servicio.id %}" class="btn btn-secondary">Volver al Equipo</a>
     </div>
 
-    <form method="post" enctype="multipart/form-data">
+    <form method="post">
         {% csrf_token %}
         <div class="row">
-            <!-- Columna para los datos del Profesional -->
             <div class="col-md-5">
                 <div class="card">
                     <div class="card-header">
                         <h3>Datos Personales</h3>
                     </div>
                     <div class="card-body">
-                        {{ form.as_p }}
+                        <!-- Renderizado Manual del Formulario -->
+                        <div class="form-group mb-3">
+                            {{ form.nombre.label_tag }}
+                            {{ form.nombre }}
+                            {% if form.nombre.help_text %}<small class="form-text text-muted">{{ form.nombre.help_text }}</small>{% endif %}
+                            {% if form.nombre.errors %}<div class="form-error-text">{{ form.nombre.errors }}</div>{% endif %}
+                        </div>
+
+                        <div class="form-group mb-4">
+                            {{ form.email.label_tag }}
+                            {{ form.email }}
+                            {% if form.email.help_text %}<small class="form-text text-muted">{{ form.email.help_text }}</small>{% endif %}
+                            {% if form.email.errors %}<div class="form-error-text">{{ form.email.errors }}</div>{% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mt-4">
+                     <div class="card-header">
+                        <h3>Servicios que Realiza</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label>{{ form.sub_servicios_ofrecidos.label }}</label>
+                            <div class="subservicio-botones-container mt-2">
+                                {% for checkbox in form.sub_servicios_ofrecidos %}
+                                    {{ checkbox.tag }}
+                                    <label for="{{ checkbox.id_for_label }}">{{ checkbox.choice_label }}</label>
+                                {% endfor %}
+                            </div>
+                            <small class="form-text text-muted">Selecciona los tratamientos o servicios que realiza esta persona.</small>
+                             {% if form.sub_servicios_ofrecidos.errors %}<div class="form-error-text">{{ form.sub_servicios_ofrecidos.errors }}</div>{% endif %}
+                        </div>
                     </div>
                 </div>
             </div>
-
             <!-- Columna para el Horario Laboral -->
             <div class="col-md-7">
                 <div class="card">

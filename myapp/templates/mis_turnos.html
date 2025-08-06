@@ -24,11 +24,10 @@
                 <tbody>
                     {% for turno in turnos_futuros %}
                     <tr class="{% if turno.id in turnos_no_vistos_ids %}turno-nuevo{% endif %}">
-                        <td data-label="Negocio">{{ turno.servicio.nombre }}</td>
+                        <td data-label="Negocio"><a href="{% url 'servicio_detail' turno.servicio.slug %}" class="irNeg">{{ turno.servicio.nombre }}</a></td>
                         <td data-label="Fecha y Hora">{{ turno.fecha|date:"d/m/Y" }} - {{ turno.hora|time:"H:i" }}</td>
                         <td data-label="Estado">
                             <span class="estado-{{ turno.estado }}">{{ turno.get_estado_display }}</span>
-                            {# AÑADIMOS EL PUNTO ROJO AQUÍ #}
                             {% if turno.id in turnos_no_vistos_ids %}
                                 <span class="punto-notificacion" title="Actualizado recientemente"></span>
                             {% endif %}
@@ -62,7 +61,7 @@
                 <tbody>
                     {% for turno in turnos_pasados %}
                     <tr>
-                        <td data-label="Negocio">{{ turno.servicio.nombre }}</td>
+                        <td data-label="Negocio"><a href="{% url 'servicio_detail' turno.servicio.slug %}" class="irNeg">{{ turno.servicio.nombre }}</a></td>
                         <td data-label="Fecha y Hora">{{ turno.fecha|date:"d/m/Y" }} - {{ turno.hora|time:"H:i" }}</td>
                         <td data-label="Estado">
                             <span class="estado-{{ turno.estado }}">{{ turno.get_estado_display }}</span>
@@ -71,7 +70,6 @@
                             {% include 'partials/servicios_en_turno.html' with turno=turno %}
                         </td>
                         <td data-label="Forma de Pago">
-                            {# Mostramos el pago final si existe, si no, el original #}
                             {% if turno.medio_de_pago_final %}
                                 {{ turno.medio_de_pago_final|capfirst }}
                             {% else %}
