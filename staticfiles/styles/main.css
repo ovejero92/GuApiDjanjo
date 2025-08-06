@@ -1574,6 +1574,79 @@ color: var(--color-texto-servicio, #fff);  margin-bottom: 15px; border-bottom: 1
         display: block;
         margin-top: 5px;
     }
+    .equipo-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.tarjeta-equipo {
+    background-color: #1e1e1e;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 1rem;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.tarjeta-equipo:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.texto-profesional strong {
+    font-size: 1.1rem;
+}
+
+.texto-profesional .email {
+    margin: 0.2rem 0 0;
+    font-size: 0.9rem;
+    color: #ccc;
+}
+
+.acciones-profesional {
+    margin-top: 1rem;
+    display: flex;
+    gap: 0.5rem;
+}
+
+.btn-editar,
+.btn-eliminar {
+    padding: 0.4rem 0.8rem;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 0.9rem;
+    text-decoration: none;
+    display: inline-block;
+    text-align: center;
+    transition: background-color 0.2s ease;
+}
+
+.btn-editar {
+    background-color: #007bff;
+    color: #fff;
+}
+
+.btn-editar:hover {
+    background-color: #0056b3;
+}
+
+.btn-eliminar {
+    background-color: #dc3545;
+    color: #fff;
+}
+
+.btn-eliminar:hover {
+    background-color: #a71d2a;
+}
+
 /* Botón flotante solo en mobile */
 .preview-toggle-button {
   position: fixed;
@@ -1704,6 +1777,9 @@ color: var(--color-texto-servicio, #fff);  margin-bottom: 15px; border-bottom: 1
     }
     .subtitulo-periodo {
         text-align: left;
+    }
+    .equipo-grid {
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
     }
 }
 

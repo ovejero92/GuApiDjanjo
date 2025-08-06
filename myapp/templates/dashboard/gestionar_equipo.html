@@ -38,24 +38,25 @@
                 </div>
                 <div class="card-body">
                     {% if profesionales %}
-                        <ul class="list-group list-group-flush">
+                        <div class="equipo-grid">
                             {% for prof in profesionales %}
-                                <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    <div>
-                                        {% if prof.foto %}<img src="{{ prof.foto.url }}" alt="{{ prof.nombre }}" class="rounded-circle me-2" width="40" height="40">{% endif %}
-                                        <strong>{{ prof.nombre }}</strong>
-                                        <small class="text-muted d-block">{{ prof.email|default:"" }}</small>
+                                <div class="tarjeta-equipo">
+                                    <div class="info-profesional">
+                                        <div class="texto-profesional">
+                                            <strong>{{ prof.nombre }}</strong>
+                                            <p class="email">{{ prof.email|default:"" }}</p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <a href="{% url 'editar_profesional' prof.id %}" class="btn btn-sm btn-outline-primary">Editar</a>
-                                        <form action="{% url 'eliminar_profesional' prof.id %}" method="post" class="d-inline" onsubmit="return confirm('¿Estás seguro de que quieres eliminar a {{ prof.nombre }}?');">
+                                    <div class="acciones-profesional">
+                                        <a href="{% url 'editar_profesional' prof.id %}" class="btn-editar">Editar</a>
+                                        <form action="{% url 'eliminar_profesional' prof.id %}" method="post" onsubmit="return confirm('¿Estás seguro de que quieres eliminar a {{ prof.nombre }}?');">
                                             {% csrf_token %}
-                                            <button type="submit" class="btn btn-sm btn-outline-danger">Eliminar</button>
+                                            <button type="submit" class="btn-eliminar">Eliminar</button>
                                         </form>
                                     </div>
-                                </li>
+                                </div>
                             {% endfor %}
-                        </ul>
+                        </div>
                     {% else %}
                         <p>Aún no has añadido a nadie. ¡Empieza con el formulario!</p>
                     {% endif %}
