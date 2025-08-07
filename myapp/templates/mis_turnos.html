@@ -19,6 +19,8 @@
                         <th>Fecha y Hora</th>
                         <th>Estado</th>
                         <th>Servicios</th>
+                        <th>Precio Estimado</th>
+                        <th>Forma de Pago</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -35,7 +37,18 @@
                         <td data-label="Servicios">
                             {% include 'partials/servicios_en_turno.html' with turno=turno %}
                         </td>
-                    </tr>
+                          <td data-label="Precio Estimado">
+                            {% if turno.precio_total_estimado %}
+                                ${{ turno.precio_total_estimado|floatformat:2 }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <!-- === NUEVA CELDA: FORMA DE PAGO === -->
+                        <td data-label="Forma de Pago">
+                            {{ turno.get_medio_de_pago_display }}
+                        </td>
+                        </tr>
                     {% endfor %}
                 </tbody>
             </table>

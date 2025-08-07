@@ -37,6 +37,13 @@
             <label for="{{ form.medio_de_pago_final.id_for_label }}">{{ form.medio_de_pago_final.label }}</label>
             {{ form.medio_de_pago_final }}
         </div>
+        <div class="form-group" style="margin-top: 20px;">
+            <label for="{{ form.anotaciones.id_for_label }}">{{ form.anotaciones.label }}</label>
+            {{ form.anotaciones }}
+            {% if form.anotaciones.errors %}
+                <div class="form-error">{{ form.anotaciones.errors|join:", " }}</div>
+            {% endif %}
+        </div>
         
         <div class="action-buttons" style="margin-top: 20px;">
             <button type="submit" class="btn-confirmar">Guardar Ingreso</button>

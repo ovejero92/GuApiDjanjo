@@ -5,6 +5,7 @@ from django.utils.text import slugify
 from PIL import Image
 from django.shortcuts import  get_object_or_404
 from django.forms import inlineformset_factory
+from datetime import datetime
 
 
 class CustomImageWidget(forms.widgets.ClearableFileInput):
@@ -76,11 +77,27 @@ class TurnoForm(forms.ModelForm):
         sub_servicios_seleccionados = cleaned_data.get('sub_servicios_solicitados')
         fecha = cleaned_data.get('fecha')
         hora = cleaned_data.get('hora')
+
         if not (sub_servicios_seleccionados and fecha and hora):
             return cleaned_data
+
+        # Convertir fecha y hora a datetime
+        try:
+            # Suponiendo que la fecha viene como string 'dd/mm/yyyy'
+            fecha_obj = datetime.strptime(fecha, "%d/%m/%Y").date()
+            hora_obj = datetime.strptime(hora, "%H:%M").time()
+        except ValueError:
+            raise forms.ValidationError("Formato de fecha u hora inválido.")
+
+        # Validar que no sea una hora pasada si es hoy
+        now = datetime.now()
+        if fecha_obj == now.date() and hora_obj <= now.time():
+            raise forms.ValidationError("No se puede reservar un turno en una hora que ya pasó.")
+
         servicio_padre = sub_servicios_seleccionados.first().servicio_padre
         duracion_total_minutos = sum(sub.duracion for sub in sub_servicios_seleccionados)
         self.cleaned_data['duracion_total'] = duracion_total_minutos
+
         return cleaned_data
 
     def save(self, commit=True):

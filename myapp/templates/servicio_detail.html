@@ -199,8 +199,16 @@
 <script src="https://npmcdn.com/flatpickr/dist/l10n/es.js"></script>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // --- Tus selectores existentes (están perfectos) ---
+ function inicializarDetalleServicio() {
+        // Buscamos un elemento que solo existe en esta página. Si no está, salimos.
+        const form = document.getElementById('turnoForm');
+        if (!form) return;
+
+        // Si el código ya se inicializó para esta página, no hacemos nada.
+        // Esto evita listeners duplicados.
+        if (form.dataset.initialized === 'true') return;
+        form.dataset.initialized = 'true';
+
     const subserviciosItems = document.querySelectorAll('.subservicio-item');
     const duracionTotalDisplay = document.getElementById('duracion-total');
     const precioTotalDisplay = document.getElementById('precio-total');
@@ -385,11 +393,8 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
-});
-</script>
- <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const loadMoreButton = document.getElementById('load-more-reviews');
+
+    const loadMoreButton = document.getElementById('load-more-reviews');
         const reviewsContainer = document.getElementById('lista-reseñas');
         
         if (!loadMoreButton) return;
@@ -447,6 +452,48 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         loadMoreButton.addEventListener('click', loadMoreReviews);
+
+};
+// El truco final: llamamos a nuestra función de inicialización cuando Turbolinks carga.
+    document.addEventListener('turbolinks:load', inicializarDetalleServicio);
+
+    // Y también la llamamos una vez al principio por si acaso (para la primera carga sin Turbolinks).
+    inicializarDetalleServicio();
+</script>
+<script>
+function parseFechaDDMMAAAA(fechaStr) {
+    const [dia, mes, anio] = fechaStr.split('/');
+    return new Date(`${anio}-${mes}-${dia}`);
+}
+
+function actualizarSlotsSegunHoraActual() {
+    const fechaInput = document.querySelector('input[name="fecha"]');
+    const botonesHora = document.querySelectorAll('.slot-button');
+
+    if (!fechaInput || !botonesHora.length) return;
+
+    const fechaSeleccionada = parseFechaDDMMAAAA(fechaInput.value);
+    const hoy = new Date();
+
+    botonesHora.forEach(boton => {
+        const horaStr = boton.getAttribute('data-hora'); // "08:00"
+        const [h, m] = horaStr.split(':');
+        const fechaHora = new Date(fechaSeleccionada);
+        fechaHora.setHours(Number(h), Number(m), 0, 0);
+
+        const esHoy = fechaSeleccionada.toDateString() === hoy.toDateString();
+
+        if (esHoy && fechaHora <= hoy) {
+            boton.disabled = true;
+            boton.classList.add('disabled-slot');
+        } else {
+            boton.disabled = false;
+            boton.classList.remove('disabled-slot');
+        }
     });
-    </script>
+}
+
+document.addEventListener('DOMContentLoaded', actualizarSlotsSegunHoraActual);
+document.querySelector('input[name="fecha"]').addEventListener('change', actualizarSlotsSegunHoraActual);
+</script>
 {% endblock %}

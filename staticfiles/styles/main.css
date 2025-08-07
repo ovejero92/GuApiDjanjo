@@ -1999,6 +1999,19 @@ color: var(--color-texto-servicio, #fff);  margin-bottom: 15px; border-bottom: 1
     .premium-blocker-overlay {
         height: 180vh;
     }
+    .irNeg{
+    text-decoration: underline;
+    color: aqua;
+    font-weight: 700;
+    padding: 2px;
+    border: none;
+}
+
+button.disabled-slot {
+  background-color: #ccc;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
     form button{
         padding: 10px 20px;
     }

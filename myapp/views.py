@@ -10,7 +10,7 @@ from django.http import JsonResponse
 from django.core.paginator import Paginator
 from datetime import datetime, timedelta
 import calendar
-from django.db.models import Count, Sum,Avg
+from django.db.models import Count, Sum,Avg, F
 from django.db.models.functions import TruncDay, TruncMonth, TruncHour
 from django.utils.http import urlsafe_base64_decode
 from django.utils.encoding import force_str
@@ -853,11 +853,13 @@ def dashboard_detalles_negocio(request):
 def mis_turnos(request):
     turnos_del_cliente = request.user.turnos_solicitados.all().select_related(
         'servicio', 'reseña'
-    ).prefetch_related('sub_servicios_solicitados')
-    
+    ).prefetch_related('sub_servicios_solicitados').annotate(
+        precio_total_estimado=Sum('sub_servicios_solicitados__precio')
+    )
     ahora = timezone.now()
     hoy = ahora.date()
     hora_actual = ahora.time()
+    
     turnos_futuros = turnos_del_cliente.filter(
         Q(fecha__gt=hoy) | Q(fecha=hoy, hora__gte=hora_actual)
     ).order_by('fecha', 'hora')
@@ -865,8 +867,12 @@ def mis_turnos(request):
     turnos_pasados = turnos_del_cliente.filter(
         Q(fecha__lt=hoy) | Q(fecha=hoy, hora__lt=hora_actual)
     ).order_by('-fecha', '-hora')
+    
     turnos_no_vistos_ids = list(turnos_del_cliente.filter(visto_por_cliente=False).values_list('id', flat=True))
-    turnos_del_cliente.filter(id__in=turnos_no_vistos_ids).update(visto_por_cliente=True)
+    
+    if turnos_no_vistos_ids:
+        Turno.objects.filter(id__in=turnos_no_vistos_ids).update(visto_por_cliente=True)
+        
     context = {
         'turnos_futuros': turnos_futuros,
         'turnos_pasados': turnos_pasados,
@@ -982,6 +988,7 @@ def obtener_notificaciones(request):
 
 @login_required
 def obtener_slots_disponibles(request, servicio_id):
+    # --- Obtención de parámetros (tu código está bien) ---
     fecha_str = request.GET.get('fecha')
     duracion_str = request.GET.get('duracion')
     profesional_id_str = request.GET.get('profesional_id')
@@ -994,67 +1001,84 @@ def obtener_slots_disponibles(request, servicio_id):
         servicio = get_object_or_404(Servicio, id=servicio_id)
         duracion_requerida = int(duracion_str)
         profesional_id = int(profesional_id_str)
-    except (ValueError, TypeError):
-        return JsonResponse({'error': 'Parámetros inválidos.'}, status=400)
-    
-    try:
         profesional_a_consultar = Profesional.objects.get(id=profesional_id, servicio=servicio, activo=True)
-    except Profesional.DoesNotExist:
-        return JsonResponse({'slots': []})
+    except (ValueError, TypeError, Servicio.DoesNotExist, Profesional.DoesNotExist):
+        return JsonResponse({'error': 'Parámetros inválidos o recurso no encontrado.'}, status=400)
 
+    # --- Obtención de reglas y datos existentes (tu código está bien) ---
     dia_de_la_semana_num = fecha.weekday()
     dia_map = {0: 'lunes', 1: 'martes', 2: 'miercoles', 3: 'jueves', 4: 'viernes', 5: 'sabado', 6: 'domingo'}
     nombre_dia_semana = dia_map.get(dia_de_la_semana_num)
 
     try:
-        filtro_dia = {nombre_dia_semana: True}
-        regla_horario = profesional_a_consultar.horarios.get(activo=True, **filtro_dia)
-    except HorarioLaboral.DoesNotExist:
+        regla_horario = profesional_a_consultar.horarios.get(activo=True, **{nombre_dia_semana: True})
+    except (HorarioLaboral.DoesNotExist, HorarioLaboral.MultipleObjectsReturned):
         return JsonResponse({'slots': []})
-    except HorarioLaboral.MultipleObjectsReturned:
-        regla_horario = profesional_a_consultar.horarios.filter(activo=True, **filtro_dia).first()
 
-    turnos_del_dia = Turno.objects.filter(
-        profesional=profesional_a_consultar, 
-        fecha=fecha, 
-        estado__in=['pendiente', 'confirmado']
+    turnos_ocupados = Turno.objects.filter(
+        profesional=profesional_a_consultar, fecha=fecha, estado__in=['pendiente', 'confirmado']
     )
     bloqueos_del_dia = DiaNoDisponible.objects.filter(
-        Q(profesional=profesional_a_consultar) & 
-        (Q(fecha_inicio__lte=fecha, fecha_fin__gte=fecha) | Q(fecha_inicio=fecha, fecha_fin__isnull=True))
+        profesional=profesional_a_consultar,
+        fecha_inicio__lte=fecha, fecha_fin__gte=fecha
     )
 
+    # =======================================================
+    # ========= INICIO DE LA LÓGICA CORREGIDA Y FINAL =========
+    # =======================================================
+    
     slots_disponibles = []
     duracion_requerida_td = timedelta(minutes=duracion_requerida)
+    ahora_dt = timezone.localtime()
     
-    def generar_slots_en_periodo(hora_inicio_periodo, hora_fin_periodo):
-        hora_actual_dt = datetime.combine(fecha, hora_inicio_periodo)
-        hora_fin_dt = datetime.combine(fecha, hora_fin_periodo)
-        if hora_actual_dt.minute % 15 != 0: hora_actual_dt += timedelta(minutes=(15 - (hora_actual_dt.minute % 15)))
-        while hora_actual_dt + duracion_requerida_td <= hora_fin_dt:
-            slot_inicio_dt, slot_fin_dt = hora_actual_dt, hora_actual_dt + duracion_requerida_td
-            slot_esta_disponible = True
-            for bloqueo in bloqueos_del_dia:
-                if bloqueo.hora_inicio is None: slot_esta_disponible = False; break
-                if slot_inicio_dt < datetime.combine(fecha, bloqueo.hora_fin) and slot_fin_dt > datetime.combine(fecha, bloqueo.hora_inicio): slot_esta_disponible = False; break
-            if not slot_esta_disponible: hora_actual_dt += timedelta(minutes=15); continue
-            for turno in turnos_del_dia:
-                duracion_ocupacion = timedelta(minutes=(turno.duracion_total + servicio.duracion_buffer_minutos))
-                if slot_inicio_dt < (datetime.combine(fecha, turno.hora) + duracion_ocupacion) and slot_fin_dt > datetime.combine(fecha, turno.hora): slot_esta_disponible = False; break
-            if slot_esta_disponible: slots_disponibles.append(slot_inicio_dt.strftime('%H:%M'))
-            hora_actual_dt += timedelta(minutes=15)
-
     periodos_de_trabajo = []
     apertura, cierre = regla_horario.horario_apertura, regla_horario.horario_cierre
     if regla_horario.tiene_descanso and regla_horario.descanso_inicio and regla_horario.descanso_fin:
-        periodos_de_trabajo.append((apertura, regla_horario.descanso_inicio)); periodos_de_trabajo.append((regla_horario.descanso_fin, cierre))
-    else: periodos_de_trabajo.append((apertura, cierre))
-    for inicio, fin in periodos_de_trabajo:
-        hora_inicio_busqueda = inicio
-        if fecha == timezone.localdate():
-            hora_minima_reserva = (timezone.localtime() + timedelta(minutes=15)).time()
-            if hora_minima_reserva > hora_inicio_busqueda: hora_inicio_busqueda = hora_minima_reserva
-        if hora_inicio_busqueda < fin: generar_slots_en_periodo(hora_inicio_busqueda, fin)
+        periodos_de_trabajo.append((apertura, regla_horario.descanso_inicio))
+        periodos_de_trabajo.append((regla_horario.descanso_fin, cierre))
+    else:
+        periodos_de_trabajo.append((apertura, cierre))
+        
+    for inicio_periodo, fin_periodo in periodos_de_trabajo:
+        
+        # 1. Empezamos a generar slots desde el inicio del período de trabajo
+        slot_actual_dt = datetime.combine(fecha, inicio_periodo)
+        fin_periodo_dt = datetime.combine(fecha, fin_periodo)
+
+        # 2. Bucle principal para generar y validar slots
+        while slot_actual_dt + duracion_requerida_td <= fin_periodo_dt:
+            
+            # === CORRECCIÓN CLAVE: La comprobación de la hora se hace DENTRO del bucle ===
+            # Si el slot que estamos evaluando (ej: 08:00) es anterior a la hora actual,
+            # simplemente lo ignoramos y pasamos al siguiente.
+            if fecha == ahora_dt.date() and slot_actual_dt.time() < ahora_dt.time():
+                slot_actual_dt += timedelta(minutes=15)
+                continue # Salta a la siguiente iteración del bucle
+            
+            slot_fin_dt = slot_actual_dt + duracion_requerida_td
+            slot_esta_disponible = True
+
+            # Comprobación de bloqueos y turnos (tu lógica aquí es correcta)
+            for bloqueo in bloqueos_del_dia:
+                if bloqueo.hora_inicio is None: slot_esta_disponible = False; break
+                if slot_actual_dt.time() < bloqueo.hora_fin and slot_fin_dt.time() > bloqueo.hora_inicio:
+                    slot_esta_disponible = False
+                    break
+            if not slot_esta_disponible:
+                slot_actual_dt += timedelta(minutes=15)
+                continue
+
+            for turno in turnos_ocupados:
+                turno_inicio_dt = datetime.combine(fecha, turno.hora)
+                turno_fin_dt = turno_inicio_dt + timedelta(minutes=turno.duracion_total + servicio.duracion_buffer_minutos)
+                if slot_actual_dt < turno_fin_dt and slot_fin_dt > turno_inicio_dt:
+                    slot_esta_disponible = False
+                    break
+            
+            if slot_esta_disponible:
+                slots_disponibles.append(slot_actual_dt.strftime('%H:%M'))
+            
+            slot_actual_dt += timedelta(minutes=15)
 
     return JsonResponse({'slots': sorted(list(set(slots_disponibles)))})
 
