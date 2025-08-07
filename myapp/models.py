@@ -274,7 +274,7 @@ class Turno(models.Model):
     hora = models.TimeField()
     MEDIO_DE_PAGO_CHOICES = [
         ('efectivo', 'Efectivo'),
-        ('transferencia', 'Transferencia / Alias / Mercado Pago'),
+        ('transferencia', 'Transferencia'),
         ('tarjeta_debito', 'Tarjeta de Débito'),
         ('tarjeta_credito', 'Tarjeta de Crédito'),
     ]

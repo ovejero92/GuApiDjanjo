@@ -2,7 +2,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth import login
 from django.contrib import messages
 from django.forms import inlineformset_factory, modelformset_factory
-from .models import Servicio, Profesional , Turno, HorarioLaboral, SubServicio, Categoria, Plan, Suscripcion, DiaNoDisponible
+from .models import PerfilUsuario, Servicio, Profesional , Turno, HorarioLaboral, SubServicio, Categoria, Plan, Suscripcion, DiaNoDisponible
 from .forms import BloqueoForm, ProfesionalForm, HorarioLaboralFormSet , HorarioLaboralForm, TurnoForm, UserUpdateForm, IngresoTurnoForm, ReseñaForm, ServicioPersonalizacionForm, ServicioUpdateForm, ServicioCreateForm
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
@@ -10,6 +10,8 @@ from django.http import JsonResponse
 from django.core.paginator import Paginator
 from datetime import datetime, timedelta
 import calendar
+import itertools
+from collections import defaultdict
 from django.db.models import Count, Sum,Avg, F
 from django.db.models.functions import TruncDay, TruncMonth, TruncHour
 from django.utils.http import urlsafe_base64_decode
@@ -636,7 +638,6 @@ def dashboard_horarios(request):
 
 @login_required
 def dashboard_metricas(request):
-    # Verificación de acceso y servicio (se mantiene igual)
     try:
         suscripcion = request.user.suscripcion
         tiene_acceso = suscripcion.is_active and suscripcion.plan.allow_metrics
@@ -650,9 +651,6 @@ def dashboard_metricas(request):
     if not servicio_activo.esta_activo:
         return render(request, 'servicio_suspendido.html', {'servicio': servicio_activo, 'tiene_acceso': tiene_acceso})
 
-    # --- LÓGICA PARA RENDERIZAR LA PÁGINA (YA NO HAY BLOQUE AJAX) ---
-    
-    # Definir el período de tiempo
     periodo = request.GET.get('periodo', '30d')
     hoy = timezone.localdate()
     
@@ -678,8 +676,21 @@ def dashboard_metricas(request):
     agregados = turnos_completados_periodo.aggregate(
         ingresos_totales=Sum('ingreso_real'), turnos_totales=Count('id'), ingreso_promedio=Avg('ingreso_real')
     )
-    cliente_top = turnos_completados_periodo.values('cliente__first_name', 'cliente__last_name').annotate(
-        total_gastado=Sum('ingreso_real')).order_by('-total_gastado').first()
+    cliente_top = turnos_completados_periodo.values(
+        'cliente__id', # Añadimos el ID para poder buscar su perfil
+        'cliente__first_name', 
+        'cliente__last_name',
+        'cliente__email'
+    ).annotate(
+        total_gastado=Sum('ingreso_real')
+    ).order_by('-total_gastado').first()
+    if cliente_top:
+        try:
+            # Buscamos el perfil del usuario usando el ID que obtuvimos
+            perfil = PerfilUsuario.objects.get(usuario__id=cliente_top['cliente__id'])
+            cliente_top['cliente__telefono'] = perfil.telefono or 'No especificado'
+        except PerfilUsuario.DoesNotExist:
+            cliente_top['cliente__telefono'] = 'No especificado'
     
     subservicios_populares_data = turnos_completados_periodo.values('sub_servicios_solicitados__nombre').annotate(
         cantidad=Count('sub_servicios_solicitados__nombre')).exclude(sub_servicios_solicitados__nombre=None).order_by('-cantidad')[:5]
@@ -711,40 +722,80 @@ def dashboard_metricas(request):
     # Esta vista ahora SOLO renderiza el HTML.
     return render(request, 'dashboard_metricas.html', context)
 
-
-# === VISTA 2: La nueva API que SOLO devuelve JSON (AÑADE ESTA FUNCIÓN) ===
 @login_required
 def api_metricas_grafico(request):
-    # Verificación de acceso
     servicio_activo = get_servicio_activo(request)
     if not servicio_activo:
         return JsonResponse({'error': 'Servicio no encontrado'}, status=404)
 
-    # Copiamos la lógica que tenías en tu bloque if AJAX aquí
+    # Obtenemos los parámetros
     agrupar_por = request.GET.get('agrupar_por', 'dia')
-    hoy = timezone.localdate()
-    qs = Turno.objects.filter(servicio=servicio_activo, estado='completado')
+    vista = request.GET.get('vista', 'total')
     
+    hoy = timezone.localdate()
+    qs_base = Turno.objects.filter(servicio=servicio_activo, estado='completado')
+
+    # Filtramos el queryset base por el rango de fechas seleccionado
     if agrupar_por == 'dia':
         fecha_str = request.GET.get('fecha', hoy.strftime('%Y-%m-%d'))
         fecha = datetime.strptime(fecha_str, '%Y-%m-%d').date()
-        datos = qs.filter(fecha=fecha).annotate(periodo=TruncHour('hora')).values('periodo').annotate(total=Sum('ingreso_real')).order_by('periodo')
-        labels = [d['periodo'].strftime('%H:%M hs') for d in datos]
+        qs = qs_base.filter(fecha=fecha)
+        trunc_func = TruncHour('hora')
+        label_format = '%H:%M hs'
     elif agrupar_por == 'mes':
         mes_str = request.GET.get('mes', hoy.strftime('%Y-%m'))
         mes = datetime.strptime(mes_str, '%Y-%m')
-        datos = qs.filter(fecha__year=mes.year, fecha__month=mes.month).annotate(periodo=TruncDay('fecha')).values('periodo').annotate(total=Sum('ingreso_real')).order_by('periodo')
-        labels = [d['periodo'].strftime('%d/%m') for d in datos]
+        qs = qs_base.filter(fecha__year=mes.year, fecha__month=mes.month)
+        trunc_func = TruncDay('fecha')
+        label_format = '%d/%m'
     else: # año
         año_str = request.GET.get('año', str(hoy.year))
         año = int(año_str)
-        datos = qs.filter(fecha__year=año).annotate(periodo=TruncMonth('fecha')).values('periodo').annotate(total=Sum('ingreso_real')).order_by('periodo')
-        labels = [d['periodo'].strftime('%b %Y') for d in datos]
+        qs = qs_base.filter(fecha__year=año)
+        trunc_func = TruncMonth('fecha')
+        label_format = '%b %Y'
 
-    data_puntos = [float(d['total']) if d['total'] else 0 for d in datos]
+    # Si la vista es "total" o el usuario no es prime
+    if vista == 'total' or not servicio_activo.permite_multiples_profesionales:
+        datos = qs.annotate(periodo=trunc_func).values('periodo').annotate(
+            total=Sum('ingreso_real')
+        ).order_by('periodo')
+        
+        labels = [d['periodo'].strftime(label_format) for d in datos]
+        datasets = [{
+            'label': 'Ingresos Totales',
+            'data': [float(d['total']) if d['total'] else 0 for d in datos],
+        }]
+        return JsonResponse({'labels': labels, 'datasets': datasets})
     
-    # Esta vista ahora SOLO devuelve JSON.
-    return JsonResponse({'labels': labels, 'data': data_puntos})
+    # Si la vista es "profesional" Y el usuario es prime
+    else:
+        datos_crudos = qs.filter(profesional__isnull=False).annotate(periodo=trunc_func).values(
+            'periodo', 'profesional__nombre'
+        ).annotate(
+            total=Sum('ingreso_real')
+        ).order_by('profesional__nombre', 'periodo')
+
+        datos_por_profesional = defaultdict(dict)
+        todos_los_periodos = sorted(list(set(d['periodo'] for d in datos_crudos)))
+        
+        for d in datos_crudos:
+            datos_por_profesional[d['profesional__nombre']][d['periodo']] = float(d['total'])
+
+        labels = [p.strftime(label_format) for p in todos_los_periodos]
+        datasets = []
+        colores = itertools.cycle(['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'])
+
+        for nombre_profesional, periodos in datos_por_profesional.items():
+            color = next(colores)
+            datasets.append({
+                'label': nombre_profesional,
+                'data': [periodos.get(p, 0) for p in todos_los_periodos],
+                'borderColor': color,
+                'backgroundColor': color + '33', # '33' añade transparencia en hexadecimal
+            })
+        
+        return JsonResponse({'labels': labels, 'datasets': datasets})
 
 @login_required
 def dashboard_servicios(request): # Apariencia
@@ -1270,21 +1321,35 @@ def editar_profesional(request, profesional_id):
     }
     return render(request, 'dashboard/crear_editar_profesional.html', context)
 
-# VISTA 3: Lógica para ELIMINAR un profesional (se llama desde un botón)
 @login_required
-@require_POST # Para más seguridad, esta acción solo se permite via POST
+@require_POST
 def eliminar_profesional(request, profesional_id):
     profesional = get_object_or_404(Profesional, id=profesional_id, servicio__propietario=request.user)
     servicio_id = profesional.servicio.id
     
-    # Lógica de seguridad: No permitir borrar el último profesional
     if profesional.servicio.profesionales.count() <= 1:
         messages.error(request, "No puedes eliminar al último miembro del equipo. Un servicio debe tener al menos un profesional.")
         return redirect('gestionar_equipo', servicio_id=servicio_id)
 
+    hoy = timezone.localdate()
+    turnos_futuros_pendientes = Turno.objects.filter(
+        profesional=profesional,
+        fecha__gte=hoy,
+        estado__in=['pendiente', 'confirmado']
+    ).count()
+
+    if turnos_futuros_pendientes > 0:
+        messages.warning(
+            request, 
+            f"No se puede eliminar a {profesional.nombre} porque tiene {turnos_futuros_pendientes} turnos futuros pendientes o confirmados. "
+            "Por favor, cancela o reasigna esos turnos primero."
+        )
+        return redirect('gestionar_equipo', servicio_id=servicio_id)
+    
     nombre_profesional = profesional.nombre
     profesional.delete()
-    messages.success(request, f"{nombre_profesional} ha sido eliminado del equipo.")
+    messages.success(request, f'"{nombre_profesional}" ha sido eliminado del equipo correctamente.')
+    
     return redirect('gestionar_equipo', servicio_id=servicio_id)
 
 @login_required

@@ -222,11 +222,22 @@
                                     {% endif %}
                                 </td>
                                 <td data-label="Acciones">
-                                    {% if turno.estado == 'pendiente' or turno.estado == 'confirmado' %}
-                                        <a href="{% url 'finalizar_turno' turno.id %}" class="btn-confirmar"  style="color: #033f63; background-color:#b5b682; padding: 4px 3px; text-decoration: none; border-radius: 4px;">Finalizar Turno</a>
-                                    {% elif turno.estado == 'completado' %}
-                                        <a href="{% url 'finalizar_turno' turno.id %}" class="btn-editar-ingreso"  style="color:#b5b682 ; background-color:#033f63; padding: 4px 3px; text-decoration: none; border-radius: 4px;">Editar Ingreso</a>
-                                    {% endif %}
+                                    <div class="action-buttons" style="display: flex; gap: 5px; justify-content: flex-end;">
+                                        {% if turno.estado == 'pendiente' or turno.estado == 'confirmado' %}
+                                            <a href="{% url 'finalizar_turno' turno.id %}" class="btn-confirmar" style="color: #033f63; background-color:#b5b682; padding: 4px 3px; text-decoration: none; border-radius: 4px;">Finalizar turno</a>
+                                        {% elif turno.estado == 'completado' %}
+                                            <a href="{% url 'finalizar_turno' turno.id %}" class="btn-editar-ingreso" style="color:#b5b682 ; background-color:#033f63; padding: 4px 3px; text-decoration: none; border-radius: 4px;">Editar</a>
+                                        {% endif %}
+                                        {% if turno.anotaciones %}
+                                            <button class="btn-ver-nota" 
+                                                    data-nota="{{ turno.anotaciones|escapejs }}"
+                                                    data-cliente="{{ turno.cliente.first_name }} {{ turno.cliente.last_name }}"
+                                                    style="background-color: #6c757d; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">
+                                                Nota
+                                            </button>
+                                        {% endif %}
+                                        
+                                    </div>
                                 </td>
                             </tr>
                             {% endfor %}
@@ -340,6 +351,25 @@ document.addEventListener('DOMContentLoaded', function() {
                     tourAyuda.start();
                 });
             }
+
+    const botonesVerNota = document.querySelectorAll('.btn-ver-nota');
+
+    botonesVerNota.forEach(boton => {
+        boton.addEventListener('click', function() {
+            const nota = this.dataset.nota;
+            const cliente = this.dataset.cliente;
+            
+            // Usamos SweetAlert2 para mostrar la nota
+            Swal.fire({
+                title: `<strong>Nota sobre ${cliente}</strong>`,
+                html: `<div style="text-align: left; white-space: pre-wrap; background-color: #2a2a2a; padding: 15px; border-radius: 5px;color:white;">${nota}</div>`,
+                icon: 'info',
+                confirmButtonText: 'Cerrar',
+                confirmButtonColor: '#033f63'
+            });
+        });
+    });
+
 });
 </script>
 {% endblock %}

@@ -44,11 +44,21 @@
         <div class="metric-card" id="MC">
             <h3>Mejor Cliente</h3>
             {% if cliente_top and cliente_top.total_gastado > 0 %}
-                <p class="metric-value" style="font-size: 1.5em; line-height: 1.2;">{{ cliente_top.cliente__first_name|default:'' }} {{ cliente_top.cliente__last_name|default:'' }}</p>
-                <small style="color: #aaa;">Total: ${{ cliente_top.total_gastado|floatformat:2 }}</small>
-            {% else %}
-                <p class="metric-value">-</p>
-            {% endif %}
+            <div class="cliente-info-trigger"
+            style="cursor: pointer; text-decoration: underline; color: #10a4ff;"
+            title="Haz clic para ver detalles"
+            data-nombre="{{ cliente_top.cliente__first_name|default:'' }}"
+            data-apellido="{{ cliente_top.cliente__last_name|default:'' }}"
+            data-email="{{ cliente_top.cliente__email|default:'No especificado' }}"
+            data-telefono="{{ cliente_top.cliente__telefono|default:'No especificado' }}">
+            <p class="metric-value" style="font-size: 1.5em; line-height: 1.2; color: #10a4ff;">
+            {{ cliente_top.cliente__first_name|default:'' }} {{ cliente_top.cliente__last_name|default:'' }}
+        </p>
+    </div>
+    <small style="color: #aaa;">Total: ${{ cliente_top.total_gastado|floatformat:2 }}</small>
+{% else %}
+    <p class="metric-value">-</p>
+{% endif %}
         </div>
     </div>
 
@@ -63,6 +73,12 @@
                     <input type="date" id="filtro-dia" class="filtro-fecha" placeholder="dd/mm/aaaa" value="">
                     <input type="month" id="filtro-mes" class="filtro-fecha" style="display: none;">
                     <input type="number" id="filtro-año" class="filtro-fecha" style="display: none;" min="2020" max="2050" step="1">
+                     {% if es_propietario_prime %}
+                        <div class="vista-grafico-switch" style="margin-left: 15px; border-left: 2px solid #555; padding-left: 15px;">
+                            <button class="control-btn active" data-vista="total">Total</button>
+                            <button class="control-btn" data-vista="profesional">Por Profesional</button>
+                        </div>
+                    {% endif %}
                 </div>
             </div>
 <canvas id="ingresosChart" data-api-url="{% url 'api_metricas_grafico' %}"></canvas>
@@ -117,25 +133,21 @@
     <script>
         document.addEventListener('turbolinks:load', function() {
             
-            // Buscamos un elemento que SOLO exista en esta página
             const seccionMetricas = document.getElementById('seccion-metricas');
-            if (!seccionMetricas) {
-                return; // Si no es la página de métricas, no hacemos nada.
-            }
+            if (!seccionMetricas) return;
 
-            // --- DESTRUCCIÓN PREVENTIVA ---
-            // Usamos el método oficial de Chart.js para buscar y destruir instancias viejas.
+            // Destrucción preventiva
             if (window.doughnutChart) { window.doughnutChart.destroy(); }
             if (window.lineChart) { window.lineChart.destroy(); }
             
-            // --- GRÁFICO 1: SERVICIOS POPULARES ---
+            // --- GRÁFICO 1: SERVICIOS POPULARES (CÓDIGO COMPLETO) ---
             try {
                 const labelsServicios = JSON.parse(document.getElementById('labels-servicios-data').textContent);
                 const dataServicios = JSON.parse(document.getElementById('data-servicios-data').textContent);
                 const canvasServicios = document.getElementById('serviciosPopularesChart');
                 
-                if (Array.isArray(labelsServicios) && Array.isArray(dataServicios) && dataServicios.length > 0) {
-                    window.doughnutChart = new Chart(canvasServicios.getContext('2d'), { // Asignamos a window
+                if (canvasServicios && Array.isArray(labelsServicios) && Array.isArray(dataServicios) && dataServicios.length > 0) {
+                    window.doughnutChart = new Chart(canvasServicios.getContext('2d'), {
                         type: 'doughnut',
                         data: {
                             labels: labelsServicios,
@@ -143,7 +155,7 @@
                         },
                         options: { responsive: true, maintainAspectRatio: false }
                     });
-                } else {
+                } else if (canvasServicios) {
                     const ctx = canvasServicios.getContext('2d');
                     ctx.clearRect(0, 0, canvasServicios.width, canvasServicios.height);
                     ctx.textAlign = 'center'; ctx.font = '14px Segoe UI'; ctx.fillStyle = '#888';
@@ -151,58 +163,87 @@
                 }
             } catch (e) { console.error("Error en gráfico de torta:", e); }
 
-            // --- GRÁFICO 2: ANÁLISIS DE INGRESOS ---
+            // --- GRÁFICO 2: ANÁLISIS DE INGRESOS (CÓDIGO COMPLETO) ---
             const canvasIngresos = document.getElementById('ingresosChart');
-            window.lineChart = new Chart(canvasIngresos.getContext('2d'), { // Asignamos a window
-                type: 'line', 
-                data: { labels: [], datasets: [{ label: 'Ingresos ($)', data: [] }] }, 
-                options: { scales: { y: { beginAtZero: true } } }
+            window.lineChart = new Chart(canvasIngresos.getContext('2d'), {
+                type: 'line',
+                data: { labels: [], datasets: [] },
+                options: {
+                    scales: { y: { beginAtZero: true } },
+                    plugins: { legend: { display: false } }
+                }
             });
 
-            const controles = document.querySelectorAll('.control-btn');
-            let agrupacionActual = 'dia';
+            // Selectores
+            const controlesAgrupacion = document.querySelectorAll('.control-btn[data-agrupar]');
+            const controlesVista = document.querySelectorAll('.control-btn[data-vista]');
+            const filtrosFecha = document.querySelectorAll('.filtro-fecha');
+            
+            // Estado
+            let estadoGrafico = {
+                agrupacion: 'dia',
+                vista: 'total'
+            };
 
             function actualizarGraficoLineal() {
                 const apiUrl = canvasIngresos.dataset.apiUrl;
                 if (!apiUrl) return;
-                
+
                 const filtroDia = document.getElementById('filtro-dia');
                 const filtroMes = document.getElementById('filtro-mes');
                 const filtroAño = document.getElementById('filtro-año');
-                let params = new URLSearchParams({ agrupar_por: agrupacionActual });
-                if (agrupacionActual === 'dia') params.append('fecha', filtroDia.value);
-                if (agrupacionActual === 'mes') params.append('mes', filtroMes.value);
-                if (agrupacionActual === 'año') params.append('año', filtroAño.value);
+                
+                let params = new URLSearchParams({
+                    agrupar_por: estadoGrafico.agrupacion,
+                    vista: estadoGrafico.vista
+                });
+
+                if (estadoGrafico.agrupacion === 'dia') params.append('fecha', filtroDia.value);
+                if (estadoGrafico.agrupacion === 'mes') params.append('mes', filtroMes.value);
+                if (estadoGrafico.agrupacion === 'año') params.append('año', filtroAño.value);
                 
                 fetch(`${apiUrl}?${params.toString()}`, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
                 .then(response => response.json())
                 .then(data => {
                     if (window.lineChart) {
                         window.lineChart.data.labels = data.labels;
-                        window.lineChart.data.datasets[0].data = data.data;
-                        window.lineChart.data.datasets[0].borderColor = 'aqua';
-                        window.lineChart.data.datasets[0].backgroundColor = 'rgba(0, 255, 255, 0.2)';
-                        window.lineChart.data.datasets[0].fill = true;
-                        window.lineChart.data.datasets[0].tension = 0.1;
+                        window.lineChart.data.datasets = data.datasets.map(ds => ({
+                            ...ds,
+                            fill: true,
+                            tension: 0.1
+                        }));
+                        window.lineChart.options.plugins.legend.display = data.datasets.length > 1;
                         window.lineChart.update();
                     }
                 });
             }
 
-            controles.forEach(btn => {
+            // Listeners
+            controlesAgrupacion.forEach(btn => {
                 btn.addEventListener('click', function() {
-                    agrupacionActual = this.dataset.agrupar;
-                    controles.forEach(b => b.classList.remove('active'));
+                    estadoGrafico.agrupacion = this.dataset.agrupar;
+                    controlesAgrupacion.forEach(b => b.classList.remove('active'));
                     this.classList.add('active');
-                    document.querySelectorAll('.filtro-fecha').forEach(f => f.style.display = 'none');
-                    document.getElementById(`filtro-${agrupacionActual}`).style.display = 'block';
+                    filtrosFecha.forEach(f => f.style.display = 'none');
+                    document.getElementById(`filtro-${estadoGrafico.agrupacion}`).style.display = 'block';
                     actualizarGraficoLineal();
                 });
             });
-            document.querySelectorAll('.filtro-fecha').forEach(filtro => {
+
+            controlesVista.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    estadoGrafico.vista = this.dataset.vista;
+                    controlesVista.forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    actualizarGraficoLineal();
+                });
+            });
+
+            filtrosFecha.forEach(filtro => {
                 filtro.addEventListener('change', actualizarGraficoLineal);
             });
 
+            // Carga inicial
             const hoy = new Date();
             const yyyy = hoy.getFullYear();
             const mm = String(hoy.getMonth() + 1).padStart(2, '0');
@@ -271,6 +312,34 @@
                     ]);
                     
                     tourAyuda.start();
+                });
+            }
+
+            const mejorClienteTrigger = document.querySelector('#MC .cliente-info-trigger');
+
+            if (mejorClienteTrigger) {
+                mejorClienteTrigger.addEventListener('click', function() {
+                    const nombre = this.dataset.nombre;
+                    const apellido = this.dataset.apellido;
+                    const email = this.dataset.email;
+                    const telefono = this.dataset.telefono;
+                
+                    const modalContent = `
+                        <div style="text-align: left; padding: 0 1rem;">
+                            <p><strong>Nombre:</strong> ${nombre} ${apellido}</p>
+                            <p><strong>Email:</strong> ${email}</p>
+                            <p><strong>Teléfono:</strong> ${telefono}</p>
+                        </div>
+                    `;
+                    
+                    Swal.fire({
+                        title: '<strong>Información del Cliente</strong>',
+                        icon: 'info',
+                        html: modalContent,
+                        showCloseButton: true,
+                        confirmButtonText: 'Cerrar',
+                        confirmButtonColor: '#033f63',
+                    });
                 });
             }
         });
