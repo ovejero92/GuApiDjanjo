@@ -5,7 +5,7 @@ from django.utils.text import slugify
 from PIL import Image
 from django.shortcuts import  get_object_or_404
 from django.forms import inlineformset_factory
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 class CustomImageWidget(forms.widgets.ClearableFileInput):
@@ -75,29 +75,38 @@ class TurnoForm(forms.ModelForm):
     def clean(self):
         cleaned_data = super().clean()
         sub_servicios_seleccionados = cleaned_data.get('sub_servicios_solicitados')
-        fecha = cleaned_data.get('fecha')
-        hora = cleaned_data.get('hora')
+        
+        # Django ya nos da objetos de fecha y hora, no texto.
+        fecha_obj = cleaned_data.get('fecha')
+        hora_str = cleaned_data.get('hora') # La hora sí puede venir como texto 'HH:MM'
 
-        if not (sub_servicios_seleccionados and fecha and hora):
+        # Primero, validamos que los campos básicos existan.
+        if not (sub_servicios_seleccionados and fecha_obj and hora_str):
+            # Si falta algo, dejamos que Django maneje los errores de campo individuales.
             return cleaned_data
-
-        # Convertir fecha y hora a datetime
+        
         try:
-            # Suponiendo que la fecha viene como string 'dd/mm/yyyy'
-            fecha_obj = datetime.strptime(fecha, "%d/%m/%Y").date()
-            hora_obj = datetime.strptime(hora, "%H:%M").time()
+            # Convertimos el texto de la hora a un objeto time.
+            hora_obj = datetime.strptime(hora_str, "%H:%M").time()
         except ValueError:
-            raise forms.ValidationError("Formato de fecha u hora inválido.")
+            # Esto no debería pasar si el frontend funciona bien, pero es una buena validación.
+            raise forms.ValidationError("El formato de la hora es inválido.")
 
-        # Validar que no sea una hora pasada si es hoy
-        now = datetime.now()
-        if fecha_obj == now.date() and hora_obj <= now.time():
-            raise forms.ValidationError("No se puede reservar un turno en una hora que ya pasó.")
+        # --- VALIDACIÓN DE HORA PASADA ---
+        # 1. Obtenemos la fecha y hora actual CON zona horaria.
+        ahora_con_tz = timezone.localtime()
+        
+        # 2. Creamos el datetime del turno que se quiere reservar, también CON zona horaria.
+        turno_dt_con_tz = timezone.make_aware(datetime.combine(fecha_obj, hora_obj))
 
-        servicio_padre = sub_servicios_seleccionados.first().servicio_padre
+        # 3. Comparamos. Si el turno es anterior a ahora, lanzamos el error.
+        if turno_dt_con_tz <= ahora_con_tz:
+            raise forms.ValidationError("No puedes reservar un turno en una fecha u hora que ya ha pasado.")
+
+        # Si todas las validaciones pasan, calculamos la duración y devolvemos los datos.
         duracion_total_minutos = sum(sub.duracion for sub in sub_servicios_seleccionados)
-        self.cleaned_data['duracion_total'] = duracion_total_minutos
-
+        cleaned_data['duracion_total'] = duracion_total_minutos
+        
         return cleaned_data
 
     def save(self, commit=True):
