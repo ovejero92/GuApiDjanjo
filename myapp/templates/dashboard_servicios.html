@@ -259,7 +259,7 @@
                 if (logoInput.files && logoInput.files[0]) {
                     const reader = new FileReader();
                     reader.onload = function(e) {
-                        if(previewCardLogo) { // Verificamos que el elemento exista
+                        if(previewCardLogo) {
                             previewCardLogo.src = e.target.result;
                         }
                     }

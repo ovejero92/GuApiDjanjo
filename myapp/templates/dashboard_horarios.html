@@ -27,7 +27,6 @@
                             <div class="form-group">
                                 <label>Días de la semana para esta regla:</label>
                                 <div class="dias-botones-container">
-                                    {# Renderizamos cada checkbox a mano para tener control total #}
                                     {% for checkbox in form.dias_semana %}
                                         {{ checkbox.tag }}
                                         <label for="{{ checkbox.id_for_label }}">{{ checkbox.choice_label }}</label>
@@ -157,7 +156,6 @@
  <script>
     document.addEventListener('DOMContentLoaded', function() {
 
-        // --- LÓGICA PARA MANEJAR EL DESCANSO Y AÑADIR NUEVAS REGLAS ---
         function setupFormCard(cardElement) {
             const descansoCheckbox = cardElement.querySelector('input[name$="-tiene_descanso"]');
             const horasDiv = cardElement.querySelector('.descanso-horas');

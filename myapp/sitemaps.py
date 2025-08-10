@@ -14,6 +14,4 @@ class ServicioSitemap(Sitemap):
         return Servicio.objects.filter(esta_activo=True)
 
     def lastmod(self, obj):
-        # Asumiendo que tienes un campo de última modificación, si no, puedes quitar esta línea.
-        # return obj.fecha_actualizacion 
         return None

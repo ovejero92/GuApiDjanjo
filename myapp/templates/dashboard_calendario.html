@@ -31,7 +31,6 @@
         <div class="calendario-dia cal-dia--{{ dia_info.estado }}" data-dia="{{ dia }}">
             <span class="dia-numero">{{ dia }}</span>
             
-            {# AÑADIMOS EL CONTEO SOLO SI ES MAYOR A CERO #}
             {% if dia_info.conteo > 0 %}
                 <span class="turnos-count escritorio">Reservados {{ dia_info.conteo }}</span>
                 <span class="turnos-count mobile">Total {{ dia_info.conteo }}</span>
@@ -73,22 +72,40 @@ document.addEventListener('DOMContentLoaded', function() {
         modal.style.display = 'flex';
 
         try {
-            const response = await fetch(`/api/turnos-por-dia/?fecha=${fecha}`);
+            // Pasamos el servicio_id a la API. Es una buena práctica.
+            const servicioId = "{{ servicio_activo.id }}";
+            const response = await fetch(`/api/turnos-por-dia/?fecha=${fecha}&servicio_id=${servicioId}`);
             if (!response.ok) throw new Error(`Error del servidor: ${response.statusText}`);
+            
             const data = await response.json();
 
             modalBody.innerHTML = '';
             if (data.turnos && data.turnos.length > 0) {
                 data.turnos.forEach(turno => {
                     const serviciosHtml = turno.servicios.join(', ') || 'N/A';
+                    
+                    // === INICIO DE LA LÓGICA MEJORADA ===
+                    
+                    // Creamos una línea para el profesional, pero solo si el servicio es Prime
+                    let profesionalHtml = '';
+                    if (data.es_servicio_prime) {
+                        const nombreProfesional = turno.profesional_nombre || '<em style="color: #cc8e35;">Por asignar</em>';
+                        profesionalHtml = `<p><strong>Profesional:</strong> ${nombreProfesional}</p>`;
+                    }
+
+                    // Construimos la nueva tarjeta del turno con toda la información
                     const turnoCard = `
                         <div class="turno-card">
                             <p><strong>Hora:</strong> ${turno.hora}</p>
-                            <p><strong>Cliente:</strong> ${turno.cliente}</p>
+                            <p><strong>Cliente:</strong> ${turno.cliente_nombre}</p>
+                            <p><strong>Teléfono:</strong> ${turno.cliente_telefono}</p>
+                            ${profesionalHtml} 
                             <p><strong>Estado:</strong> ${turno.estado}</p>
                             <p><strong>Servicios:</strong> ${serviciosHtml}</p>
                         </div>
                     `;
+                    // === FIN DE LA LÓGICA MEJORADA ===
+                    
                     modalBody.insertAdjacentHTML('beforeend', turnoCard);
                 });
             } else {
@@ -99,7 +116,7 @@ document.addEventListener('DOMContentLoaded', function() {
             modalBody.innerHTML = '<p style="color:red;">No se pudieron cargar los turnos. Inténtelo de nuevo.</p>';
         }
     }
-
+    
     calendarDays.forEach(day => {
         day.addEventListener('click', function() {
             const diaSeleccionado = this.dataset.dia;

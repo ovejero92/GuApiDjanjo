@@ -96,7 +96,6 @@
         </div>
         {% if metricas_por_profesional %}
             <div class="table-responsive-wrapper">
-                <!-- Reutilizamos tus clases para mantener la estética -->
                 <table class="turnos-table responsive-table">
                     <thead>
                         <tr>
@@ -136,11 +135,9 @@
             const seccionMetricas = document.getElementById('seccion-metricas');
             if (!seccionMetricas) return;
 
-            // Destrucción preventiva
             if (window.doughnutChart) { window.doughnutChart.destroy(); }
             if (window.lineChart) { window.lineChart.destroy(); }
             
-            // --- GRÁFICO 1: SERVICIOS POPULARES (CÓDIGO COMPLETO) ---
             try {
                 const labelsServicios = JSON.parse(document.getElementById('labels-servicios-data').textContent);
                 const dataServicios = JSON.parse(document.getElementById('data-servicios-data').textContent);
@@ -163,7 +160,6 @@
                 }
             } catch (e) { console.error("Error en gráfico de torta:", e); }
 
-            // --- GRÁFICO 2: ANÁLISIS DE INGRESOS (CÓDIGO COMPLETO) ---
             const canvasIngresos = document.getElementById('ingresosChart');
             window.lineChart = new Chart(canvasIngresos.getContext('2d'), {
                 type: 'line',
@@ -174,12 +170,10 @@
                 }
             });
 
-            // Selectores
             const controlesAgrupacion = document.querySelectorAll('.control-btn[data-agrupar]');
             const controlesVista = document.querySelectorAll('.control-btn[data-vista]');
             const filtrosFecha = document.querySelectorAll('.filtro-fecha');
             
-            // Estado
             let estadoGrafico = {
                 agrupacion: 'dia',
                 vista: 'total'
@@ -218,7 +212,6 @@
                 });
             }
 
-            // Listeners
             controlesAgrupacion.forEach(btn => {
                 btn.addEventListener('click', function() {
                     estadoGrafico.agrupacion = this.dataset.agrupar;
@@ -243,7 +236,6 @@
                 filtro.addEventListener('change', actualizarGraficoLineal);
             });
 
-            // Carga inicial
             const hoy = new Date();
             const yyyy = hoy.getFullYear();
             const mm = String(hoy.getMonth() + 1).padStart(2, '0');
@@ -254,7 +246,6 @@
             
             actualizarGraficoLineal();
             
-            // Código del tour de ayuda
             const botonAyuda = document.getElementById('ayudaMetricasBtn');
             if (botonAyuda) {
                 botonAyuda.addEventListener('click', function() {

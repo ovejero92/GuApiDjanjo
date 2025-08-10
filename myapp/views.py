@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 import calendar
 import itertools
 from collections import defaultdict
-from django.db.models import Count, Sum,Avg, F
+from django.db.models import Count, Sum,Avg, Q
 from django.db.models.functions import TruncDay, TruncMonth, TruncHour
 from django.utils.http import urlsafe_base64_decode
 from django.utils.encoding import force_str
@@ -20,7 +20,6 @@ from django.contrib.auth.tokens import default_token_generator
 from django.contrib.auth.models import User
 import json
 from django.views.decorators.http import require_POST
-from django.db.models import Q
 from django.core.mail import send_mail
 from django.contrib.auth.views import LoginView
 from django.urls import reverse_lazy, reverse
@@ -353,52 +352,65 @@ def dashboard_turnos(request):
             'servicio_activo': servicio_activo
         }
         return render(request, 'servicio_suspendido.html', context)
-    if not servicio_activo.esta_activo:
-        context = {
-            'servicio': servicio_activo,
-            'onboarding_completo': True,
-            'servicio_activo': servicio_activo
-        }
-        return render(request, 'servicio_suspendido.html', context)
-    turnos = Turno.objects.filter(
-        servicio=servicio_activo
-    ).select_related('cliente', 'profesional').prefetch_related('sub_servicios_solicitados')
+    
+    turnos = Turno.objects.filter(servicio=servicio_activo).select_related('cliente', 'profesional').prefetch_related('sub_servicios_solicitados')
     ahora = timezone.now()
     hoy = ahora.date()
-    hora_actual = ahora.time()
-    turnos_pasados = turnos.filter(
-        Q(fecha__lt=hoy) | Q(fecha=hoy, hora__lt=hora_actual)
-    ).order_by('-fecha', '-hora')
-    turnos_proximos = turnos.filter(
-        Q(fecha__gt=hoy) | Q(fecha=hoy, hora__gte=hora_actual)
-    )
-    turnos_pendientes = turnos_proximos.filter(estado='pendiente').order_by('fecha', 'hora').prefetch_related('sub_servicios_solicitados')
-    turnos_confirmados = turnos_proximos.filter(estado='confirmado').order_by('fecha', 'hora').prefetch_related('sub_servicios_solicitados')
+    turnos_proximos = turnos.filter(Q(fecha__gt=hoy) | Q(fecha=hoy, hora__gte=ahora.time()))
+    turnos_pendientes = turnos_proximos.filter(estado='pendiente').order_by('fecha', 'hora')
+    turnos_confirmados = turnos_proximos.filter(estado='confirmado').order_by('fecha', 'hora')
+
+    # --- INICIO DE LA LÓGICA DEL HISTORIAL MEJORADA ---
+
+    # 1. Obtenemos los parámetros de los filtros desde la URL
     filtro_historial_activo = request.GET.get('filtro_historial', 'por_finalizar')
+    cliente_id_seleccionado = request.GET.get('cliente_id', '') # Nuevo parámetro
+
+    # 2. Queryset base para el historial (turnos pasados)
     turnos_pasados_base = Turno.objects.filter(
-        servicio=servicio_activo
-    ).filter(
-        Q(fecha__lt=hoy) | Q(fecha=hoy, hora__lt=ahora.time())
-    ).select_related('cliente', 'profesional')
+        servicio=servicio_activo,
+        fecha__lte=hoy
+    ).exclude(fecha=hoy, hora__gt=ahora.time()).select_related('cliente', 'profesional')
+
+    # 3. Aplicamos el filtro de cliente si se ha seleccionado uno
+    if cliente_id_seleccionado and cliente_id_seleccionado.isdigit():
+        turnos_pasados_base = turnos_pasados_base.filter(cliente_id=cliente_id_seleccionado)
+
+    # 4. Aplicamos el filtro de estado (Para Finalizar / Finalizados)
     if filtro_historial_activo == 'finalizados':
         turnos_a_mostrar = turnos_pasados_base.filter(estado__in=['completado', 'cancelado']).order_by('-fecha', '-hora')
-    else:
+    else: # por_finalizar
         turnos_a_mostrar = turnos_pasados_base.filter(estado__in=['pendiente', 'confirmado']).order_by('fecha', 'hora')
-    paginator = Paginator(turnos_a_mostrar, 10)
+
+    # 5. Creamos la paginación (esto ya lo tenías)
+    paginator = Paginator(turnos_a_mostrar, 10) # Muestra 10 turnos por página
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
+
+    # 6. Obtenemos la lista de clientes ÚNICOS del historial para el dropdown
+    clientes_del_historial_ids = Turno.objects.filter(
+        servicio=servicio_activo, estado__in=['completado', 'cancelado']
+    ).values_list('cliente_id', flat=True).distinct()
     
+    clientes_para_filtrar = User.objects.filter(
+        id__in=clientes_del_historial_ids
+    ).order_by('first_name', 'last_name')
+
+    # --- FIN DE LA LÓGICA DEL HISTORIAL MEJORADA ---
+
     es_propietario_prime = servicio_activo.permite_multiples_profesionales
         
     context = {
         'servicio_activo': servicio_activo,
-        'onboarding_completo': servicio_activo.configuracion_inicial_completa,
         'turnos_pendientes': turnos_pendientes,
         'turnos_confirmados': turnos_confirmados,
         'historial_page_obj': page_obj,
+        'onboarding_completo': servicio_activo.configuracion_inicial_completa,
         'filtro_historial_activo': filtro_historial_activo,
         'mostrar_animacion': mostrar_animacion,
         'es_propietario_prime': es_propietario_prime,
+        'clientes_para_filtrar': clientes_para_filtrar,
+        'cliente_seleccionado_id': cliente_id_seleccionado,
     }
     return render(request, 'dashboard_turnos.html', context)
 
@@ -500,21 +512,42 @@ def api_turnos_por_dia(request):
         fecha = datetime.strptime(fecha_str, '%Y-%m-%d').date()
     except ValueError:
         return JsonResponse({'error': 'Formato de fecha inválido'}, status=400)
+    
     turnos = Turno.objects.filter(
         servicio=servicio_activo,
         fecha=fecha,
         estado__in=['confirmado', 'pendiente']
-    ).select_related('cliente').prefetch_related('sub_servicios_solicitados').order_by('hora')
+    ).select_related(
+        'cliente__perfil',
+        'profesional'
+    ).prefetch_related('sub_servicios_solicitados').order_by('hora')
+
+    es_servicio_prime = servicio_activo.permite_multiples_profesionales
+    
     datos_turnos = []
     for turno in turnos:
         servicios = [s.nombre for s in turno.sub_servicios_solicitados.all()]
-        datos_turnos.append({
+        
+        nombre_completo_cliente = f"{turno.cliente.first_name} {turno.cliente.last_name}".strip()
+        if not nombre_completo_cliente:
+            nombre_completo_cliente = turno.cliente.username
+
+        telefono_cliente = turno.cliente.perfil.telefono if hasattr(turno.cliente, 'perfil') and turno.cliente.perfil.telefono else 'No especificado'
+
+        turno_data = {
             'hora': turno.hora.strftime('%H:%M'),
-            'cliente': turno.cliente.first_name or turno.cliente.username,
+            'cliente_nombre': nombre_completo_cliente,
+            'cliente_telefono': telefono_cliente,
             'estado': turno.get_estado_display(),
             'servicios': servicios,
-        })
-    return JsonResponse({'turnos': datos_turnos})
+            'profesional_nombre': turno.profesional.nombre if turno.profesional else None
+        }
+        datos_turnos.append(turno_data)
+    
+    return JsonResponse({
+        'turnos': datos_turnos,
+        'es_servicio_prime': es_servicio_prime
+    })
 
 @login_required
 def marcar_tour_visto(request):

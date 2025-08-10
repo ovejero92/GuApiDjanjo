@@ -432,7 +432,6 @@ class ProfesionalHorarioForm(forms.ModelForm):
             
         return instance
 
-# 2. Ahora le decimos al inlineformset_factory que use NUESTRO formulario personalizado.
 HorarioLaboralFormSet = inlineformset_factory(
     Profesional,
     HorarioLaboral,
@@ -441,7 +440,6 @@ HorarioLaboralFormSet = inlineformset_factory(
     max_num=1,
     can_delete=False,
 )
-
 
 class ProfesionalForm(forms.ModelForm):
     sub_servicios_ofrecidos = forms.ModelMultipleChoiceField(

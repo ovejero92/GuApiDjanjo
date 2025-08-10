@@ -258,10 +258,8 @@ class DiaNoDisponible(models.Model):
             raise ValidationError("La fecha de fin no puede ser anterior a la fecha de inicio.")
 
 class Turno(models.Model):
-    # Añadimos esta línea de nuevo
     servicio = models.ForeignKey(Servicio, on_delete=models.CASCADE, related_name='turnos_del_servicio')
     
-    # Y tu campo de profesional se queda como estaba (con el cambio de nombre sugerido)
     profesional = models.ForeignKey(
         Profesional,
         on_delete=models.SET_NULL,
@@ -347,7 +345,6 @@ class Suscripcion(models.Model):
 
     def __str__(self):
         return f"{self.usuario.username} - {self.plan.nombre if self.plan else 'Sin Plan'}"
-
 
 class PerfilUsuario(models.Model):
     usuario = models.OneToOneField(User, on_delete=models.CASCADE, related_name='perfil')

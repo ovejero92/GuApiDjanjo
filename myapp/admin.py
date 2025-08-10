@@ -54,12 +54,7 @@ class ServicioAdmin(admin.ModelAdmin):
     search_fields = ('nombre', 'propietario__username')
     actions = [activar_servicios, desactivar_servicios]
     prepopulated_fields = {'slug': ('nombre',)}
-    
-    # inlines = [
-    #     SubServicioInline,
-    #     HorarioLaboralInline,
-    #     DiaNoDisponibleInline,
-    # ]
+
 
 @admin.register(Turno)
 class TurnoAdmin(admin.ModelAdmin):

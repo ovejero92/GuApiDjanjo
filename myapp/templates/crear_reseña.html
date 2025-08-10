@@ -12,10 +12,8 @@
             <div class="form-group">
                 <label>{{ form.calificacion.label }}</label>
                 <div class="rating-stars">
-                    {# Django renderizará los radio buttons aquí, pero los ocultaremos #}
                     <div style="display: none;">{{ form.calificacion }}</div>
                     
-                    {# Creamos nuestras propias estrellas visuales #}
                     <i class="fas fa-star" data-value="1"></i>
                     <i class="fas fa-star" data-value="2"></i>
                     <i class="fas fa-star" data-value="3"></i>

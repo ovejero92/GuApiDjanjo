@@ -156,12 +156,35 @@
 
         <div class="dashboard-section" id="historial">
             <div class="historial-header">
-                <h2>Historial de Turnos Pasados</h2>
-                <div class="historial-filtros">
-                    <a href="{% url 'dashboard_turnos' %}?filtro_historial=por_finalizar#historial" class="{% if filtro_historial_activo == 'por_finalizar' %}active{% endif %}">Para Finalizar</a>
-                    <a href="{% url 'dashboard_turnos' %}?filtro_historial=finalizados#historial" class="{% if filtro_historial_activo == 'finalizados' %}active{% endif %}">Finalizados</a>
-                </div>
-            </div>
+    <h2>Historial de Turnos Pasados</h2>
+    
+    <!-- === INICIO DEL NUEVO FORMULARIO DE FILTROS === -->
+    <div class="historial-filtros" style="display: flex; align-items: center; gap: 15px;">
+        
+        <!-- Formulario para el filtro de cliente -->
+        <form method="GET" action="#historial" id="filtroClienteForm">
+            <!-- Mantenemos el filtro de estado actual para no perderlo al buscar -->
+            <input type="hidden" name="filtro_historial" value="{{ filtro_historial_activo }}">
+            
+            <select name="cliente_id" onchange="document.getElementById('filtroClienteForm').submit()" style="padding: 8px; border-radius: 5px; background-color: #444; color: white; border: 1px solid #666;">
+                <option value="">-- Filtrar por Cliente --</option>
+                {% for cliente in clientes_para_filtrar %}
+                    <option value="{{ cliente.id }}" {% if cliente_seleccionado_id == cliente.id|stringformat:"s" %}selected{% endif %}>
+                        {{ cliente.first_name }} {{ cliente.last_name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </form>
+
+        <!-- Filtros de estado (Para Finalizar / Finalizados) -->
+        <div>
+            <a href="?filtro_historial=por_finalizar#historial" class="btn-filtro {% if filtro_historial_activo == 'por_finalizar' %}active{% endif %}">Para Finalizar</a>
+            <a href="?filtro_historial=finalizados#historial" class="btn-filtro {% if filtro_historial_activo == 'finalizados' %}active{% endif %}">Finalizados</a>
+        </div>
+    </div>
+    <!-- === FIN DEL NUEVO FORMULARIO DE FILTROS === -->
+
+</div>
 
             {% if historial_page_obj %}
                 <div class="table-responsive-wrapper">
@@ -213,11 +236,8 @@
                                 <td data-label="Ingreso">{% if turno.ingreso_real %}${{ turno.ingreso_real|floatformat:2 }}{% else %}-{% endif %}</td>
                                 <td data-label="Medio de pago">
                                     {% if turno.medio_de_pago_final %}
-                                        {# Si ya se finalizó, MOSTRAMOS EL VALOR FINAL #}
-                                        {# Buscamos el nombre visible en la lista de opciones del modelo #}
                                         {{ turno.get_medio_de_pago_final_display|default:turno.medio_de_pago_final|capfirst }}
                                     {% else %}
-                                        {# Si todavía no se finalizó, mostramos el que eligió el cliente #}
                                         {{ turno.get_medio_de_pago_display }}
                                     {% endif %}
                                 </td>
@@ -247,18 +267,20 @@
 
                 {% if historial_page_obj.has_other_pages %}
                 <div class="pagination-container">
-                    {% if historial_page_obj.has_previous %}
-                        <a href="?page={{ historial_page_obj.previous_page_number }}&filtro_historial={{ filtro_historial_activo }}">« Anterior</a>
-                    {% endif %}
+    {% if historial_page_obj.has_previous %}
+        <!-- [CAMBIO] Añadimos &cliente_id={{ cliente_seleccionado_id }} -->
+        <a href="?page={{ historial_page_obj.previous_page_number }}&filtro_historial={{ filtro_historial_activo }}&cliente_id={{ cliente_seleccionado_id }}">« Anterior</a>
+    {% endif %}
 
-                    <span class="current-page">
-                        Página {{ historial_page_obj.number }} de {{ historial_page_obj.paginator.num_pages }}
-                    </span>
+    <span class="current-page">
+        Página {{ historial_page_obj.number }} de {{ historial_page_obj.paginator.num_pages }}
+    </span>
 
-                    {% if historial_page_obj.has_next %}
-                        <a href="?page={{ historial_page_obj.next_page_number }}&filtro_historial={{ filtro_historial_activo }}">Siguiente »</a>
-                    {% endif %}
-                </div>
+    {% if historial_page_obj.has_next %}
+        <!-- [CAMBIO] Añadimos &cliente_id={{ cliente_seleccionado_id }} -->
+        <a href="?page={{ historial_page_obj.next_page_number }}&filtro_historial={{ filtro_historial_activo }}&cliente_id={{ cliente_seleccionado_id }}">Siguiente »</a>
+    {% endif %}
+</div>
                 {% endif %}
 
             {% else %}
@@ -359,7 +381,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const nota = this.dataset.nota;
             const cliente = this.dataset.cliente;
             
-            // Usamos SweetAlert2 para mostrar la nota
             Swal.fire({
                 title: `<strong>Nota sobre ${cliente}</strong>`,
                 html: `<div style="text-align: left; white-space: pre-wrap; background-color: #2a2a2a; padding: 15px; border-radius: 5px;color:white;">${nota}</div>`,

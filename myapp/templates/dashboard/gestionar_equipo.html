@@ -2,9 +2,6 @@
 {% block dashboard_title %}Gestionar Equipo{% endblock %}
 
 {% block dashboard_content %}
-
-{# --- INICIO: PANTALLA DE BLOQUEO PREMIUM --- #}
-{# Usamos exactamente la misma lógica que en tus otras plantillas. #}
 {% if not tiene_acceso_prime %}
     <div class="premium-blocker-overlay" id="GES">
         <div class="premium-blocker-content">
@@ -21,11 +18,9 @@
         </div>
     </div>
 {% endif %}
-{# --- FIN: PANTALLA DE BLOQUEO PREMIUM --- #}
 
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1>Equipo de "{{ servicio.nombre }}"</h1>
-        {# Este botón solo será visible si no está el overlay de bloqueo #}
         <a href="{% url 'dashboard_propietario' %}" class="btn btn-secondary">Volver al Dashboard</a>
     </div>
 

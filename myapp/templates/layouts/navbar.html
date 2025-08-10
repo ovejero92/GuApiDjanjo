@@ -211,27 +211,22 @@
     <script>
        document.addEventListener('turbolinks:load', function() {
 
-        // 1. Lógica del menú de usuario
         const userButton = document.getElementById('userButton');
         const userDropdown = document.getElementById('userDropdown');
         if (userButton && userDropdown) {
-            // Se añade el listener de clic para mostrar/ocultar
             userButton.addEventListener('click', () => {
                 userDropdown.classList.toggle('hidden');
             });
         }
-        // Listener para cerrar el dropdown al hacer clic fuera del menú
         document.addEventListener('click', function (e) {
             if (userButton && userDropdown && !userButton.contains(e.target) && !userDropdown.contains(e.target)) {
                 userDropdown.classList.add('hidden');
             }
         });
 
-        // 2. Lógica de Notificaciones para el cliente (si está logueado)
         {% if user.is_authenticated %}
             const notificacionCirculo = document.getElementById('notificacion-circulo');
             if (notificacionCirculo) {
-                // Limpiamos cualquier intervalo anterior para evitar que se acumulen
                 if (window.notificationInterval) clearInterval(window.notificationInterval);
 
                 function checkNotifications() {
@@ -246,15 +241,13 @@
                             }
                         });
                 }
-                checkNotifications(); // Comprobamos al cargar la página
-                window.notificationInterval = setInterval(checkNotifications, 90000); // Y luego cada 90s
+                checkNotifications();
+                window.notificationInterval = setInterval(checkNotifications, 90000);
             }
         {% endif %}
 
-        // 3. Lógica de Mensajes de Django (Flash messages)
         {% if messages %}
             {% for message in messages %}
-                // Usamos un setTimeout para asegurar que SweetAlert2 se cargue
                 setTimeout(() => {
                     if (window.Swal) {
                         Swal.fire({
@@ -272,8 +265,6 @@
         {% endif %}
     });
 
-    // 4. Lógica de PWA (App Instalable) - Se configura una sola vez
-    // Usamos una bandera global para que estos listeners no se añadan múltiples veces
     if (!window.pwaListenersAdded) {
         window.pwaListenersAdded = true;
         let deferredPrompt;
@@ -285,7 +276,6 @@
             if (installButton) installButton.style.display = 'flex';
         });
 
-        // Usamos delegación de eventos en el body para el botón de instalar
         document.body.addEventListener('click', async (e) => {
             if (e.target && e.target.id === 'installAppButton') {
                 if (deferredPrompt) {
@@ -303,7 +293,6 @@
             if (installButton) installButton.style.display = 'none';
         });
 
-        // Lógica del Service Worker
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register("{% static 'serviceworker.js' %}")
