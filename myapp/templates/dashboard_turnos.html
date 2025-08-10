@@ -166,7 +166,7 @@
             <!-- Mantenemos el filtro de estado actual para no perderlo al buscar -->
             <input type="hidden" name="filtro_historial" value="{{ filtro_historial_activo }}">
             
-            <select name="cliente_id" onchange="document.getElementById('filtroClienteForm').submit()" style="padding: 8px; border-radius: 5px; background-color: #444; color: white; border: 1px solid #666;">
+            <select name="cliente_id" onchange="document.getElementById('filtroClienteForm').submit()" style="margin:0;padding: 8px; border-radius: 5px; background-color: #444; color: white; border: 1px solid #666;" class="FC">
                 <option value="">-- Filtrar por Cliente --</option>
                 {% for cliente in clientes_para_filtrar %}
                     <option value="{{ cliente.id }}" {% if cliente_seleccionado_id == cliente.id|stringformat:"s" %}selected{% endif %}>
@@ -176,13 +176,11 @@
             </select>
         </form>
 
-        <!-- Filtros de estado (Para Finalizar / Finalizados) -->
         <div>
-            <a href="?filtro_historial=por_finalizar#historial" class="btn-filtro {% if filtro_historial_activo == 'por_finalizar' %}active{% endif %}">Para Finalizar</a>
-            <a href="?filtro_historial=finalizados#historial" class="btn-filtro {% if filtro_historial_activo == 'finalizados' %}active{% endif %}">Finalizados</a>
+            <a href="?filtro_historial=por_finalizar#historial" class="btn-filtro PF {% if filtro_historial_activo == 'por_finalizar' %}active{% endif %}">Para Finalizar</a>
+            <a href="?filtro_historial=finalizados#historial" class="btn-filtro F {% if filtro_historial_activo == 'finalizados' %}active{% endif %}">Finalizados</a>
         </div>
     </div>
-    <!-- === FIN DEL NUEVO FORMULARIO DE FILTROS === -->
 
 </div>
 
@@ -267,23 +265,21 @@
 
                 {% if historial_page_obj.has_other_pages %}
                 <div class="pagination-container">
-    {% if historial_page_obj.has_previous %}
-        <!-- [CAMBIO] Añadimos &cliente_id={{ cliente_seleccionado_id }} -->
-        <a href="?page={{ historial_page_obj.previous_page_number }}&filtro_historial={{ filtro_historial_activo }}&cliente_id={{ cliente_seleccionado_id }}">« Anterior</a>
-    {% endif %}
+            {% if historial_page_obj.has_previous %}
+                <a href="?page={{ historial_page_obj.previous_page_number }}&filtro_historial={{        filtro_historial_activo }}&cliente_id={{ cliente_seleccionado_id }}">« Anterior</   a>
+            {% endif %}
 
-    <span class="current-page">
-        Página {{ historial_page_obj.number }} de {{ historial_page_obj.paginator.num_pages }}
-    </span>
-
-    {% if historial_page_obj.has_next %}
-        <!-- [CAMBIO] Añadimos &cliente_id={{ cliente_seleccionado_id }} -->
-        <a href="?page={{ historial_page_obj.next_page_number }}&filtro_historial={{ filtro_historial_activo }}&cliente_id={{ cliente_seleccionado_id }}">Siguiente »</a>
-    {% endif %}
-</div>
-                {% endif %}
-
-            {% else %}
+            <span class="current-page">
+                Página {{ historial_page_obj.number }} de {{ historial_page_obj.paginator.num_pages }}
+            </span>
+        
+            {% if historial_page_obj.has_next %}
+                <a href="?page={{ historial_page_obj.next_page_number }}&filtro_historial={{        filtro_historial_activo }}&cliente_id={{ cliente_seleccionado_id }}">Siguiente »</  a>
+            {% endif %}
+        </div>
+                        {% endif %}
+        
+                    {% else %}
                 <p>No hay historial de turnos para este filtro.</p>
             {% endif %}
         </div>
