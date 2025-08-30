@@ -6,7 +6,7 @@ from .models import PerfilUsuario, Servicio, Profesional , Turno, HorarioLaboral
 from .forms import BloqueoForm, ProfesionalForm, HorarioLaboralFormSet , HorarioLaboralForm, TurnoForm, UserUpdateForm, IngresoTurnoForm, ReseñaForm, ServicioPersonalizacionForm, ServicioUpdateForm, ServicioCreateForm
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.core.paginator import Paginator
 from datetime import datetime, timedelta
 import calendar
@@ -51,6 +51,22 @@ def index(request):
         'search_query': search_query,
     }
     return render(request, 'index.html', context)
+
+def security_txt(request):
+    content = """Contact: turnosok1@gmail.com
+Expires: 2026-01-01T00:00:00.000Z
+Preferred-Languages: es, en
+Canonical: https://www.turnosok.com/.well-known/security.txt
+"""
+    return HttpResponse(content, content_type="text/plain")
+
+def robots_txt(request):
+    content = """User-agent: *
+Disallow:
+
+Sitemap: https://www.turnosok.com/sitemap.xml
+"""
+    return HttpResponse(content, content_type="text/plain")
 
 def crear_servicio_paso1(request):
     if request.user.is_authenticated:

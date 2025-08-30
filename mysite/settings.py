@@ -35,7 +35,8 @@ INSTALLED_APPS = [
     'allauth.socialaccount.providers.google',
     'myapp',
     'rest_framework',
-    'django.contrib.sitemaps'
+    'django.contrib.sitemaps',
+    "csp",
 ]
 
 MIDDLEWARE = [
@@ -48,7 +49,32 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     "allauth.account.middleware.AccountMiddleware",
+    "csp.middleware.CSPMiddleware",
 ]
+
+if IS_PRODUCTION:
+    CONTENT_SECURITY_POLICY = {
+        "DIRECTIVES": {
+            "default-src": ("'self'",),
+            "script-src": (
+                "'self'",
+                "https://cdn.jsdelivr.net",
+                "https://cdnjs.cloudflare.com",
+                "https://kit.fontawesome.com",
+                "'unsafe-inline'",  # ✅ FA script
+            ),
+            "style-src": (
+                "'self'",
+                "https://fonts.googleapis.com",
+                "https://cdnjs.cloudflare.com",   # ✅ cdnjs css
+                "https://cdn.jsdelivr.net",       # ✅ flatpickr css
+                "'unsafe-inline'",                # ⚠️ necesario si usás inline styles
+            ),
+            "font-src": ("'self'", "https://fonts.gstatic.com"),
+            "img-src": ("'self'", "data:", "https://www.turnosok.com"),
+            "connect-src": ("'self'",),
+        }
+    }
 
 ROOT_URLCONF = 'mysite.urls'
 
@@ -148,6 +174,8 @@ if IS_PRODUCTION:
     SECURE_HSTS_SECONDS = 31536000
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
     
 if IS_PRODUCTION:
     AWS_ACCESS_KEY_ID = env('AWS_ACCESS_KEY_ID')

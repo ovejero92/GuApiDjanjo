@@ -4,6 +4,7 @@ from django.views.generic import TemplateView
 from django.contrib.auth import views as auth_views 
 from . import views
 from .api import ServicioViewSet, TurnoViewSet
+from .views import robots_txt, security_txt
 
 router = routers.DefaultRouter()
 router.register(r'servicios', ServicioViewSet, basename='servicios')
@@ -26,6 +27,8 @@ urlpatterns = [
         template_name="googleef49e9e659c3e137.html",
         content_type="text/html"
     )),
+    path("robots.txt", robots_txt, name="robots"),
+    path(".well-known/security.txt", security_txt, name="security"),
     path('api/notificaciones-propietario/', views.obtener_notificaciones_propietario, name='obtener_notificaciones_propietario'),
     path('servicio/toggle-favorito/<int:servicio_id>/', views.toggle_favorito, name='toggle_favorito'),
     path('activate/<slug:uidb64>/<slug:token>/', views.activate, name='activate'),
