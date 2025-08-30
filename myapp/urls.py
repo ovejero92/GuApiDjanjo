@@ -5,10 +5,17 @@ from django.contrib.auth import views as auth_views
 from . import views
 from .api import ServicioViewSet, TurnoViewSet
 from .views import robots_txt, security_txt
+from django.contrib.sitemaps.views import sitemap
+from myapp.sitemaps import StaticViewSitemap, ServicioSitemap
 
 router = routers.DefaultRouter()
 router.register(r'servicios', ServicioViewSet, basename='servicios')
 router.register(r'turnos', TurnoViewSet, basename='turnos')
+
+sitemaps = {
+    "static": StaticViewSitemap,
+    "servicios": ServicioSitemap,
+}
 
 urlpatterns = [
     path('', views.index, name='index'),
