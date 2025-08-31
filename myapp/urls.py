@@ -34,6 +34,7 @@ urlpatterns = [
         template_name="googleef49e9e659c3e137.html",
         content_type="text/html"
     )),
+    path("sitemap.xml", sitemap, {"sitemaps": sitemaps}, name="sitemap"),
     path("robots.txt", robots_txt, name="robots"),
     path(".well-known/security.txt", security_txt, name="security"),
     path('api/notificaciones-propietario/', views.obtener_notificaciones_propietario, name='obtener_notificaciones_propietario'),
