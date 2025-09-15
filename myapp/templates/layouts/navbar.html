@@ -143,6 +143,7 @@
                             <a href="{% url 'account_change_password' %}">Cambiar contraseña</a>
                             {% if user.servicios_propios.exists %}
                                 <a href="{% url 'dashboard_propietario' %}">Mi negocio <i class="fa-solid fa-store"></i></a>
+                                <a href="{% url 'dashboard_suscripcion' %}">Mi Suscripción <i class="fa-solid fa-gem"></i></a>
                             {% else %}
                                 <a href="{% url 'precios' %}" style="background-color: #007bff; color: white;">Convertirme en Propietario</a>
                             {% endif %}

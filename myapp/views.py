@@ -232,15 +232,22 @@ def cancelar_suscripcion(request):
                 # Actualizar en tu base de datos
                 suscripcion.is_active = False
                 suscripcion.fecha_cancelacion = timezone.now()
+                # Obtener el plan gratuito y asignarlo al usuario
+                try:
+                    plan_gratuito = Plan.objects.get(slug='free')
+                    suscripcion.plan = plan_gratuito
+                except Plan.DoesNotExist:
+                    print("ADVERTENCIA: El Plan 'free' no existe al cancelar suscripción.")
+
                 suscripcion.save()
                 
-                messages.success(request, "Tu suscripción ha sido cancelada exitosamente.")
+                messages.success(request, "Tu suscripción ha sido cancelada exitosamente y has vuelto al plan gratuito.")
                 
                 # Opcional: Enviar email de confirmación
                 try:
                     send_mail(
                         'Confirmación de cancelación de suscripción',
-                        f'Tu suscripción al plan {suscripcion.plan.nombre} ha sido cancelada.',
+                        f'Tu suscripción al plan {suscripcion.plan.nombre} ha sido cancelada. Ahora estás en el plan gratuito.',
                         settings.DEFAULT_FROM_EMAIL,
                         [request.user.email],
                         fail_silently=False,
@@ -250,11 +257,16 @@ def cancelar_suscripcion(request):
             else:
                 messages.error(request, "Error al cancelar la suscripción en Mercado Pago.")
         else:
-            # Si no tiene ID de MP, solo cancelar localmente
+            # Si no tiene ID de MP, solo cancelar localmente y asignar plan gratuito
             suscripcion.is_active = False
             suscripcion.fecha_cancelacion = timezone.now()
+            try:
+                plan_gratuito = Plan.objects.get(slug='free')
+                suscripcion.plan = plan_gratuito
+            except Plan.DoesNotExist:
+                print("ADVERTENCIA: El Plan 'free' no existe al cancelar suscripción sin ID de MP.")
             suscripcion.save()
-            messages.success(request, "Tu suscripción ha sido cancelada.")
+            messages.success(request, "Tu suscripción ha sido cancelada y has vuelto al plan gratuito.")
             
         return redirect('dashboard_propietario')
     
@@ -296,11 +308,17 @@ def webhook_mp(request):
                         if mp_status == "authorized":
                             suscripcion.is_active = True
                             suscripcion.mp_subscription_id = mp_subscription_id
-                            suscripcion.proxima_fecha_cobro = response_data.get("next_payment_date")
+                            # Eliminada la línea suscripcion.proxima_fecha_cobro = ... ya que el campo no existe
                             
                         elif mp_status in ["cancelled", "paused"]:
                             suscripcion.is_active = False
                             suscripcion.fecha_cancelacion = timezone.now()
+                            # Asignar plan gratuito al cancelar por webhook
+                            try:
+                                plan_gratuito = Plan.objects.get(slug='free')
+                                suscripcion.plan = plan_gratuito
+                            except Plan.DoesNotExist:
+                                print("ADVERTENCIA: El Plan 'free' no existe al cancelar suscripción por webhook.")
                             
                         suscripcion.save()
                         
