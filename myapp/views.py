@@ -181,36 +181,29 @@ def crear_suscripcion_mp(request, plan_slug):
     if settings.DEBUG:
         base_url = "http://127.0.0.1:8000"
 
-    # Crear suscripción recurrente
-    subscription_data = {
-        "preapproval_plan_id": plan.mp_plan_id,
-        "card_token_id": request.POST.get('token', None),  # Si usas tokenización
+    # Datos para crear la preaprobación (NO la suscripción directa)
+    preapproval_data = {
+        "reason": f"Suscripción al plan {plan.get_nombre_display()}",
+        "external_reference": str(suscripcion_usuario.id),
         "payer_email": request.user.email,
+        "back_url": f"{base_url}{reverse('pago_exitoso')}",
         "auto_recurring": {
             "frequency": 1,
             "frequency_type": "months",
             "transaction_amount": float(plan.precio_mensual),
-            "currency_id": "ARS"
+            "currency_id": "ARS",
         },
-        "back_url": f"{base_url}{reverse('pago_exitoso')}",
-        "external_reference": str(suscripcion_usuario.id),
+        "status": "pending",
         "notification_url": f"{base_url}{reverse('webhook_mp')}",
-        "status": "pending"
     }
 
-    result = sdk.preapproval().create(subscription_data)
-    
+    result = sdk.preapproval().create(preapproval_data)
+
     if result and result.get("status") == 201:
-        mp_id_suscripcion = result["response"]["id"]
-        
-        suscripcion_usuario.mp_subscription_id = mp_id_suscripcion
+        init_point = result["response"]["init_point"]
+        # Guardamos el ID de la preaprobación (no es el de la suscripción aún)
+        suscripcion_usuario.mp_subscription_id = result["response"]["id"]
         suscripcion_usuario.save()
-        
-        if settings.DEBUG:
-            init_point = result["response"]["sandbox_init_point"]
-        else:
-            init_point = result["response"]["init_point"]
-            
         return redirect(init_point)
     else:
         error_message = result.get("response", {}).get("message", "Error desconocido")
