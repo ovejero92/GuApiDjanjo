@@ -112,6 +112,14 @@ def precios(request):
     return render(request, 'precios.html', context)
 
 @login_required
+def dashboard_suscripcion(request):
+    context = {
+        'suscripcion': None, # Opcional: cargar la suscripción del usuario aquí
+        'servicio_activo': request.user.servicios_propios.first() if request.user.is_authenticated else None,
+    }
+    return render(request, 'dashboard_suscripcion.html', context)
+
+@login_required
 def crear_servicio_paso2(request):
     if request.user.servicios_propios.exists():
         messages.info(request, "Ya tienes un servicio gestionado. Aquí está tu dashboard.")
@@ -151,10 +159,19 @@ def crear_suscripcion_mp(request, plan_slug):
         messages.error(request, "Este plan no está configurado para pagos online.")
         return redirect('precios')
 
+    # Verificar si ya tiene una suscripción activa
+    try:
+        suscripcion_existente = Suscripcion.objects.get(usuario=request.user, is_active=True)
+        messages.warning(request, f"Ya tienes una suscripción activa al plan {suscripcion_existente.plan.nombre}. Debes cancelarla primero.")
+        return redirect('dashboard_propietario')
+    except Suscripcion.DoesNotExist:
+        pass
+
     suscripcion_usuario, created = Suscripcion.objects.get_or_create(
         usuario=request.user,
         defaults={'plan': plan, 'is_active': False}
     )
+    
     if not created:
         suscripcion_usuario.plan = plan
         suscripcion_usuario.save()
@@ -164,27 +181,29 @@ def crear_suscripcion_mp(request, plan_slug):
     if settings.DEBUG:
         base_url = "http://127.0.0.1:8000"
 
-    preapproval_data = {
+    # Crear suscripción recurrente
+    subscription_data = {
         "preapproval_plan_id": plan.mp_plan_id,
+        "card_token_id": request.POST.get('token', None),  # Si usas tokenización
         "payer_email": request.user.email,
-        "back_urls": {
-            "success": f"{base_url}{reverse('pago_exitoso')}",
-            "failure": f"{base_url}{reverse('precios')}",
-            "pending": f"{base_url}{reverse('precios')}",
+        "auto_recurring": {
+            "frequency": 1,
+            "frequency_type": "months",
+            "transaction_amount": float(plan.precio_mensual),
+            "currency_id": "ARS"
         },
-        "auto_return": "approved",
-        "external_reference": str(suscripcion_usuario.id)
+        "back_url": f"{base_url}{reverse('pago_exitoso')}",
+        "external_reference": str(suscripcion_usuario.id),
+        "notification_url": f"{base_url}{reverse('webhook_mp')}",
+        "status": "pending"
     }
 
-    result = sdk.preapproval().create(preapproval_data)
+    result = sdk.preapproval().create(subscription_data)
     
-    print("Respuesta de Suscripción de Mercado Pago:", result)
-
     if result and result.get("status") == 201:
         mp_id_suscripcion = result["response"]["id"]
         
         suscripcion_usuario.mp_subscription_id = mp_id_suscripcion
-        suscripcion_usuario.is_active = False
         suscripcion_usuario.save()
         
         if settings.DEBUG:
@@ -194,9 +213,123 @@ def crear_suscripcion_mp(request, plan_slug):
             
         return redirect(init_point)
     else:
-        error_message = result.get("response", {}).get("message", "Intenta de nuevo.")
-        messages.error(request, f"Hubo un error al crear la suscripción: {error_message}")
+        error_message = result.get("response", {}).get("message", "Error desconocido")
+        messages.error(request, f"Error al crear la suscripción: {error_message}")
         return redirect('precios')
+    
+@login_required
+def cancelar_suscripcion(request):
+    try:
+        suscripcion = Suscripcion.objects.get(usuario=request.user, is_active=True)
+    except Suscripcion.DoesNotExist:
+        messages.error(request, "No tienes una suscripción activa.")
+        return redirect('dashboard_propietario')
+    
+    if request.method == 'POST':
+        sdk = mercadopago.SDK(settings.MERCADOPAGO_ACCESS_TOKEN)
+        
+        # Cancelar en Mercado Pago
+        if suscripcion.mp_subscription_id:
+            result = sdk.preapproval().update(
+                suscripcion.mp_subscription_id,
+                {"status": "cancelled"}
+            )
+            
+            if result.get("status") == 200:
+                # Actualizar en tu base de datos
+                suscripcion.is_active = False
+                suscripcion.fecha_cancelacion = timezone.now()
+                suscripcion.save()
+                
+                messages.success(request, "Tu suscripción ha sido cancelada exitosamente.")
+                
+                # Opcional: Enviar email de confirmación
+                try:
+                    send_mail(
+                        'Confirmación de cancelación de suscripción',
+                        f'Tu suscripción al plan {suscripcion.plan.nombre} ha sido cancelada.',
+                        settings.DEFAULT_FROM_EMAIL,
+                        [request.user.email],
+                        fail_silently=False,
+                    )
+                except Exception as e:
+                    print(f"Error enviando email: {e}")
+            else:
+                messages.error(request, "Error al cancelar la suscripción en Mercado Pago.")
+        else:
+            # Si no tiene ID de MP, solo cancelar localmente
+            suscripcion.is_active = False
+            suscripcion.fecha_cancelacion = timezone.now()
+            suscripcion.save()
+            messages.success(request, "Tu suscripción ha sido cancelada.")
+            
+        return redirect('dashboard_propietario')
+    
+    # Mostrar página de confirmación
+    context = {
+        'suscripcion': suscripcion,
+        'servicio_activo': request.user.servicios_propios.first(),
+    }
+    return render(request, 'cancelar_suscripcion.html', context)
+
+@csrf_exempt
+def webhook_mp(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            
+            # Log para debugging
+            print(f"Webhook recibido: Type={data.get('type')}, Action={data.get('action')}")
+            
+            sdk = mercadopago.SDK(settings.MERCADOPAGO_ACCESS_TOKEN)
+            
+            # Manejar diferentes tipos de notificaciones
+            if data.get("type") == "subscription_preapproval":
+                mp_subscription_id = data.get("data", {}).get("id")
+                
+                # Obtener detalles de la suscripción
+                subscription_info = sdk.preapproval().get(mp_subscription_id)
+                
+                if subscription_info.get("status") == 200:
+                    response_data = subscription_info.get("response", {})
+                    external_ref = response_data.get("external_reference")
+                    
+                    try:
+                        suscripcion = Suscripcion.objects.get(id=external_ref)
+                        
+                        # Actualizar estado según el estado en MP
+                        mp_status = response_data.get("status")
+                        
+                        if mp_status == "authorized":
+                            suscripcion.is_active = True
+                            suscripcion.mp_subscription_id = mp_subscription_id
+                            suscripcion.proxima_fecha_cobro = response_data.get("next_payment_date")
+                            
+                        elif mp_status in ["cancelled", "paused"]:
+                            suscripcion.is_active = False
+                            suscripcion.fecha_cancelacion = timezone.now()
+                            
+                        suscripcion.save()
+                        
+                    except Suscripcion.DoesNotExist:
+                        print(f"Suscripción no encontrada: {external_ref}")
+                        
+            elif data.get("type") == "payment":
+                # Manejar notificaciones de pagos individuales
+                payment_id = data.get("data", {}).get("id")
+                payment_info = sdk.payment().get(payment_id)
+                
+                if payment_info.get("status") == 200:
+                    payment_data = payment_info.get("response", {})
+                    
+                    # Registrar el pago si lo deseas
+                    # Puedes crear un modelo HistorialPagos para trackear esto
+                    
+        except Exception as e:
+            print(f"Error procesando webhook: {e}")
+            
+    return JsonResponse({"status": "received"})
+
 
 @login_required
 def pago_exitoso(request):
@@ -205,33 +338,6 @@ def pago_exitoso(request):
         return redirect('dashboard_propietario')
     else:
         return redirect('crear_servicio_paso2')
-
-@csrf_exempt
-def webhook_mp(request):
-    if request.method == 'POST':
-        data = json.loads(request.body)
-        if data.get("type") == "preapproval":
-            mp_subscription_id = data.get("data", {}).get("id")
-            try:
-                sdk = mercadopago.SDK(settings.MERCADOPAGO_ACCESS_TOKEN)
-                subscription_data = sdk.preapproval().get(mp_subscription_id)
-                if subscription_data and subscription_data.get("status") == 200:
-                    response_data = subscription_data.get("response", {})
-                    try:
-                        suscripcion = Suscripcion.objects.get(mp_subscription_id=response_data.get("id"))
-                        if response_data.get("status") == "authorized":
-                            if not suscripcion.is_active:
-                                if not suscripcion.ha_visto_animacion_premium:
-                                    suscripcion.ha_visto_animacion_premium = True
-                            suscripcion.is_active = True
-                        else:
-                            suscripcion.is_active = False
-                        suscripcion.save()
-                    except Suscripcion.DoesNotExist:
-                        pass
-            except Exception as e:
-                print(f"Error al procesar webhook de MP: {e}")
-    return JsonResponse({"status": "received"})
 
 @login_required
 def servicio_detail(request, servicio_slug):
@@ -558,18 +664,6 @@ def marcar_tour_visto(request):
             servicio.save()
             return JsonResponse({'status': 'ok'})
     return JsonResponse({'status': 'error'}, status=400)
-
-def get_servicio_activo(request):
-    servicios_propietario = request.user.servicios_propios.all()
-    if not servicios_propietario.exists():
-        return None
-    servicio_id_seleccionado = request.GET.get('servicio_id')
-    if servicio_id_seleccionado:
-        try:
-            return servicios_propietario.get(id=servicio_id_seleccionado)
-        except Servicio.DoesNotExist:
-            return servicios_propietario.first()
-    return servicios_propietario.first()
 
 @login_required
 def marcar_onboarding_completo(request):

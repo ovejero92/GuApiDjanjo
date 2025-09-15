@@ -1,0 +1,33 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Mi Suscripción{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1 class="mb-4">Gestión de Suscripción</h1>
+
+    {% if user.suscripcion.is_active %}
+        <div class="alert alert-success" role="alert">
+            Actualmente estás suscripto al plan <strong>{{ user.suscripcion.plan.get_nombre_display }}</strong>.
+            {% if user.suscripcion.fecha_fin %}
+                Tu suscripción finaliza el {{ user.suscripcion.fecha_fin|date:"d/m/Y" }}.
+            {% endif %}
+        </div>
+
+        <p>Aquí puedes gestionar los detalles de tu suscripción.</p>
+
+        <h2>Cancelar Suscripción</h2>
+        <p>Si deseas cancelar tu suscripción, haz clic en el siguiente botón:</p>
+        <form action="{% url 'cancelar_suscripcion' %}" method="post">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger">Cancelar Suscripción</button>
+        </form>
+
+    {% else %}
+        <div class="alert alert-warning" role="alert">
+            No tienes una suscripción activa. ¡Considera suscribirte para acceder a todas las funcionalidades!
+        </div>
+        <p>Puedes ir a la página de <a href="{% url 'precios' %}">precios</a> para elegir un plan.</p>
+    {% endif %}
+</div>
+{% endblock %}
