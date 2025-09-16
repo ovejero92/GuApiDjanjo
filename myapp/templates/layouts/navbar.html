@@ -9,12 +9,14 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
-    <link rel="icon" type="image/png" href="{% static 'favicon-96x96.png' %}" sizes="96x96" />
-    <link rel="icon" type="image/svg+xml" href="{% static 'favicon.svg' %}" />
-    <link rel="shortcut icon" href="{% static 'favicon.ico' %}" />
+    <link rel="icon" href="{% static 'favicon.ico' %}" sizes="any">
+    <link rel="icon" href="{% static 'favicon.svg' %}" type="image/svg+xml">
     <link rel="apple-touch-icon" sizes="180x180" href="{% static 'apple-touch-icon.png' %}" />
-    <meta name="apple-mobile-web-app-title" content="TurnosOk" />
     <link rel="manifest" href="{% static 'site.webmanifest' %}" />
+
+    <link rel="icon" type="image/png" href="{% static 'favicon-96x96.png' %}" sizes="96x96" />
+    <link rel="shortcut icon" href="{% static 'favicon.ico' %}" />
+    <meta name="apple-mobile-web-app-title" content="TurnosOk" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <meta name="description" content="{% block meta_description %}La plataforma ideal para que profesionales y pequeños negocios gestionen sus turnos y clientes de forma sencilla y eficiente.{% endblock %}">    

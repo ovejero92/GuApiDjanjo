@@ -8,6 +8,6 @@ def crear_suscripcion_gratuita(sender, instance, created, **kwargs):
     if created:
         try:
             plan_gratuito = Plan.objects.get(slug='free')
-            Suscripcion.objects.create(usuario=instance, plan=plan_gratuito, is_active=True)
+            Suscripcion.objects.get_or_create(usuario=instance, defaults={'plan': plan_gratuito, 'is_active': True})
         except Plan.DoesNotExist:
             pass
