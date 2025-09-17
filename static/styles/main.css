@@ -8,6 +8,7 @@ body {
     background: #404040;
     padding: 10px 20px;
 }
+
 .nav-content {
     display: flex;
     align-items: center;
@@ -280,15 +281,15 @@ body {font-family: 'Roboto', sans-serif;}
 .hero-content h1 { font-size: 3.2em; margin-bottom: 20px; color: aqua; /* Brighter color for heading */ line-height: 1.2; }
 .hero-content p { font-size: 1.3em; color: #ccc; margin-bottom: 30px; line-height: 1.5; }
 .hero-image { flex: 1 1 300px; text-align: center; }
-.hero-image img { max-width: 100%; height: auto; border-radius: 10px; object-fit: contain; }
+.hero-image img { max-width: 100%; height: auto; border-radius: 10px; object-fit: contain; transform: scale(1.7); }
 
 .benefits { display: flex; justify-content: center; gap: 40px; padding: 40px 20px; flex-wrap: wrap; }
-.benefit-card { background: white; border-radius: 20px; padding: 30px; text-align: center; width: 300px; box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08); transition: transform 0.3s ease, box-shadow 0.3s ease; }
+.benefit-card { background: linear-gradient(135deg, #333333, #1a1a1a); border-radius: 20px; padding: 30px; text-align: center; width: 300px; box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08); transition: transform 0.3s ease, box-shadow 0.3s ease; }
 .benefit-card:hover { transform: translateY(-5px); box-shadow: 0 12px 25px rgba(0, 0, 0, 0.12); }
-.benefit-card h2 { color: #2c3e50; margin-bottom: 15px; font-size: 1.5em; }
-.benefit-card p { color: #555; font-size: 1em; margin-bottom: 20px; }
+.benefit-card h2 { color: aqua; margin-bottom: 15px; font-size: 1.5em; }
+.benefit-card p { color: #ccc; font-size: 1em; margin-bottom: 20px; }
 
-.featured { background: #F9F8FF; padding: 60px 20px; text-align: center; }
+.featured { background: linear-gradient(135deg, #333333, #1a1a1a); padding: 40px 20px; text-align: center; }
 .services-grid { display: flex; justify-content: center; gap: 30px; flex-wrap: wrap; }
 .service-card { background: white; border-radius: 20px; padding: 30px; text-align: center; width: 300px; box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08); transition: transform 0.3s ease, box-shadow 0.3s ease; }
 .service-card:hover { transform: translateY(-5px); box-shadow: 0 12px 25px rgba(0, 0, 0, 0.12); }
@@ -1929,7 +1930,7 @@ color: var(--color-texto-servicio, #fff);  margin-bottom: 15px; border-bottom: 1
     width: 90%;
     border-radius: 8px;
     }
-    .hero { flex-direction: column; text-align: center; padding: 40px 20px; }
+    .hero { flex-direction: column; text-align: center; padding: 20px 10px; }
     .hero-content h1 { font-size: 2em; }
     .hero-content p { font-size: 1em; }
     .category-filters a.extra-filter { display: none; }
@@ -1939,10 +1940,10 @@ color: var(--color-texto-servicio, #fff);  margin-bottom: 15px; border-bottom: 1
     .info-icon { display: inline-block; margin: 0 15px ;}
     .hero-content{
         position: relative;
-        top: 400px;
+        top: 250px;
     }
-    .hero-image img { max-width: 100%; height: auto; border-radius: 10px; transform: scale(4);position: relative;
-        bottom: 300px; }
+    .hero-image img { max-width: 100%; height: auto; border-radius: 10px; transform: scale(4);position: absolute;
+        bottom: 80px; transform: scale(1.4); right: 10px;}
     
   .preview-section {
     display: none ;
@@ -2044,6 +2045,8 @@ color: var(--color-texto-servicio, #fff);  margin-bottom: 15px; border-bottom: 1
     right: -15px;
     transform: scale(0.8);
 }
+.hero-image img { max-width: 100%; height: auto; border-radius: 10px; transform: scale(4);position: absolute;
+    top: 180px ; transform: scale(1.4); right: 10px;}
 .dashboard-section{}
 .FC{ position: relative;top: 20px;}
 .PF{position: relative;right: 50px;top: 20px;}
@@ -2150,6 +2153,8 @@ button.disabled-slot {
         margin: 1px;
         padding: 1px;
     }
+    .hero-image img { max-width: 100%; height: auto; border-radius: 10px; transform: scale(4);position: absolute;
+        top: 200px ; transform: scale(1.4); right: 10px;}
     .premium-blocker-overlay {
         height: 180vh;
     }

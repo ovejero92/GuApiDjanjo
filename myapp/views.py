@@ -28,6 +28,9 @@ import mercadopago
 from django.views.decorators.csrf import csrf_exempt
 from django.template.loader import render_to_string
 
+def about(request):
+    return render(request, 'about.html')
+
 def index(request):
     categorias_con_servicios = Categoria.objects.annotate(
         num_servicios=Count('servicios')
@@ -57,9 +60,6 @@ def crear_servicio_paso1(request):
         return redirect('crear_servicio_paso2')
     else:
         return redirect(f"{reverse('account_signup')}?next={reverse('crear_servicio_paso2')}")
-
-def about(request):
-    return render(request, 'about.html')
 
 def terminos_y_condiciones(request):
     return render(request, 'terminos.html')
