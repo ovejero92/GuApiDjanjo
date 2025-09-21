@@ -119,6 +119,16 @@
     </style>
 </head>
 <body data-servicio-id="{{ servicio.id }}" data-servicio-slug="{{ servicio.slug }}" class="{% block body_class %}{% endblock %}">
+    <div id="loader-wrapper">
+        <div class="loader">
+            <svg viewBox="0 0 120 120" version="1.1" xmlns="http://www.w3.org/2000/svg">
+                <circle class="load one" cx="60" cy="30" r="20" />
+                <circle class="load two" cx="105" cy="60" r="20" />
+                <circle class="load three" cx="60" cy="105" r="20" />
+                <circle class="load four" cx="15" cy="60" r="20" />
+            </svg>
+        </div>
+    </div>
     <nav class="navbar">
         <div class="nav-content">
             <a href="{% url 'index' %}" class="logo-link">
@@ -306,6 +316,14 @@
     }
     </script>
 
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const loaderWrapper = document.getElementById('loader-wrapper');
+        if (loaderWrapper) {
+            loaderWrapper.classList.add('hidden');
+        }
+    });
+</script>
 
 {% block scripts_extra %}{% endblock %}
 </body>
