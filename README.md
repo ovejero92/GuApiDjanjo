@@ -9,7 +9,7 @@
 
 **TurnosOk** es una plataforma web integral diseñada para la gestión de turnos online. Es una solución versátil para negocios de servicios (peluquerías, centros de estética, consultas médicas, etc.) que permite automatizar el agendamiento tanto para el profesional como para el cliente final.
 
-🚀 **Ver en vivo:** [turonsok.com](https://turonsok.com/)
+🚀 **Ver en vivo:** [turonsok.com](https://turnosok.com/)
 
 ---
 
