@@ -16,6 +16,7 @@ IS_PRODUCTION = 'RENDER' in os.environ
 DEBUG = not IS_PRODUCTION if IS_PRODUCTION else env('DEBUG')
 
 ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'turnosok.com', 'www.turnosok.com']
+ALLOWED_HOSTS.append(".onrender.com")
 
 RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
 if RENDER_EXTERNAL_HOSTNAME:
@@ -71,7 +72,7 @@ WSGI_APPLICATION = 'mysite.wsgi.application'
 
 DATABASES = {
     'default': dj_database_url.config(
-        default=f'sqlite:///{os.path.join(BASE_DIR, "db.sqlite3")}',
+        default=os.getenv('DATABASE_URL'),
         conn_max_age=600
     )
 }
