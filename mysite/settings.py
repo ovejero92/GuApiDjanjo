@@ -106,8 +106,9 @@ else:
     EMAIL_HOST = env('EMAIL_HOST', default='smtp.gmail.com')
     EMAIL_HOST_USER = env('EMAIL_HOST_USER', default='')
     EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='')
-    EMAIL_PORT = env('EMAIL_PORT', default=587)
-    EMAIL_USE_TLS = env('EMAIL_USE_TLS', default=True)
+    EMAIL_PORT = env.int('EMAIL_PORT', default=587)
+    EMAIL_USE_TLS = env.bool('EMAIL_USE_TLS', default=True)
+    EMAIL_TIMEOUT = env.int('EMAIL_TIMEOUT', default=15)
     DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default=EMAIL_HOST_USER)
 
 GOOGLE_MAPS_API_KEY = env('GOOGLE_MAPS_API_KEY')

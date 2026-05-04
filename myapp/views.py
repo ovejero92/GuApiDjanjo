@@ -131,20 +131,26 @@ def crear_servicio_paso2(request):
             servicio = form.save(commit=False)
             servicio.propietario = request.user
             servicio.save()
-            profesional_propietario, created = Profesional.objects.get_or_create(
-                servicio=servicio,
-                nombre=request.user.first_name or request.user.username, # Usamos su nombre
-                email=request.user.email,
-                user_account=request.user
+            # user_account es OneToOne: un usuario solo puede tener un Profesional vinculado.
+            # update_or_create por usuario evita IntegrityError si quedaron datos incoherentes tras migrar DB.
+            profesional_propietario, _ = Profesional.objects.update_or_create(
+                user_account=request.user,
+                defaults={
+                    'servicio': servicio,
+                    'nombre': request.user.first_name or request.user.username,
+                    'email': request.user.email,
+                    'activo': True,
+                },
             )
-            HorarioLaboral.objects.create(
-                profesional=profesional_propietario,
-                activo=True,
-                lunes=True, martes=True, miercoles=True, jueves=True, viernes=True, # L-V por defecto
-                horario_apertura='09:00:00',
-                horario_cierre='18:00:00',
-                tiene_descanso=False
-            )
+            if not HorarioLaboral.objects.filter(profesional=profesional_propietario).exists():
+                HorarioLaboral.objects.create(
+                    profesional=profesional_propietario,
+                    activo=True,
+                    lunes=True, martes=True, miercoles=True, jueves=True, viernes=True,
+                    horario_apertura='09:00:00',
+                    horario_cierre='18:00:00',
+                    tiene_descanso=False,
+                )
             return redirect('dashboard_propietario')
     else:
         form = ServicioCreateForm()
