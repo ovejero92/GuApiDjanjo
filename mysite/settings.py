@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'myapp',
     'rest_framework',
     'django.contrib.sitemaps',
+    'anymail',
 ]
 
 MIDDLEWARE = [
@@ -98,7 +99,14 @@ if not DEBUG:
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-if DEBUG:
+# Correo: en Render «free» están bloqueados los puertos SMTP (25/465/587) — usar HTTPS vía SendGrid si hay SENDGRID_API_KEY.
+SENDGRID_API_KEY = env('SENDGRID_API_KEY', default='')
+
+if SENDGRID_API_KEY:
+    EMAIL_BACKEND = 'anymail.backends.sendgrid.EmailBackend'
+    ANYMAIL = {'SENDGRID_API_KEY': SENDGRID_API_KEY}
+    DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='noreply@turnosok.com')
+elif DEBUG:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
     DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='notificaciones@local.com')
 else:
@@ -128,7 +136,20 @@ ACCOUNT_AUTHENTICATION_METHOD = 'email'
 ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_USERNAME_REQUIRED = False
 ACCOUNT_SIGNUP_PASSWORD_ENTER_TWICE = True
-ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
+# Verificación por correo (allauth): 'none' | 'optional' | 'mandatory'
+# Por defecto 'none': el usuario queda activo y puede iniciar sesión sin enlace.
+# Para reactivar el flujo con correo: 'mandatory' + envío real (SMTP en host que lo
+# permita o SENDGRID_API_KEY; en Render free el SMTP saliente está bloqueado).
+_allowed_email_verification = frozenset({'none', 'optional', 'mandatory'})
+_raw_email_verification = env('ACCOUNT_EMAIL_VERIFICATION', default='none')
+ACCOUNT_EMAIL_VERIFICATION = (
+    _raw_email_verification
+    if _raw_email_verification in _allowed_email_verification
+    else 'none'
+)
+ACCOUNT_LOGIN_ON_SIGNUP = True
+# Rechaza dominios de correo temporal listados en myapp/signup_email_policy.py
+BLOCK_DISPOSABLE_SIGNUP_EMAILS = env.bool('BLOCK_DISPOSABLE_SIGNUP_EMAILS', default=True)
 ACCOUNT_SESSION_REMEMBER = True
 ACCOUNT_UNIQUE_EMAIL = True
 ACCOUNT_SIGNUP_FORM_CLASS = 'myapp.forms.CustomSignupForm'

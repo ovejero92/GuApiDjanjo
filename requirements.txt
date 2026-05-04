@@ -9,6 +9,7 @@ charset-normalizer
 cryptography
 dj-database-url
 Django
+django-anymail[sendgrid]
 django-allauth
 django-environ
 django-storages
