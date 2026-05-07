@@ -1,0 +1,15 @@
+{% extends 'layouts/navbar.html' %}
+{% block title %}Reenviar correo de verificación{% endblock %}
+{% block content %}
+<div class="form-container">
+  <h1>Reenviar verificación</h1>
+  <p>Ingresá el correo con el que te registraste. Te mandaremos de nuevo el enlace (si existe una cuenta pendiente de verificación).</p>
+  <form method="post" action="{% url 'resend_verification_email' %}">
+    {% csrf_token %}
+    <p><label for="email">Email</label><br>
+      <input type="email" name="email" id="email" required class="input" style="width:100%;max-width:400px;"></p>
+    <button type="submit" class="btn-submit">Enviar correo</button>
+  </form>
+  <p style="margin-top:1rem;"><a href="{% url 'account_login' %}">Volver al inicio de sesión</a></p>
+</div>
+{% endblock %}

@@ -11,6 +11,9 @@ router.register(r'turnos', TurnoViewSet, basename='turnos')
 
 urlpatterns = [
     path('', views.index, name='index'),
+    path('verify-email/<uuid:token>/', views.verify_email_view, name='verify_email'),
+    path('resend-verification-email/', views.resend_verification_email_view, name='resend_verification_email'),
+    path('internal/cron/send-reminders/', views.cron_send_reminders_http, name='cron_send_reminders'),
     path('about/', views.about, name='about'),
     path('s/<slug:servicio_slug>/', views.servicio_detail, name='servicio_detail'),
     path('api/reseñas/<slug:servicio_slug>/', views.api_get_reseñas, name='api_get_reseñas'),

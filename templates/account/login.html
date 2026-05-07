@@ -23,6 +23,9 @@
             <button class="btn-submit" type="submit">{% trans "Sign In" %}</button>
         </div>
     </form>
+    <p class="auth-switch" style="margin-top:16px;">
+      <a href="{% url 'resend_verification_email' %}">¿No recibiste el correo de verificación?</a>
+    </p>
       {% include "socialaccount/snippets/provider_list.html" with process="login" %}
 </div>
 <style>

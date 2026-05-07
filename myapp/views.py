@@ -2,11 +2,22 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth import login
 from django.contrib import messages
 from django.forms import inlineformset_factory, modelformset_factory
-from .models import PerfilUsuario, Servicio, Profesional , Turno, HorarioLaboral, SubServicio, Categoria, Plan, Suscripcion, DiaNoDisponible
+from .models import PerfilUsuario, Servicio, Profesional , Turno, HorarioLaboral, SubServicio, Categoria, Plan, Suscripcion, DiaNoDisponible, EmailVerificationToken
+from .email_service import (
+    send_email_with_fallback,
+    send_verification_email,
+    html_booking_confirmation_client,
+    html_booking_notification_pro,
+    html_booking_accepted_client,
+    html_booking_rejected_client,
+    owner_receives_freelancer_emails,
+    dashboard_turnos_link,
+    mis_turnos_link,
+)
 from .forms import BloqueoForm, ProfesionalForm, HorarioLaboralFormSet , HorarioLaboralForm, TurnoForm, UserUpdateForm, IngresoTurnoForm, ReseñaForm, ServicioPersonalizacionForm, ServicioUpdateForm, ServicioCreateForm
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.core.paginator import Paginator
 from datetime import datetime, timedelta
 import calendar
@@ -26,7 +37,6 @@ from django.urls import reverse_lazy, reverse
 from django.conf import settings
 import mercadopago
 from django.views.decorators.csrf import csrf_exempt
-from django.template.loader import render_to_string
 
 def about(request):
     return render(request, 'about.html')
@@ -384,23 +394,33 @@ def servicio_detail(request, servicio_slug):
             form.save_m2m()
             
             propietario = servicio.propietario
-            enviar_email = False
-            try:
-                suscripcion = getattr(propietario, 'suscripcion', None)
-                if suscripcion and suscripcion.is_active and suscripcion.plan.slug != 'free':
-                    enviar_email = True
-            except AttributeError:
-                pass
+            prof_nombre = profesional_asignado.nombre
+            cancel_url = mis_turnos_link(request)
+            send_email_with_fallback(
+                turno.cliente.email,
+                f'Turno confirmado con {prof_nombre}',
+                html_booking_confirmation_client(turno, prof_nombre, cancel_url),
+                'booking_confirmation',
+                idempotency_key=f'book-client-{turno.id}',
+            )
 
-            if enviar_email:
-                try:
-                    asunto = f"¡Nuevo Turno Reservado en {servicio.nombre}!"
-                    contexto_email = {'turno': turno, 'servicio': servicio, 'cliente': request.user, 'profesional_asignado': profesional_asignado, 'domain': request.get_host()}
-                    mensaje_texto = render_to_string('emails/nuevo_turno_propietario.txt', contexto_email)
-                    mensaje_html = render_to_string('emails/nuevo_turno_propietario.html', contexto_email)
-                    send_mail(asunto, mensaje_texto, settings.DEFAULT_FROM_EMAIL, [propietario.email], html_message=mensaje_html)
-                except Exception as e:
-                    print(f"Error al enviar email de nuevo turno: {e}")
+            if owner_receives_freelancer_emails(propietario):
+                cliente_display = (
+                    request.user.get_full_name()
+                    or (request.user.first_name or '').strip()
+                    or request.user.email
+                )
+                send_email_with_fallback(
+                    propietario.email,
+                    f'¡Nueva reserva! {cliente_display} solicitó un turno',
+                    html_booking_notification_pro(
+                        turno,
+                        cliente_display,
+                        dashboard_turnos_link(request),
+                    ),
+                    'booking_notification_pro',
+                    idempotency_key=f'book-pro-{turno.id}',
+                )
             
             messages.success(request, "¡Turno solicitado con éxito!")
             return redirect('mis_turnos')
@@ -1082,53 +1102,52 @@ def confirmar_turno(request, turno_id):
         turno.estado = 'confirmado'
         turno.visto_por_cliente = False
         turno.save()
-        try:
-            asunto = f"¡Tu turno en {turno.servicio.nombre} ha sido confirmado!"
-            mensaje = (
-                f"Hola {turno.cliente.first_name},\n\n"
-                f"Buenas noticias. Tu turno para el día {turno.fecha.strftime('%d/%m/%Y')} a las {turno.hora.strftime('%H:%M')} hs "
-                f"en '{turno.servicio.nombre}' ha sido confirmado por el propietario.\n\n"
-                f"Puedes ver todos tus turnos en tu perfil.\n\n"
-                f"¡Te esperamos!"
-            )
-            send_mail(
-                asunto,
-                mensaje,
-                None,
-                [turno.cliente.email],
-                fail_silently=False,
-            )
-            messages.success(request, f"Turno confirmado y notificación enviada a {turno.cliente.first_name}.")
-        except Exception as e:
-            messages.error(request, f"El turno fue confirmado, pero hubo un error al enviar el email de notificación: {e}")
+        negocio = turno.servicio.nombre
+        send_email_with_fallback(
+            turno.cliente.email,
+            f'Tu turno ha sido confirmado por {negocio}',
+            html_booking_accepted_client(turno, negocio, mis_turnos_link(request)),
+            'booking_accepted',
+            idempotency_key=f'accept-{turno.id}',
+        )
+        messages.success(request, f"Turno confirmado. Se notificó a {turno.cliente.first_name or 'el cliente'} por correo si el envío estuvo disponible.")
     return redirect('dashboard_propietario')
 
 @login_required
 def cancelar_turno(request, turno_id):
     turno = get_object_or_404(Turno, id=turno_id, servicio__propietario=request.user)
     if request.method == 'POST':
-        turno.estado = 'cancelado'
+        fue_pendiente = turno.estado == 'pendiente'
+        if fue_pendiente:
+            turno.estado = 'rechazado'
+        else:
+            turno.estado = 'cancelado'
         turno.visto_por_cliente = False
         turno.save()
-        try:
-            asunto = f"Información importante sobre tu turno en {turno.servicio.nombre}"
-            mensaje = (
-                f"Hola {turno.cliente.first_name},\n\n"
-                f"Te informamos que tu turno para el día {turno.fecha.strftime('%d/%m/%Y')} a las {turno.hora.strftime('%H:%M')} hs "
-                f"en '{turno.servicio.nombre}' ha sido cancelado por el propietario.\n\n"
-                f"Si crees que esto es un error o quieres reprogramar, por favor, ponte en contacto directamente con el negocio.\n\n"
-                f"Lamentamos las molestias."
+
+        servicio_abs = request.build_absolute_uri(reverse('servicio_detail', args=[turno.servicio.slug]))
+
+        if fue_pendiente:
+            send_email_with_fallback(
+                turno.cliente.email,
+                'Tu turno fue rechazado, puedes reagendar',
+                html_booking_rejected_client(turno, turno.servicio.nombre, servicio_abs),
+                'booking_rejected',
+                idempotency_key=f'reject-{turno.id}',
             )
-            send_mail(
-                asunto,
-                mensaje,
-                None,
-                [turno.cliente.email],
-                fail_silently=False,
+        else:
+            cancel_html = (
+                f'<p>Tu turno en <strong>{turno.servicio.nombre}</strong> fue <strong>cancelado</strong>.</p>'
+                f'<p><a href="{servicio_abs}">Podés elegir otro horario desde el perfil del servicio</a></p>'
             )
-            messages.info(request, f"Turno cancelado y notificación enviada a {turno.cliente.first_name}.")
-        except Exception as e:
-            messages.error(request, f"El turno fue cancelado, pero hubo un error al enviar el email de notificación: {e}")
+            send_email_with_fallback(
+                turno.cliente.email,
+                f'Información sobre tu turno en {turno.servicio.nombre}',
+                cancel_html,
+                'booking_cancelled_owner',
+                idempotency_key=f'cancel-owner-{turno.id}',
+            )
+        messages.info(request, "Actualizamos el turno y al cliente si el correo pudo enviarse.")
     return redirect('dashboard_propietario')
 
 @login_required
@@ -1136,8 +1155,8 @@ def finalizar_turno(request, turno_id):
     turno = get_object_or_404(Turno, id=turno_id, servicio__propietario=request.user)
     servicio_activo = turno.servicio
 
-    if turno.estado == 'cancelado':
-        messages.warning(request, "No se puede procesar un turno que ha sido cancelado.")
+    if turno.estado in ('cancelado', 'rechazado'):
+        messages.warning(request, "No se puede procesar un turno que ha sido cancelado o rechazado.")
         return redirect('dashboard_turnos')
 
     if request.method == 'POST':
@@ -1174,8 +1193,8 @@ def obtener_notificaciones(request):
     if not request.user.is_authenticated:
         return JsonResponse({'conteo': 0})
     conteo_notificaciones = Turno.objects.filter(
-        cliente=request.user, 
-        estado__in=['confirmado', 'cancelado'],
+        cliente=request.user,
+        estado__in=['confirmado', 'cancelado', 'rechazado'],
         visto_por_cliente=False
     ).count()
 
@@ -1529,3 +1548,70 @@ def get_horario_profesional_api(request, profesional_id):
 
     except Profesional.DoesNotExist:
         return JsonResponse({'error': 'Profesional no encontrado'}, status=404)
+
+
+def verify_email_view(request, token):
+    token_obj = EmailVerificationToken.objects.filter(token=token).select_related('user').first()
+    if not token_obj:
+        messages.error(request, 'El enlace de verificación no es válido.')
+        return redirect('account_login')
+    if token_obj.is_expired():
+        messages.error(request, 'El enlace caducó. Solicitá un correo nuevo.')
+        return redirect('resend_verification_email')
+    user = token_obj.user
+    perfil = getattr(user, 'perfil', None)
+    if perfil:
+        perfil.email_verified = True
+        perfil.save(update_fields=['email_verified'])
+    token_obj.delete()
+    messages.success(request, '¡Correo verificado! Ya podés iniciar sesión.')
+    return redirect('account_login')
+
+
+def resend_verification_email_view(request):
+    if request.method == 'POST':
+        email = (request.POST.get('email') or '').strip().lower()
+        ok_msg = (
+            'Si existe una cuenta con ese correo y aún debe verificarse, '
+            'te enviamos las instrucciones (revisá también spam).'
+        )
+        user = User.objects.filter(email__iexact=email).first() if email else None
+        if user and getattr(user, 'perfil', None) and user.perfil.email_verified:
+            messages.info(request, 'Esa cuenta ya está verificada. Podés iniciar sesión.')
+            return redirect('account_login')
+        if user:
+            send_verification_email(user, request)
+        messages.success(request, ok_msg)
+        return redirect('account_login')
+
+    return render(request, 'resend_verification.html')
+
+
+@csrf_exempt
+@require_POST
+def cron_send_reminders_http(request):
+    """
+    Dispara el mismo trabajo que ``manage.py send_reminders``.
+    Protección: cabecera ``X-Cron-Secret`` igual a ``REMINDER_CRON_SECRET`` en el entorno.
+    Alternativa gratuita al cron nativo de Render: https://cron-job.org u otro llamando a esta URL cada 5 minutos.
+    """
+    secret = (getattr(settings, 'REMINDER_CRON_SECRET', None) or '').strip()
+    if not secret:
+        return HttpResponse(
+            'REMINDER_CRON_SECRET no configurado; endpoint desactivado.',
+            status=503,
+            content_type='text/plain; charset=utf-8',
+        )
+    got = (request.headers.get('X-Cron-Secret') or request.POST.get('secret') or '').strip()
+    from django.utils.crypto import constant_time_compare
+
+    if len(got) != len(secret) or not constant_time_compare(got, secret):
+        return HttpResponse('Forbidden', status=403, content_type='text/plain; charset=utf-8')
+
+    from io import StringIO
+    from django.core.management import call_command
+
+    buf = StringIO()
+    call_command('send_reminders', stdout=buf)
+    body = buf.getvalue()
+    return HttpResponse(body, content_type='text/plain; charset=utf-8')

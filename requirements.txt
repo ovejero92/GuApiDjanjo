@@ -28,7 +28,6 @@ pyasn1
 pyasn1_modules
 pycparser
 PyJWT
-python-dateutil
 requests
 requests-oauthlib
 rsa

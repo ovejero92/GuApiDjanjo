@@ -1,7 +1,10 @@
+import uuid
 
 from django.utils.text import slugify
 from django.db import models
 from django.contrib.auth.models import User
+from django.conf import settings
+from django.utils import timezone
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.core.exceptions import ValidationError
 from django.db.models.signals import post_save, pre_save
@@ -291,10 +294,20 @@ class Turno(models.Model):
     )
     anotaciones = models.TextField(blank=True, null=True, verbose_name="Anotaciones Adicionales")
     duracion_total = models.PositiveIntegerField(default=30, help_text="Duración total calculada en minutos")
-    ESTADO_CHOICES = [('pendiente', 'Pendiente'), ('confirmado', 'Confirmado'), ('cancelado', 'Cancelado'), ('completado', 'Completado')]
+    ESTADO_CHOICES = [
+        ('pendiente', 'Pendiente'),
+        ('confirmado', 'Confirmado'),
+        ('rechazado', 'Rechazado'),
+        ('cancelado', 'Cancelado'),
+        ('completado', 'Completado'),
+    ]
     estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='pendiente')
     ingreso_real = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     visto_por_cliente = models.BooleanField(default=False)
+    recordatorio_enviado = models.BooleanField(
+        default=False,
+        help_text="True si ya se enviaron los recordatorios ~15 min antes del turno.",
+    )
     sub_servicios_solicitados = models.ManyToManyField(SubServicio, blank=True)
 
     class Meta:
@@ -302,6 +315,13 @@ class Turno(models.Model):
 
     def __str__(self):
         return f"Turno para {self.cliente.username} en {self.servicio.nombre} el {self.fecha} a las {self.hora}"
+
+    def inicio_en_timezone(self, tz=None):
+        """Combina fecha + hora en un datetime con zona (por defecto TIME_ZONE del proyecto)."""
+        from datetime import datetime as dt
+        tz = tz or timezone.get_current_timezone()
+        naive = dt.combine(self.fecha, self.hora)
+        return timezone.make_aware(naive, tz)
 
 class Reseña(models.Model):
     servicio = models.ForeignKey(Servicio, on_delete=models.CASCADE, related_name='reseñas')
@@ -349,9 +369,48 @@ class Suscripcion(models.Model):
 class PerfilUsuario(models.Model):
     usuario = models.OneToOneField(User, on_delete=models.CASCADE, related_name='perfil')
     telefono = models.CharField(max_length=25, blank=True, null=True, help_text="Número de teléfono de contacto")
+    # Verificación de email (registro con contraseña). OAuth puede marcar True al vincular cuenta.
+    email_verified = models.BooleanField(default=False)
 
     def __str__(self):
         return f'Perfil de {self.usuario.username}'
+
+
+class EmailVerificationToken(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='email_verification_tokens',
+    )
+    token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+
+    def is_expired(self):
+        return timezone.now() >= self.expires_at
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"EmailVerificationToken({self.user_id}, {self.token})"
+
+
+class EmailFailureLog(models.Model):
+    event_type = models.CharField(max_length=50)
+    recipient = models.EmailField()
+    subject = models.CharField(max_length=255)
+    html_content = models.TextField()
+    error_message = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    retry_count = models.IntegerField(default=0)
+    resolved = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.event_type} → {self.recipient} ({self.created_at:%Y-%m-%d})"
 
 @receiver(post_save, sender=User)
 def crear_o_actualizar_perfil_usuario(sender, instance, created, **kwargs):

@@ -1,5 +1,20 @@
 from django.contrib import admin
-from .models import Servicio, Profesional, SubServicio, Turno, HorarioLaboral, DiaNoDisponible, Reseña, Plan, Suscripcion, MedioDePago, Categoria, PerfilUsuario
+from .models import (
+    Servicio,
+    Profesional,
+    SubServicio,
+    Turno,
+    HorarioLaboral,
+    DiaNoDisponible,
+    Reseña,
+    Plan,
+    Suscripcion,
+    MedioDePago,
+    Categoria,
+    PerfilUsuario,
+    EmailVerificationToken,
+    EmailFailureLog,
+)
 
 admin.site.register(MedioDePago)
 admin.site.register(Categoria)
@@ -7,6 +22,16 @@ admin.site.register(PerfilUsuario)
 admin.site.register(HorarioLaboral)
 admin.site.register(DiaNoDisponible)
 admin.site.register(SubServicio)
+
+admin.site.register(EmailVerificationToken)
+
+
+@admin.register(EmailFailureLog)
+class EmailFailureLogAdmin(admin.ModelAdmin):
+    list_display = ('created_at', 'event_type', 'recipient', 'subject', 'resolved', 'retry_count')
+    list_filter = ('event_type', 'resolved', 'created_at')
+    search_fields = ('recipient', 'subject', 'error_message')
+    readonly_fields = ('created_at', 'event_type', 'recipient', 'subject', 'html_content', 'error_message', 'retry_count')
 
 
 @admin.action(description="Activar servicios seleccionados (pago recibido)")

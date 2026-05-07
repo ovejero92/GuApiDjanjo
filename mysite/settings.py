@@ -136,6 +136,11 @@ ACCOUNT_AUTHENTICATION_METHOD = 'email'
 ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_USERNAME_REQUIRED = False
 ACCOUNT_SIGNUP_PASSWORD_ENTER_TWICE = True
+# Sin login automático tras registro: el usuario entra recién tras verificar email (flujo Pidgeon).
+ACCOUNT_LOGIN_ON_SIGNUP = False
+ACCOUNT_FORMS = {
+    'login': 'myapp.forms.CustomLoginForm',
+}
 # Verificación por correo (allauth): 'none' | 'optional' | 'mandatory'
 # Por defecto 'none': el usuario queda activo y puede iniciar sesión sin enlace.
 # Para reactivar el flujo con correo: 'mandatory' + envío real (SMTP en host que lo
@@ -147,12 +152,12 @@ ACCOUNT_EMAIL_VERIFICATION = (
     if _raw_email_verification in _allowed_email_verification
     else 'none'
 )
-ACCOUNT_LOGIN_ON_SIGNUP = True
 # Rechaza dominios de correo temporal listados en myapp/signup_email_policy.py
 BLOCK_DISPOSABLE_SIGNUP_EMAILS = env.bool('BLOCK_DISPOSABLE_SIGNUP_EMAILS', default=True)
 ACCOUNT_SESSION_REMEMBER = True
 ACCOUNT_UNIQUE_EMAIL = True
 ACCOUNT_SIGNUP_FORM_CLASS = 'myapp.forms.CustomSignupForm'
+ACCOUNT_SIGNUP_REDIRECT_URL = '/accounts/login/'
 SOCIALACCOUNT_SIGNUP_FORM_CLASS = 'myapp.forms.CustomSocialSignupForm'
 SOCIALACCOUNT_AUTO_SIGNUP = True
 SOCIALACCOUNT_EMAIL_VERIFICATION = 'none'
@@ -163,6 +168,13 @@ SOCIALACCOUNT_PROVIDERS = {
         'AUTH_PARAMS': {'access_type': 'online'}
     }
 }
+
+# Pidgeon (API HTTPS) — envío con fallback en EmailFailureLog (ver myapp/email_service.py).
+PIDGEON_URL = env('PIDGEON_URL', default='https://pidgeon-1.onrender.com')
+PIDGEON_TIMEOUT = env.float('PIDGEON_TIMEOUT', default=25.0)
+SITE_BASE_URL = env('SITE_BASE_URL', default='https://turnosok.com')
+# Secreto para POST /internal/cron/send-reminders/ (cron gratuito p. ej. cron-job.org).
+REMINDER_CRON_SECRET = env('REMINDER_CRON_SECRET', default='')
 
 
 if IS_PRODUCTION:

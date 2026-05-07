@@ -1,5 +1,8 @@
 from django import forms
 from django.contrib.auth.models import User
+from django.urls import reverse
+from allauth.account.forms import LoginForm
+from allauth.socialaccount.models import SocialAccount
 from .models import Turno,Profesional , HorarioLaboral, DiaNoDisponible, Reseña, Servicio, SubServicio, MedioDePago
 from django.utils.text import slugify
 from PIL import Image
@@ -7,6 +10,43 @@ from django.shortcuts import  get_object_or_404
 from django.forms import inlineformset_factory
 from datetime import datetime
 from django.utils import timezone
+
+class CustomLoginForm(LoginForm):
+    """
+    Bloquea el login si el usuario se registró con email/contraseña y no verificó correo (perfil.email_verified).
+    Las cuentas vinculadas a proveedores OAuth se consideran ya verificadas.
+    """
+
+    def clean(self):
+        cleaned_data = super().clean()
+        if self._errors:
+            return cleaned_data
+        user = getattr(self, 'user', None)
+        if not user or getattr(user, 'is_superuser', False):
+            return cleaned_data
+        try:
+            if SocialAccount.objects.filter(user=user).exists():
+                return cleaned_data
+            perfil = getattr(user, 'perfil', None)
+            if perfil and not perfil.email_verified:
+                self.user = None
+                if hasattr(self, '_login'):
+                    delattr(self, '_login')
+                resend = reverse('resend_verification_email')
+                req = getattr(self, 'request', None)
+                base = ''
+                if req:
+                    base = req.build_absolute_uri('/').rstrip('/')
+                msg = (
+                    'Verifica tu email primero antes de iniciar sesión. ¿No recibiste el correo? '
+                    f'Pedí uno nuevo aquí: {base}{resend}'
+                )
+                raise forms.ValidationError(msg)
+        except forms.ValidationError:
+            raise
+        except Exception:
+            return cleaned_data
+        return cleaned_data
 
 class CustomImageWidget(forms.widgets.ClearableFileInput):
     template_name = 'widgets/mi_widget_de_imagen.html'
