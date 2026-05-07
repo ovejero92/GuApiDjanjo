@@ -17,7 +17,7 @@ from .models import EmailFailureLog
 logger = logging.getLogger(__name__)
 
 
-def send_email_via_pidgeon(to, subject, html, event_type, idempotency_key=None, max_retries=2):
+def send_email_via_pidgeon(to, subject, html, event_type, idempotency_key=None, max_retries=None):
     """
     Envía un email usando Pidgeon con reintentos exponenciales.
     Retorna (success: bool, message_id_or_error: str).
@@ -29,8 +29,11 @@ def send_email_via_pidgeon(to, subject, html, event_type, idempotency_key=None, 
         payload['idempotencyKey'] = idempotency_key
 
     error_msg = 'No se llegó a contactar el servicio.'
-    attempts = max_retries + 1
-    timeout = getattr(settings, 'PIDGEON_TIMEOUT', 25)
+    if max_retries is None:
+        attempts = max(1, int(getattr(settings, 'PIDGEON_SEND_ATTEMPTS', 4)))
+    else:
+        attempts = max_retries + 1
+    timeout = getattr(settings, 'PIDGEON_TIMEOUT', 45)
 
     for attempt in range(attempts):
         try:

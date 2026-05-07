@@ -1,17 +1,30 @@
+import logging
+from datetime import datetime
+
 from django import forms
 from django.contrib.auth.models import User
+from django.core.exceptions import ObjectDoesNotExist
+from django.forms import inlineformset_factory
+from django.shortcuts import get_object_or_404
 from django.urls import reverse
-from allauth.account.forms import LoginForm
-from allauth.socialaccount.models import SocialAccount
-from .models import Turno,Profesional , HorarioLaboral, DiaNoDisponible, Reseña, Servicio, SubServicio, MedioDePago
+from django.utils import timezone
 from django.utils.text import slugify
 from PIL import Image
-from django.shortcuts import  get_object_or_404
-from django.forms import inlineformset_factory
-from datetime import datetime
-from django.utils import timezone
+from allauth.account.forms import LoginForm
+from allauth.socialaccount.models import SocialAccount
 
-class CustomLoginForm(LoginForm):
+from .models import (
+    Turno,
+    Profesional,
+    HorarioLaboral,
+    DiaNoDisponible,
+    Reseña,
+    Servicio,
+    SubServicio,
+    MedioDePago,
+)
+
+logger = logging.getLogger(__name__)
     """
     Bloquea el login si el usuario se registró con email/contraseña y no verificó correo (perfil.email_verified).
     Las cuentas vinculadas a proveedores OAuth se consideran ya verificadas.
@@ -27,8 +40,14 @@ class CustomLoginForm(LoginForm):
         try:
             if SocialAccount.objects.filter(user=user).exists():
                 return cleaned_data
-            perfil = getattr(user, 'perfil', None)
-            if perfil and not perfil.email_verified:
+            # Reverse OneToOne: getattr(..., None) NO atrapa RelatedObjectDoesNotExist → antes el
+            # ``except Exception`` dejaba pasar el login; hay que usar try/except explícito.
+            try:
+                perfil = user.perfil
+            except ObjectDoesNotExist:
+                perfil = None
+
+            if perfil is None or not perfil.email_verified:
                 self.user = None
                 if hasattr(self, '_login'):
                     delattr(self, '_login')
@@ -45,7 +64,10 @@ class CustomLoginForm(LoginForm):
         except forms.ValidationError:
             raise
         except Exception:
-            return cleaned_data
+            logger.exception('Error validando email_verified en login (user=%s)', getattr(user, 'pk', None))
+            raise forms.ValidationError(
+                'No pudimos validar el estado de tu cuenta. Probá de nuevo en unos minutos.'
+            ) from None
         return cleaned_data
 
 class CustomImageWidget(forms.widgets.ClearableFileInput):

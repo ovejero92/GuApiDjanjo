@@ -171,7 +171,9 @@ SOCIALACCOUNT_PROVIDERS = {
 
 # Pidgeon (API HTTPS) — envío con fallback en EmailFailureLog (ver myapp/email_service.py).
 PIDGEON_URL = env('PIDGEON_URL', default='https://pidgeon-1.onrender.com')
-PIDGEON_TIMEOUT = env.float('PIDGEON_TIMEOUT', default=25.0)
+PIDGEON_TIMEOUT = env.float('PIDGEON_TIMEOUT', default=45.0)
+# Reintentos al enviar (útil cuando Pidgeon “duerme” en Render free): total de llamadas POST a /send
+PIDGEON_SEND_ATTEMPTS = env.int('PIDGEON_SEND_ATTEMPTS', default=5)
 SITE_BASE_URL = env('SITE_BASE_URL', default='https://turnosok.com')
 # Secreto para POST /internal/cron/send-reminders/ (cron gratuito p. ej. cron-job.org).
 REMINDER_CRON_SECRET = env('REMINDER_CRON_SECRET', default='')
