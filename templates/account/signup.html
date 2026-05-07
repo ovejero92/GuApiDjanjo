@@ -19,9 +19,18 @@
             <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}" />
         {% endif %}
         <div class="form-actions">
-            <button class="btn-submit signup-btn" type="submit">{% trans "Sign Up" %}</button>
+            <button class="btn-submit signup-btn" id="signup_submit_btn" type="submit">{% trans "Sign Up" %}</button>
         </div>
     </form>
+    <div id="signup-loading-overlay" class="signup-loading-overlay" aria-hidden="true" role="status" aria-live="polite">
+        <div class="signup-loading-card">
+            <span class="signup-loading-spinner" aria-hidden="true">
+                <i class="fas fa-calendar-check"></i>
+            </span>
+            <p class="signup-loading-title">Creando tu cuenta…</p>
+            <p class="signup-loading-hint">Guardando tus datos y preparando la verificación por correo.</p>
+        </div>
+    </div>
   {% include "socialaccount/snippets/provider_list.html" with process="signup" %}
 </div>
 <style>
@@ -87,6 +96,49 @@
     }
     .google-btn:hover { background-color: #f5f5f5; }
     .google-btn img { width: 20px; margin-right: 12px; }
+
+    /* Overlay al enviar el registro */
+    .signup-loading-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 10000;
+        background: rgba(0, 0, 0, 0.82);
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        padding: 1.5rem;
+    }
+    .signup-loading-overlay.is-visible {
+        display: flex;
+    }
+    .signup-loading-card {
+        text-align: center;
+        max-width: 320px;
+        color: #f0f0f0;
+    }
+    .signup-loading-spinner {
+        display: inline-flex;
+        font-size: 3rem;
+        color: #28a745;
+        margin-bottom: 1rem;
+        animation: signup-cal-pulse 1.1s ease-in-out infinite;
+    }
+    @keyframes signup-cal-pulse {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.65; transform: scale(1.08); }
+    }
+    .signup-loading-title {
+        font-weight: bold;
+        font-size: 1.15rem;
+        margin: 0 0 0.5rem 0;
+    }
+    .signup-loading-hint {
+        margin: 0;
+        color: #ccc;
+        font-size: 0.95rem;
+        line-height: 1.4;
+    }
     /* ========== FIN DE LA MODIFICACIÓN ========== */
 </style>
 {% endblock %}
@@ -94,6 +146,21 @@
 {% block scripts_extra %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    var signupForm = document.getElementById('signup_form');
+    var overlay = document.getElementById('signup-loading-overlay');
+    var submitBtn = document.getElementById('signup_submit_btn');
+    if (signupForm && overlay) {
+        signupForm.addEventListener('submit', function () {
+            overlay.classList.add('is-visible');
+            overlay.setAttribute('aria-hidden', 'false');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.style.opacity = '0.85';
+                submitBtn.textContent = 'Enviando…';
+            }
+        });
+    }
+
     const errorList = document.querySelector('.errorlist, .non-field-errors');
     if (errorList && errorList.innerText.trim() !== '') {
         Swal.fire({
