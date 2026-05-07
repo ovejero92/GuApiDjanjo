@@ -48,6 +48,7 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    'myapp.middleware.RequireVerifiedEmailMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     "allauth.account.middleware.AccountMiddleware",
 ]
@@ -175,8 +176,8 @@ PIDGEON_TIMEOUT = env.float('PIDGEON_TIMEOUT', default=45.0)
 # Reintentos al enviar (útil cuando Pidgeon “duerme” en Render free): total de llamadas POST a /send
 PIDGEON_SEND_ATTEMPTS = env.int('PIDGEON_SEND_ATTEMPTS', default=5)
 SITE_BASE_URL = env('SITE_BASE_URL', default='https://turnosok.com')
-# Secreto para POST /internal/cron/send-reminders/ (cron gratuito p. ej. cron-job.org).
-REMINDER_CRON_SECRET = env('REMINDER_CRON_SECRET', default='')
+# Despertar Pidgeon (GET /health) antes del primer POST /send por intento reduce cold-starts en Render free.
+PIDGEON_WAKE_BEFORE_SEND = env.bool('PIDGEON_WAKE_BEFORE_SEND', default=True)
 
 
 if IS_PRODUCTION:

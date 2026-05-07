@@ -1,22 +1,52 @@
 # myapp/middleware.py
+from django.contrib import messages
+from django.contrib.auth import logout as auth_logout
+from django.core.exceptions import ObjectDoesNotExist
 from django.shortcuts import redirect
 from django.urls import reverse
+from allauth.socialaccount.models import SocialAccount
 
-# class OnboardingMiddleware:
-#     def __init__(self, get_response):
-#         self.get_response = get_response
 
-#     def __call__(self, request):
-#         # Solo aplicamos la lógica si el usuario está logueado y no es superusuario
-#         if request.user.is_authenticated and not request.user.is_superuser:
-#             # Si el usuario es un propietario (tiene servicios asignados)
-#             if hasattr(request.user, 'servicios_propios') and request.user.servicios_propios.exists():
-#                 servicio = request.user.servicios_propios.first()
-#                 # Si no ha completado el onboarding y no está ya en la página de onboarding...
-#                 if not servicio.configuracion_inicial_completa and request.path != reverse('onboarding'):
-#                     # ...y si la URL a la que intenta acceder está dentro del dashboard...
-#                     if request.path.startswith('/dashboard/'):
-#                         return redirect('onboarding')
+class RequireVerifiedEmailMiddleware:
+    """
+    Refuerzo frente al login con email/contraseña si allauth omitiera CustomLoginForm
+    en algún flujo: sesión válida pero perfil.email_verificado=False → logout.
+    Rutas públicas como /accounts/*, verificación y admin quedan exentas.
+    """
 
-#         response = self.get_response(request)
-#         return response
+    EXEMPT_PREFIXES = (
+        '/admin/',
+        '/accounts/',
+        '/static/',
+        '/media/',
+        '/verify-email/',
+        '/resend-verification-email/',
+        '/internal/cron/',
+        '/sitemap.xml',
+    )
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        if request.user.is_authenticated:
+            path = request.path
+            if path.startswith(self.EXEMPT_PREFIXES):
+                return self.get_response(request)
+            if request.user.is_superuser:
+                return self.get_response(request)
+            if SocialAccount.objects.filter(user=request.user).exists():
+                return self.get_response(request)
+            try:
+                verified = request.user.perfil.email_verified
+            except ObjectDoesNotExist:
+                verified = False
+            if not verified:
+                auth_logout(request)
+                messages.info(
+                    request,
+                    'Debés verificar tu correo antes de usar la cuenta. '
+                    'Podés solicitar otro correo desde el enlace «¿No recibiste el correo de verificación?» en iniciar sesión.',
+                )
+                return redirect(reverse('account_login'))
+        return self.get_response(request)

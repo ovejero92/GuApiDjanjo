@@ -35,20 +35,53 @@ def send_email_via_pidgeon(to, subject, html, event_type, idempotency_key=None, 
         attempts = max_retries + 1
     timeout = getattr(settings, 'PIDGEON_TIMEOUT', 45)
 
+    def _wake_worker():
+        if not getattr(settings, 'PIDGEON_WAKE_BEFORE_SEND', True):
+            return
+        health_url = f'{base}/health'
+        try:
+            requests.get(
+                health_url,
+                timeout=min(20.0, float(timeout)),
+            )
+            logger.debug('Pidgeon wake GET %s completado.', health_url)
+        except requests.exceptions.RequestException as exc:
+            logger.debug('Pidgeon wake omitido/falló (%s)', exc)
+
+    _wake_worker()
+
     for attempt in range(attempts):
         try:
+            logger.info(
+                'Pidgeon POST /send intento=%s/%s destino=%s… evento=%s',
+                attempt + 1,
+                attempts,
+                to,
+                event_type,
+            )
             response = requests.post(url, json=payload, timeout=timeout)
             if response.status_code == 200:
-                body = ''
-                mid = 'ok'
                 try:
                     data = response.json()
-                    mid = data.get('messageId') or data.get('message_id') or 'ok'
                 except ValueError:
-                    body = response.text[:500]
-                    mid = body or 'ok'
-                logger.info('Email enviado a %s | evento=%s | id=%s', to, event_type, mid)
-                return True, str(mid)
+                    data = None
+
+                if isinstance(data, dict) and data.get('success') is False:
+                    error_msg = str(data.get('error') or 'success=false en respuesta JSON')
+                    logger.warning(
+                        'Pidgeon HTTP 200 pero success=false (%s): %s', event_type, error_msg
+                    )
+                else:
+                    mid = 'ok'
+                    if isinstance(data, dict):
+                        mid = (
+                            data.get('messageId')
+                            or data.get('message_id')
+                            or data.get('id')
+                            or 'ok'
+                        )
+                    logger.info('Email enviado a %s | evento=%s | id=%s', to, event_type, mid)
+                    return True, str(mid)
 
             error_msg = f'HTTP {response.status_code}: {response.text[:2000]}'
             logger.warning('Intento %s/%s falló (%s): %s', attempt + 1, attempts, event_type, error_msg)
