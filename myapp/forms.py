@@ -25,6 +25,9 @@ from .models import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+class CustomLoginForm(LoginForm):
     """
     Bloquea el login si el usuario se registró con email/contraseña y no verificó correo (perfil.email_verified).
     Las cuentas vinculadas a proveedores OAuth se consideran ya verificadas.
