@@ -35,8 +35,13 @@ from django.core.mail import send_mail
 from django.contrib.auth.views import LoginView
 from django.urls import reverse_lazy, reverse
 from django.conf import settings
+import logging
 import mercadopago
 from django.views.decorators.csrf import csrf_exempt
+
+from .subscription_utils import url_checkout_desde_respuesta_preapproval
+
+logger = logging.getLogger(__name__)
 
 def about(request):
     return render(request, 'about.html')
@@ -201,11 +206,23 @@ def crear_suscripcion_mp(request, plan_slug):
         usuario=request.user,
         defaults={'plan': plan, 'is_active': False}
     )
-    
+
     if not created:
         suscripcion_usuario.plan = plan
-        suscripcion_usuario.save()
-    
+
+    plan_gratuito = Plan.objects.filter(slug='free').first()
+
+    # Hasta autorización en MP las funciones de pago quedan bloqueadas (webhook marca is_active).
+    suscripcion_usuario.is_active = False
+    suscripcion_usuario.save()
+
+    def _rollback_a_gratis(subs):
+        if not plan_gratuito:
+            return
+        subs.plan = plan_gratuito
+        subs.mp_subscription_id = None
+        subs.save()
+
     sdk = mercadopago.SDK(settings.MERCADOPAGO_ACCESS_TOKEN)
     base_url = "https://turnosok.com"
     if settings.DEBUG:
@@ -230,15 +247,32 @@ def crear_suscripcion_mp(request, plan_slug):
     result = sdk.preapproval().create(preapproval_data)
 
     if result and result.get("status") == 201:
-        init_point = result["response"]["init_point"]
-        # Guardamos el ID de la preaprobación (no es el de la suscripción aún)
-        suscripcion_usuario.mp_subscription_id = result["response"]["id"]
-        suscripcion_usuario.save()
+        resp_raw = result.get("response") or {}
+        init_point = url_checkout_desde_respuesta_preapproval(resp_raw)
+        mp_id = resp_raw.get('id')
+        if not init_point:
+            logger.error(
+                'Mercado Pago: preapproval 201 pero sin init_point/sandbox_init_point keys=%s',
+                list(resp_raw.keys()),
+            )
+            _rollback_a_gratis(suscripcion_usuario)
+            messages.error(
+                request,
+                'Mercado Pago no devolvió el enlace de cobro correcto '
+                '(revisá si usás token de PRUEBA y la URL debe ser sandbox_init_point). '
+                'Restauramos el plan gratuito.',
+            )
+            return redirect('precios')
+        suscripcion_usuario.mp_subscription_id = mp_id
+        suscripcion_usuario.save(update_fields=['mp_subscription_id'])
         return redirect(init_point)
-    else:
-        error_message = result.get("response", {}).get("message", "Error desconocido")
-        messages.error(request, f"Error al crear la suscripción: {error_message}")
-        return redirect('precios')
+
+    resp_err = result.get("response") if isinstance(result, dict) else {}
+    logger.error('Mercado Pago preapproval falló status=%s body=%s', result.get('status'), resp_err)
+    error_message = (resp_err or {}).get('message', 'Error desconocido')
+    _rollback_a_gratis(suscripcion_usuario)
+    messages.error(request, f'Error al crear la suscripción en Mercado Pago: {error_message}')
+    return redirect('precios')
     
 @login_required
 def cancelar_suscripcion(request):
@@ -493,10 +527,15 @@ def dashboard_turnos(request):
     mostrar_animacion = False
     try:
         suscripcion = request.user.suscripcion
-        if suscripcion.is_active and not suscripcion.ha_visto_animacion_premium:
+        if (
+            suscripcion.is_active
+            and suscripcion.plan_id
+            and suscripcion.plan.slug != 'free'
+            and not suscripcion.ha_visto_animacion_premium
+        ):
             mostrar_animacion = True
             suscripcion.ha_visto_animacion_premium = True
-            suscripcion.save()
+            suscripcion.save(update_fields=['ha_visto_animacion_premium'])
     except (Suscripcion.DoesNotExist, AttributeError):
         pass
     servicio_activo = get_servicio_activo(request)

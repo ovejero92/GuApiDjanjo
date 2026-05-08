@@ -176,6 +176,17 @@ class SuscripcionAdmin(admin.ModelAdmin):
     list_select_related = ('usuario', 'plan')
     actions = [qa_forzar_plan_pro_activo]
 
+    def get_form(self, request, obj=None, **kwargs):
+        form = super().get_form(request, obj, **kwargs)
+        fld = form.base_fields.get('is_active')
+        if fld is not None:
+            fld.help_text = (
+                'Plan Gratis se guarda como activo automáticamente. '
+                'Para Profesional/Prime, marcá sí para dar acceso desde el panel (pruebas) '
+                'o dejalo en no hasta que Mercado Pago confirme el cobro.'
+            )
+        return form
+
     @admin.display(description='Servicios del usuario')
     def servicios_propios_usuario(self, obj):
         return obj.usuario.servicios_propios.count()

@@ -41,19 +41,19 @@
                         </a>
                     </li>
                     <li class="{% if request.resolver_match.url_name == 'dashboard_metricas' %}active{% endif %}">
-                        <a href="{% url 'dashboard_metricas' %}" class="sidebar-link {% if request.resolver_match.url_name == 'dashboard_metricas' %}active{% endif %}" title="{% if not user.suscripcion.plan.allow_metrics %}Función Premium{% endif %}">
+                        <a href="{% url 'dashboard_metricas' %}" class="sidebar-link {% if request.resolver_match.url_name == 'dashboard_metricas' %}active{% endif %}" title="{% if plan_sidebar_metrics_locked %}Función Premium{% endif %}">
                             <i class="fas fa-chart-line"></i>
                             <span>Métricas y Reportes</span>
-                            {% if not user.suscripcion.plan.allow_metrics %}
+                            {% if plan_sidebar_metrics_locked %}
                                 <span class="premium-badge">👑</span>
                             {% endif %}
                         </a>
                     </li>
                     <li class="{% if request.resolver_match.url_name == 'dashboard_servicios' %}active{% endif %}">
-                        <a href="{% url 'dashboard_servicios' %}" class="sidebar-link {% if request.resolver_match.url_name == 'dashboard_servicios' %}active{% endif %}" title="{% if not user.suscripcion.plan.allow_customization %}Función Premium{% endif %}">
+                        <a href="{% url 'dashboard_servicios' %}" class="sidebar-link {% if request.resolver_match.url_name == 'dashboard_servicios' %}active{% endif %}" title="{% if plan_sidebar_apariencia_locked %}Función Premium{% endif %}">
                             <i class="fas fa-paint-brush"></i>
                             <span>Apariencia</span>
-                            {% if not user.suscripcion.plan.allow_customization %}
+                            {% if plan_sidebar_apariencia_locked %}
                                 <span class="premium-badge">👑</span>
                             {% endif %}
                         </a>

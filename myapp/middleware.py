@@ -6,6 +6,33 @@ from django.shortcuts import redirect
 from django.urls import reverse
 from allauth.socialaccount.models import SocialAccount
 
+from .subscription_utils import ensure_suscripcion_gratuita
+
+
+class EnsureSuscripcionGratuitaMiddleware:
+    """
+    Completa Suscripción gratuita ausente en cualquier página de la sesión iniciada,
+    menos admin y ficheros estáticos.
+    Debe ejecutarse después de AuthenticationMiddleware.
+    """
+
+    SKIP_PREFIXES = (
+        '/admin/',
+        '/static/',
+        '/media/',
+    )
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        if (
+            getattr(request, 'user', None).is_authenticated
+            and all(not request.path.startswith(p) for p in self.SKIP_PREFIXES)
+        ):
+            ensure_suscripcion_gratuita(request.user)
+        return self.get_response(request)
+
 
 class RequireVerifiedEmailMiddleware:
     """

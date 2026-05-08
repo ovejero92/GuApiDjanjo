@@ -363,6 +363,13 @@ class Suscripcion(models.Model):
     
     ha_visto_animacion_premium = models.BooleanField(default=False)
 
+    def save(self, *args, **kwargs):
+        # El plan gratis es la “suscripción base” de la cuenta: debe quedar activa para no
+        # bloquear el panel (is_active en MP significa “cobro autorizado” solo en planes de pago).
+        if self.plan_id and self.plan.slug == 'free':
+            self.is_active = True
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return f"{self.usuario.username} - {self.plan.nombre if self.plan else 'Sin Plan'}"
 
@@ -415,13 +422,3 @@ class EmailFailureLog(models.Model):
 @receiver(post_save, sender=User)
 def crear_o_actualizar_perfil_usuario(sender, instance, created, **kwargs):
     PerfilUsuario.objects.get_or_create(usuario=instance)
-    
-@receiver(post_save, sender=User)
-def crear_suscripcion_por_defecto(sender, instance, created, **kwargs):
-    if created:
-        if not Suscripcion.objects.filter(usuario=instance).exists():
-            try:
-                plan_gratuito = Plan.objects.get(slug='free')
-                Suscripcion.objects.create(usuario=instance, plan=plan_gratuito, is_active=True)
-            except Plan.DoesNotExist:
-                print(f"ADVERTENCIA: El Plan 'free' no existe. No se pudo asignar suscripción por defecto al usuario {instance.username}.")
