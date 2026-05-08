@@ -67,6 +67,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'myapp.context_processors.plan_sidebar_flags',
+                'myapp.context_processors.dashboard_premium_celebration_flag',
             ],
         },
     },

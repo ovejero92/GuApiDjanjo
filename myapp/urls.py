@@ -38,6 +38,7 @@ urlpatterns = [
     path('crear-servicio/', views.crear_servicio_paso2, name='crear_servicio_paso2'),
     path('politica-de-privacidad/', views.politica_de_privacidad, name='privacidad'),
     path('onboarding/marcar-completo/', views.marcar_onboarding_completo, name='marcar_onboarding_completo'),
+    path('dashboard/marcar-anim-premium/', views.marcar_animacion_premium_vista, name='marcar_animacion_premium_vista'),
     path('dashboard/detalles/', views.dashboard_detalles_negocio, name='dashboard_detalles_negocio'),
     path('dashboard/calendario/', views.dashboard_calendario, name='dashboard_calendario'),
     path('dashboard/servicio/<int:servicio_id>/equipo/', views.gestionar_equipo, name='gestionar_equipo'),

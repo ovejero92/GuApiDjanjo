@@ -24,14 +24,35 @@
 {% endblock %}
 
 {% if servicio.imagen_banner and servicio.tiene_apariencia_premium_activa %}
+<section class="servicio-banner-hero" aria-label="Cabecera del negocio">
     <div class="banner-servicio" style="background-image: url('{{ servicio.imagen_banner.url }}');"></div>
+</section>
+{% else %}
+<section class="servicio-banner-fallback {% if servicio.tiene_apariencia_premium_activa %}servicio-banner-fallback--premium{% endif %}">
+    {% if servicio.logo and servicio.tiene_apariencia_premium_activa %}
+    <div class="servicio-banner-fallback-logo-wrap">
+        <img src="{{ servicio.logo.url }}" alt="" class="servicio-banner-fallback-logo" width="88" height="88" loading="lazy">
+    </div>
+    {% endif %}
+    <div class="servicio-banner-fallback-inner">
+        <h1 class="servicio-banner-fallback-titulo">{{ servicio.nombre }}</h1>
+        {% if servicio.descripcion %}<p class="servicio-banner-fallback-desc">{{ servicio.descripcion|truncatewords:48 }}</p>{% endif %}
+    </div>
+</section>
 {% endif %}
 
+<div class="servicio-publico-main">
+<div class="servicio-publico-inner">
 
-<div class="container">
-    <div class="turno-form-container" {% if servicio.imagen_banner %}style="margin-top: 20px;"{% endif %}>
-        <h1>Solicitar turno para: {{ servicio.nombre }}</h1>
-        <p>{{ servicio.descripcion }}</p>
+    <article class="turno-form-container servicio-booking-card {% if servicio.tiene_apariencia_premium_activa %}pagina-premium-shop{% endif %}" {% if servicio.imagen_banner and servicio.tiene_apariencia_premium_activa %}data-with-banner="1"{% endif %}>
+
+        <header class="servicio-booking-header">
+            <h1 class="servicio-booking-title">Reservar turno</h1>
+            <p class="servicio-booking-sub">{{ servicio.nombre }}</p>
+            {% if servicio.descripcion %}
+            <p class="servicio-booking-desc">{{ servicio.descripcion }}</p>
+            {% endif %}
+        </header>
         
         <form method="post" id="turnoForm">
             {% csrf_token %}
@@ -92,9 +113,9 @@
             {{ form.hora.as_hidden }}
             <button type="submit" class="btn-submit is-disabled" id="boton-premiun">Solicitar Turno</button>
         </form>
-    </div>
+    </article>
 
-    <div class="reseñas-container" id="seccion-reseñas">
+    <div class="reseñas-container servicio-resenas-card" id="seccion-reseñas">
     <h2>Opiniones de Nuestros Clientes</h2>
     
     {% if calificacion_promedio %}
@@ -143,9 +164,11 @@
         <p>Este servicio aún no tiene reseñas. ¡Sé el primero en dejar una!</p>
     {% endif %}
 </div>
+</div>
+</div>
 
 <footer class="footer-estructurado">
-    <div class="container footer-grid">
+    <div class="servicio-publico-inner footer-grid">
         
         <div class="footer-columna footer-mapa">
             <h4>Ubicación</h4>

@@ -511,23 +511,9 @@ def servicio_detail(request, servicio_slug):
 
 @login_required
 def dashboard_turnos(request):
-    mostrar_animacion = False
-    try:
-        suscripcion = request.user.suscripcion
-        if (
-            suscripcion.is_active
-            and suscripcion.plan_id
-            and suscripcion.plan.slug != 'free'
-            and not suscripcion.ha_visto_animacion_premium
-        ):
-            mostrar_animacion = True
-            suscripcion.ha_visto_animacion_premium = True
-            suscripcion.save(update_fields=['ha_visto_animacion_premium'])
-    except (Suscripcion.DoesNotExist, AttributeError):
-        pass
     servicio_activo = get_servicio_activo(request)
     if not servicio_activo:
-        return render(request, 'dashboard_turnos.html', {'no_hay_servicio': True, 'mostrar_animacion': mostrar_animacion})
+        return render(request, 'dashboard_turnos.html', {'no_hay_servicio': True})
     if not servicio_activo.esta_activo:
         context = {
             'servicio': servicio_activo,
@@ -590,7 +576,6 @@ def dashboard_turnos(request):
         'historial_page_obj': page_obj,
         'onboarding_completo': servicio_activo.configuracion_inicial_completa,
         'filtro_historial_activo': filtro_historial_activo,
-        'mostrar_animacion': mostrar_animacion,
         'es_propietario_prime': es_propietario_prime,
         'clientes_para_filtrar': clientes_para_filtrar,
         'cliente_seleccionado_id': cliente_id_seleccionado,
@@ -751,6 +736,19 @@ def marcar_onboarding_completo(request):
             servicio.save()
             return JsonResponse({'status': 'ok'})
     return JsonResponse({'status': 'error'}, status=400)
+
+
+@login_required
+@require_POST
+def marcar_animacion_premium_vista(request):
+    """Tras ver la celebración única post-pago."""
+    try:
+        suscripcion = Suscripcion.objects.get(usuario=request.user)
+    except Suscripcion.DoesNotExist:
+        return JsonResponse({'ok': False}, status=400)
+    suscripcion.ha_visto_animacion_premium = True
+    suscripcion.save(update_fields=['ha_visto_animacion_premium'])
+    return JsonResponse({'ok': True})
 
 @login_required
 def onboarding_propietario(request):

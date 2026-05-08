@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token }}">
     <title>{% block title %}Turnos Online - Gestiona tu Negocio Fácilmente{% endblock %}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
@@ -169,8 +170,8 @@
             </div>
         </div>
     </nav>
-     <button id="installAppButton" class="btn-instalar" style="display: none;">
-        <i class="fas fa-download"></i>
+     <button type="button" id="installAppButton" class="btn-instalar" style="display: none;" aria-label="Instalar aplicación en tu dispositivo">
+        <i class="fas fa-download" aria-hidden="true"></i>
         <span>Instalar App</span>
     </button>
     <main class="container">
@@ -279,6 +280,8 @@
         window.pwaListenersAdded = true;
         let deferredPrompt;
 
+        // Evitamos el mini-banner automático del navegador para usar este botón.
+        // El aviso "Banner not shown…" en la consola es normal en ese flujo; no es un error del sitio.
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
@@ -287,14 +290,14 @@
         });
 
         document.body.addEventListener('click', async (e) => {
-            if (e.target && e.target.id === 'installAppButton') {
-                if (deferredPrompt) {
-                    e.target.style.display = 'none';
-                    deferredPrompt.prompt();
-                    await deferredPrompt.userChoice;
-                    deferredPrompt = null;
-                }
-            }
+            const btn = e.target.closest('#installAppButton');
+            if (!btn || !deferredPrompt) return;
+            btn.style.display = 'none';
+            try {
+                deferredPrompt.prompt();
+                await deferredPrompt.userChoice;
+            } catch (_) { /* usuario canceló o navegador bloqueó */ }
+            deferredPrompt = null;
         });
 
         window.addEventListener('appinstalled', () => {
@@ -306,8 +309,8 @@
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register("{% static 'serviceworker.js' %}")
-                    .then(reg => console.log('Service worker registered.', reg))
-                    .catch(err => console.log('Service worker registration failed:', err));
+                    .then(() => { /* registrado OK */ })
+                    .catch(() => { /* modo incógnito o sin soporte */ });
             });
         }
     }

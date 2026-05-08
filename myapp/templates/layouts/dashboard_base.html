@@ -3,7 +3,28 @@
 {% block title %}{% block dashboard_title %}Dashboard{% endblock %} - Turnos Online{% endblock %}
 
 {% block content %}
-<div class="dashboard-wrapper dashboard-container {% if user.suscripcion.is_active %}is-premium{% endif %} {% if mostrar_animacion %}premium-unlock-animation{% endif %}" data-onboarding-completo="{{ onboarding_completo|yesno:'True,False' }}">
+<div class="dashboard-wrapper dashboard-container {% if user.suscripcion.is_active %}is-premium{% endif %}"
+     data-onboarding-completo="{{ onboarding_completo|yesno:'True,False' }}"
+     data-mostrar-anim-premium="{{ mostrar_animacion|yesno:'true,false' }}"
+     data-marcar-premium-url="{% url 'marcar_animacion_premium_vista' %}">
+
+    <div id="premium-celebration-overlay" class="premium-celebration-overlay" aria-hidden="true" hidden>
+        <div class="premium-celebration-bg"></div>
+        <div class="premium-celebration-particles" aria-hidden="true"></div>
+        <div class="premium-celebration-content">
+            <div class="premium-celebration-crown" aria-hidden="true"><i class="fas fa-gem"></i></div>
+            <p class="premium-celebration-kicker">TurnosOk</p>
+            <h2 class="premium-celebration-title">¡Desbloqueaste tu plan profesional!</h2>
+            <p class="premium-celebration-sub">Tu panel ahora tiene más herramientas para hacer crecer tu negocio.</p>
+            <ul class="premium-celebration-perks">
+                <li>Métricas y reportes</li>
+                <li>Personalización de tu tienda pública</li>
+                <li>Mejor imagen ante tus clientes</li>
+            </ul>
+            <button type="button" id="premium-celebration-continue" class="premium-celebration-btn">¡Vamos!</button>
+        </div>
+    </div>
+
     <div class="dashboard-layout">
         <aside class="dashboard-sidebar" id="dashboardSidebar">
             <nav class="sidebar-nav">
@@ -149,107 +170,213 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
 
+
     const dashboardContainer = document.querySelector('.dashboard-wrapper');
-    if (!dashboardContainer) return; 
+    const premiumOverlay = document.getElementById('premium-celebration-overlay');
+    const onboardingCompleto = dashboardContainer ? dashboardContainer.dataset.onboardingCompleto === 'True' : true;
+    const mostrarPremiumAnim = dashboardContainer && dashboardContainer.dataset.mostrarAnimPremium === 'true';
+    const marcarPremiumUrl = dashboardContainer ? (dashboardContainer.dataset.marcarPremiumUrl || '') : '';
 
-    const onboardingCompleto = dashboardContainer.dataset.onboardingCompleto === 'True';
-
-    if (onboardingCompleto) {
-        return;
-    }
-    function marcarYFinalizarTour() {
-            const csrfTokenInput = document.querySelector('form[action*="logout"] [name="csrfmiddlewaretoken"]');
-            if (!csrfTokenInput) {
-                console.error("No se pudo encontrar el token CSRF para marcar el onboarding.");
-                return;
-            }
-            
-            fetch("{% url 'marcar_onboarding_completo' %}", {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': csrfTokenInput.value,
-                    'Content-Type': 'application/json'
-                },
-            }).then(response => {
-                if (response.ok) {
-                    console.log('Onboarding marcado como completo. No volverá a aparecer.');
-                } else {
-                    console.error("Falló la petición para marcar el onboarding.");
-                }
-            });
+    function obtenerCsrf() {
+        const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+        if (csrfMeta && csrfMeta.getAttribute('content')) {
+            return csrfMeta.getAttribute('content');
         }
-        const posicionTooltip = window.innerWidth < 992 ? 'bottom' : 'right';
-        const tour = new Shepherd.Tour({
+        const logoutForm = document.querySelector('form[action*="logout"] [name="csrfmiddlewaretoken"]');
+        if (logoutForm && logoutForm.value) return logoutForm.value;
+        const m = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/);
+        return m ? decodeURIComponent(m[1]) : '';
+    }
+
+    function marcarYFinalizarTour() {
+        const tok = obtenerCsrf();
+        if (!tok) {
+            console.error('CSRF no encontrado para marcar onboarding.');
+            return;
+        }
+        fetch("{% url 'marcar_onboarding_completo' %}", {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': tok,
+                'Content-Type': 'application/json',
+            },
+        }).then(response => {
+            if (!response.ok) console.error('Falló marcar onboarding.');
+        });
+    }
+
+    function marcarAnimacionPremiumVista(cb) {
+        const tok = obtenerCsrf();
+        if (!tok || !marcarPremiumUrl) {
+            if (typeof cb === 'function') cb();
+            return;
+        }
+        fetch(marcarPremiumUrl, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': tok,
+                'Content-Type': 'application/json',
+            },
+        })
+            .finally(() => {
+                if (typeof cb === 'function') cb();
+            });
+    }
+
+    function iniciarTourOnboarding() {
+        if (onboardingCompleto) return;
+
+        var posicionTooltip = window.innerWidth < 992 ? 'bottom' : 'right';
+
+        function marcarTour() {
+            marcarYFinalizarTour();
+        }
+
+        var tour = new Shepherd.Tour({
             useModalOverlay: true,
             defaultStepOptions: {
                 classes: 'shepherd-custom-theme',
                 scrollTo: true,
                 cancelIcon: { enabled: true },
-            }
+            },
         });
+
         tour.addStep({
             title: '¡Bienvenido a tu Dashboard!',
             text: 'Este es tu centro de control. Te daremos una guía general de las secciones.',
-            buttons: [{ text: '¡Vamos!', action: tour.next }]
+            buttons: [{ text: '¡Vamos!', action: tour.next }],
         });
         tour.addStep({
-            title:'<strong>⚠️Importante⚠️</strong>',
-            text:'En cada sección vas a encontrar un boton al lado del título <button class="help-button-tour">?</button> para ver una guia del mismo',
-            buttons:[{text:'Omitir tour',action:tour.cancel},{text:'Seguir Tour',action:tour.next}]
+            title: '<strong>⚠️Importante⚠️</strong>',
+            text: 'En cada sección encontrarás el botón <button class="help-button-tour" type="button">?</button> junto al título para una guía de esa página.',
+            buttons: [
+                { text: 'Omitir tour', action: tour.cancel },
+                { text: 'Seguir Tour', action: tour.next },
+            ],
         });
         tour.addStep({
-            title:'Gestion de Turnos',
-            text:'Aquí podes <strong>cancelar o confirmar tus turnos</strong>. Al finalizar un turno es importante ingresar el importe obtenido para que impacte en tus métricas.',
-            attachTo:{element:'a[href*="{% url "dashboard_turnos" %}"]',on:posicionTooltip},
-            buttons:[{text:'Siguiente',action:tour.next}]
+            title: 'Gestión de Turnos',
+            text: 'Aquí podés <strong>confirmar o cancelar turnos pendientes</strong>. Al finalizar un turno, ingresá el importe para tus métricas.',
+            attachTo: { element: 'a[href*="{% url "dashboard_turnos" %}"]', on: posicionTooltip },
+            buttons: [{ text: 'Siguiente', action: tour.next }],
         });
         tour.addStep({
-            title:'Calendario',
-            text:'Aquí podes <strong>Ver el calendario semanal</strong>. En esta seccion vas a poder todos los dias que tenes turnos agendados y visualizar cada dia.',
-            attachTo:{element:'a[href*="{% url "dashboard_calendario" %}"]',on:posicionTooltip},
-            buttons:[{text:'Siguiente',action:tour.next}]
+            title: 'Calendario',
+            text: 'Aquí ves el calendario y los días con reservas.',
+            attachTo: { element: 'a[href*="{% url "dashboard_calendario" %}"]', on: posicionTooltip },
+            buttons: [{ text: 'Siguiente', action: tour.next }],
         });
         tour.addStep({
             title: 'Horarios y Bloqueos',
-            text: '<strong>¡Este es el paso más importante!</strong> Aquí debes definir tus días y horarios de trabajo para que los clientes puedan reservar sus turnos.',
-            attachTo: { element: 'a[href*="horarios"]', on:posicionTooltip },
-            buttons: [{ text: 'Siguiente', action: tour.next }]
+            text: '<strong>¡Paso clave!</strong> Definí cuándo ofrecés turnos.',
+            attachTo: { element: 'a[href*="horarios"]', on: posicionTooltip },
+            buttons: [{ text: 'Siguiente', action: tour.next }],
         });
         tour.addStep({
             title: 'Catálogo de Servicios',
-            text: 'Aquí podes <strong>crear y editar la lista de servicios</strong> que ofreces (Ej: "Corte de pelo"). Cada servicio requiere completar precio y duración.',
-            attachTo: { element: 'a[href*="catalogo"]', on:posicionTooltip },
-            buttons: [{ text: 'Siguiente', action: tour.next }]
+            text: 'Servicios que ven tus clientes al reservar (nombre, duración, precio).',
+            attachTo: { element: 'a[href*="catalogo"]', on: posicionTooltip },
+            buttons: [{ text: 'Siguiente', action: tour.next }],
         });
         tour.addStep({
-            title:'Detalles del negocio',
-            text:'En esta sección podés <strong>editar la información</strong>, podes modificar el nombre del servicio , la dirección , categoria.',
-            attachTo:{element:'a[href*="{% url "dashboard_detalles_negocio" %}"]',on:posicionTooltip},
-            buttons:[{ text: 'Siguiente', action: tour.next }]
+            title: 'Detalles del negocio',
+            text: 'Nombre, categoría y datos de tu negocio.',
+            attachTo: {
+                element: 'a[href*="{% url "dashboard_detalles_negocio" %}"]',
+                on: posicionTooltip,
+            },
+            buttons: [{ text: 'Siguiente', action: tour.next }],
         });
         tour.addStep({
-            title:'Métricas y Reportes',
-            text:'En esta sección podés ver <strong>los números más importantes de tu negocio</strong>, como las ventas, servicios más vendidos y resultados generales.',
-            attachTo:{element:'a[href$="dashboard/metricas/"]',on:posicionTooltip},
-            buttons:[{text:'Siguiente',action:tour.next}]
+            title: 'Métricas y Reportes',
+            text: 'Números de tu negocio (planes con acceso premium).',
+            attachTo: { element: 'a[href$="dashboard/metricas/"]', on: posicionTooltip },
+            buttons: [{ text: 'Siguiente', action: tour.next }],
         });
         tour.addStep({
-            title:'Apariencia',
-            text:'En esta sección podés <strong>personalizar la apariencia de tu tienda</strong>, como los colores, logo y diseño.',
-            attachTo:{element:'a[href*="{% url "dashboard_servicios" %}"]',on:posicionTooltip},
-            buttons:[{ text: 'Siguiente', action: tour.next }]
+            title: 'Apariencia',
+            text: 'Colores, banner y marca de tu tienda pública.',
+            attachTo: { element: 'a[href*="{% url "dashboard_servicios" %}"]', on: posicionTooltip },
+            buttons: [{ text: 'Siguiente', action: tour.next }],
         });
         tour.addStep({
             title: '¡Todo listo!',
-            text: 'Ya conoces lo esencial. Explora las demás secciones cuando quieras. ¡Muchos éxitos!',
-            buttons: [{ text: 'Finalizar Tour', action:function() {
-                        marcarYFinalizarTour();
+            text: 'Explorá el panel cuando quieras. ¡Muchos éxitos!',
+            buttons: [
+                {
+                    text: 'Finalizar Tour',
+                    action: function () {
+                        marcarTour();
                         window.location.href = "{% url 'dashboard_horarios' %}";
-                    } }]
+                    },
+                },
+            ],
         });
-        tour.on('cancel', marcarYFinalizarTour);
+
+        tour.on('cancel', marcarTour);
         tour.start();
     }
-    );
+
+    function cerrarCelebracionPremium(continuar) {
+        if (!premiumOverlay) {
+            marcarAnimacionPremiumVista(continuar);
+            return;
+        }
+        premiumOverlay.classList.remove('premium-celebration--visible');
+        premiumOverlay.classList.add('premium-celebration--leaving');
+        setTimeout(() => {
+            premiumOverlay.hidden = true;
+            premiumOverlay.setAttribute('aria-hidden', 'true');
+            marcarAnimacionPremiumVista(continuar);
+        }, 680);
+    }
+
+    function ejecutarCelebracionPremium() {
+        if (!premiumOverlay) {
+            iniciarTourOnboarding();
+            return;
+        }
+        premiumOverlay.hidden = false;
+        premiumOverlay.setAttribute('aria-hidden', 'false');
+        requestAnimationFrame(() => premiumOverlay.classList.add('premium-celebration--visible'));
+
+        const btn = document.getElementById('premium-celebration-continue');
+        function iniciarTourLuegoCelebracion() {
+            window.setTimeout(function () {
+                iniciarTourOnboarding();
+            }, 420);
+        }
+        const siguiente = () => cerrarCelebracionPremium(iniciarTourLuegoCelebracion);
+        var autoTimer = window.setTimeout(siguiente, 13800);
+
+        if (btn) {
+            btn.addEventListener(
+                'click',
+                () => {
+                    window.clearTimeout(autoTimer);
+                    siguiente();
+                },
+                { once: true },
+            );
+        }
+    }
+
+    if (!dashboardContainer) return;
+
+    if (mostrarPremiumAnim) {
+        if (premiumOverlay) {
+            ejecutarCelebracionPremium();
+        } else {
+            marcarAnimacionPremiumVista(function () {
+                window.setTimeout(function () {
+                    iniciarTourOnboarding();
+                }, 420);
+            });
+        }
+        return;
+    }
+    iniciarTourOnboarding();
+
+});
 </script>
 {% endblock %}
