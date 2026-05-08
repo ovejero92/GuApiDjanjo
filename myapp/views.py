@@ -170,16 +170,30 @@ def crear_servicio_paso2(request):
 @login_required
 def crear_suscripcion_mp(request, plan_slug):
     plan = get_object_or_404(Plan, slug=plan_slug)
-    
-    if not plan.mp_plan_id:
-        messages.error(request, "Este plan no está configurado para pagos online.")
+
+    if plan.slug == 'free':
+        messages.info(request, "El plan gratis no requiere pago desde aquí.")
         return redirect('precios')
 
-    # Verificar si ya tiene una suscripción activa
+    # El cobro mensual usa preapproval dinámico (monto/recurrencia desde Plan); mp_plan_id
+    # sólo aplicaría si en el futuro se integra el “plan ID” nativo de Mercado Pago.
+    # No bloqueamos el alta por mp_plan_id vacío (las migraciones seed lo dejaban NULL).
+
+    # El plan gratis viene con is_active=True (suscripción «vigente» sin MP). Sólo bloqueamos
+    # si ya tienen un plan de pago (pro/prime) marcado como activo en la app.
     try:
-        suscripcion_existente = Suscripcion.objects.get(usuario=request.user, is_active=True)
-        messages.warning(request, f"Ya tienes una suscripción activa al plan {suscripcion_existente.plan.nombre}. Debes cancelarla primero.")
-        return redirect('dashboard_propietario')
+        subs = Suscripcion.objects.get(usuario=request.user)
+        if (
+            subs.is_active
+            and subs.plan_id
+            and subs.plan.slug != 'free'
+        ):
+            messages.warning(
+                request,
+                f'Ya tenés el plan de pago "{subs.plan.get_nombre_display()}" activo. '
+                'Para cambiar o contratar otro, cancelá primero desde tu panel de suscripción.',
+            )
+            return redirect('dashboard_propietario')
     except Suscripcion.DoesNotExist:
         pass
 
