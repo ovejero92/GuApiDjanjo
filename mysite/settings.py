@@ -174,9 +174,10 @@ SOCIALACCOUNT_PROVIDERS = {
 
 # Pidgeon (API HTTPS) — envío con fallback en EmailFailureLog (ver myapp/email_service.py).
 PIDGEON_URL = env('PIDGEON_URL', default='https://pidgeon-1.onrender.com')
-PIDGEON_TIMEOUT = env.float('PIDGEON_TIMEOUT', default=45.0)
-# Reintentos al enviar (útil cuando Pidgeon “duerme” en Render free): total de llamadas POST a /send
-PIDGEON_SEND_ATTEMPTS = env.int('PIDGEON_SEND_ATTEMPTS', default=5)
+# Corto por defecto: el POST bloqueaba el worker de Gunicorn y provocaba WORKER TIMEOUT con 502 + reintentos.
+PIDGEON_TIMEOUT = env.float('PIDGEON_TIMEOUT', default=12.0)
+# Total de llamadas POST a /send (más intentos ⇒ más probabilidad de colgar la petición HTTP del usuario).
+PIDGEON_SEND_ATTEMPTS = env.int('PIDGEON_SEND_ATTEMPTS', default=2)
 SITE_BASE_URL = env('SITE_BASE_URL', default='https://turnosok.com')
 # Despertar Pidgeon (GET /health) antes del primer POST /send por intento reduce cold-starts en Render free.
 PIDGEON_WAKE_BEFORE_SEND = env.bool('PIDGEON_WAKE_BEFORE_SEND', default=True)

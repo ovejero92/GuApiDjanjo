@@ -119,14 +119,11 @@
     </style>
 </head>
 <body data-servicio-id="{{ servicio.id }}" data-servicio-slug="{{ servicio.slug }}" class="{% block body_class %}{% endblock %}">
-    <div id="loader-wrapper">
-        <div class="loader">
-            <svg viewBox="0 0 120 120" version="1.1" xmlns="http://www.w3.org/2000/svg">
-                <circle class="load one" cx="60" cy="30" r="20" />
-                <circle class="load two" cx="105" cy="60" r="20" />
-                <circle class="load three" cx="60" cy="105" r="20" />
-                <circle class="load four" cx="15" cy="60" r="20" />
-            </svg>
+    <div id="loader-wrapper" class="page-loader-overlay hidden" role="status" aria-live="polite" aria-busy="false">
+        <div class="page-loader-card">
+            <span class="page-loader-icon" aria-hidden="true"><i class="fas fa-calendar-check"></i></span>
+            <p class="page-loader-title" id="page-loader-title">Cargando…</p>
+            <p class="page-loader-hint" id="page-loader-hint">Un momento por favor.</p>
         </div>
     </div>
     <nav class="navbar">
@@ -317,12 +314,37 @@
     </script>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const loaderWrapper = document.getElementById('loader-wrapper');
-        if (loaderWrapper) {
-            loaderWrapper.classList.add('hidden');
-        }
+(function () {
+    function hideLoader() {
+        var w = document.getElementById('loader-wrapper');
+        if (!w) return;
+        w.classList.add('hidden');
+        w.setAttribute('aria-busy', 'false');
+    }
+    function showLoader(title, hint) {
+        var w = document.getElementById('loader-wrapper');
+        if (!w) return;
+        var t = document.getElementById('page-loader-title');
+        var h = document.getElementById('page-loader-hint');
+        if (t) t.textContent = title || 'Cargando…';
+        if (h) h.textContent = hint || '';
+        w.classList.remove('hidden');
+        w.setAttribute('aria-busy', 'true');
+    }
+    window.TurnosOkLoader = { show: showLoader, hide: hideLoader };
+
+    document.addEventListener('DOMContentLoaded', hideLoader);
+    document.addEventListener('turbolinks:request-start', function () {
+        showLoader('Cargando…', 'Un momento.');
     });
+    document.addEventListener('turbolinks:load', hideLoader);
+
+    document.addEventListener('submit', function (e) {
+        var f = e.target;
+        if (!f || f.nodeName !== 'FORM' || f.hasAttribute('data-no-global-loader')) return;
+        showLoader('Enviando…', 'Procesando tu solicitud.');
+    }, true);
+})();
 </script>
 
 {% block scripts_extra %}{% endblock %}

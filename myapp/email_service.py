@@ -1,18 +1,25 @@
 """
 Envío de correos vía API Pidgeon con reintentos y registro en EmailFailureLog si falla.
 No lanza excepciones hacia las vistas: fallos ⇒ log + False.
+
+Los correos tras reservar turno se ejecutan en hilo tras on_commit para no bloquear
+la respuesta HTTP si Pidgeon responde 502 o está lento (evita WORKER TIMEOUT en Gunicorn).
 """
 from __future__ import annotations
 
 import logging
+import threading
 import time
 from datetime import timedelta
+from functools import partial
 
 import requests
 from django.conf import settings
+from django.contrib.auth.models import User
+from django.db import close_old_connections, transaction
 from django.utils import timezone
 
-from .models import EmailFailureLog
+from .models import EmailFailureLog, Turno
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +49,7 @@ def send_email_via_pidgeon(to, subject, html, event_type, idempotency_key=None, 
         try:
             requests.get(
                 health_url,
-                timeout=min(20.0, float(timeout)),
+                timeout=min(8.0, float(timeout)),
             )
             logger.debug('Pidgeon wake GET %s completado.', health_url)
         except requests.exceptions.RequestException as exc:
@@ -89,8 +96,9 @@ def send_email_via_pidgeon(to, subject, html, event_type, idempotency_key=None, 
             error_msg = str(exc)
             logger.warning('Intento %s/%s falló (%s): %s', attempt + 1, attempts, event_type, error_msg)
 
+        # Backoff breve (no usar 2**n: bloqueaba el worker y Gunicorn mataba la petición con timeout).
         if attempt < attempts - 1:
-            time.sleep(2**attempt)
+            time.sleep(min(1.25, 0.2 + 0.25 * attempt))
 
     try:
         EmailFailureLog.objects.create(
@@ -225,6 +233,92 @@ def html_booking_rejected_client(turno, negocio_nombre, servicio_url):
         '<p>Podés intentar otro horario cuando quieras.</p>'
         f'<p><a href="{servicio_url}">Volver al servicio para reagendar</a></p>'
     )
+
+
+def schedule_background(callable_fn):
+    """
+    Ejecuta callable_fn en un hilo tras el commit actual (para no bloquear Gunicorn
+    ante Pidgeon lento / 502). Si falla callable_fn, sólo registra exception.
+    """
+
+    def _runner():
+        close_old_connections()
+        try:
+            callable_fn()
+        except Exception:
+            logger.exception('Correos en segundo plano fallaron (callable interno)')
+        finally:
+            close_old_connections()
+
+    transaction.on_commit(
+        lambda: threading.Thread(target=_runner, daemon=True).start(),
+    )
+
+
+def schedule_turno_booking_emails(
+    turno_id,
+    cancel_url_abs,
+    dashboard_url_abs,
+    cliente_display,
+    propietario_id,
+):
+    schedule_background(
+        partial(
+            dispatch_turno_booking_emails,
+            turno_id,
+            cancel_url_abs,
+            dashboard_url_abs,
+            cliente_display,
+            propietario_id,
+        )
+    )
+
+
+def dispatch_turno_booking_emails(
+    turno_id,
+    cancel_url_abs,
+    dashboard_url_abs,
+    cliente_display,
+    propietario_id,
+):
+    """
+    Llamar desde un hilo vía schedule_turno_booking_emails (o schedule_background).
+    Relee el turno y el propietario.
+    """
+    try:
+        turno = Turno.objects.select_related('servicio', 'profesional', 'cliente').get(pk=turno_id)
+        propietario = User.objects.get(pk=propietario_id)
+    except (Turno.DoesNotExist, User.DoesNotExist) as exc:
+        logger.warning('Correos de reserva omitidos (%s)', exc)
+        return
+
+    cliente_email = (turno.cliente.email or '').strip()
+    if cliente_email:
+        prof_nombre = (
+            turno.profesional.nombre if turno.profesional else turno.servicio.nombre
+        )
+        send_email_with_fallback(
+            cliente_email,
+            f'Turno confirmado con {prof_nombre}',
+            html_booking_confirmation_client(turno, prof_nombre, cancel_url_abs),
+            'booking_confirmation',
+            idempotency_key=f'book-client-{turno.id}',
+        )
+
+    if owner_receives_freelancer_emails(propietario):
+        oe = (propietario.email or '').strip()
+        if oe:
+            send_email_with_fallback(
+                oe,
+                f'¡Nueva reserva! {cliente_display} solicitó un turno',
+                html_booking_notification_pro(
+                    turno,
+                    cliente_display,
+                    dashboard_url_abs,
+                ),
+                'booking_notification_pro',
+                idempotency_key=f'book-pro-{turno.id}',
+            )
 
 
 def owner_receives_freelancer_emails(owner_user):

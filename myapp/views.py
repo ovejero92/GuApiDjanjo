@@ -6,13 +6,12 @@ from .models import PerfilUsuario, Servicio, Profesional , Turno, HorarioLaboral
 from .email_service import (
     send_email_with_fallback,
     send_verification_email,
-    html_booking_confirmation_client,
-    html_booking_notification_pro,
     html_booking_accepted_client,
     html_booking_rejected_client,
-    owner_receives_freelancer_emails,
     dashboard_turnos_link,
     mis_turnos_link,
+    schedule_turno_booking_emails,
+    schedule_background,
 )
 from .forms import BloqueoForm, ProfesionalForm, HorarioLaboralFormSet , HorarioLaboralForm, TurnoForm, UserUpdateForm, IngresoTurnoForm, ReseñaForm, ServicioPersonalizacionForm, ServicioUpdateForm, ServicioCreateForm
 from django.contrib.auth.decorators import login_required
@@ -440,36 +439,24 @@ def servicio_detail(request, servicio_slug):
             turno.profesional = profesional_asignado
             turno.save()
             form.save_m2m()
-            
+
             propietario = servicio.propietario
-            prof_nombre = profesional_asignado.nombre
             cancel_url = mis_turnos_link(request)
-            send_email_with_fallback(
-                turno.cliente.email,
-                f'Turno confirmado con {prof_nombre}',
-                html_booking_confirmation_client(turno, prof_nombre, cancel_url),
-                'booking_confirmation',
-                idempotency_key=f'book-client-{turno.id}',
+            dash_owner_url = dashboard_turnos_link(request)
+            cliente_display = (
+                request.user.get_full_name()
+                or (request.user.first_name or '').strip()
+                or request.user.email
             )
 
-            if owner_receives_freelancer_emails(propietario):
-                cliente_display = (
-                    request.user.get_full_name()
-                    or (request.user.first_name or '').strip()
-                    or request.user.email
-                )
-                send_email_with_fallback(
-                    propietario.email,
-                    f'¡Nueva reserva! {cliente_display} solicitó un turno',
-                    html_booking_notification_pro(
-                        turno,
-                        cliente_display,
-                        dashboard_turnos_link(request),
-                    ),
-                    'booking_notification_pro',
-                    idempotency_key=f'book-pro-{turno.id}',
-                )
-            
+            schedule_turno_booking_emails(
+                turno.id,
+                cancel_url,
+                dash_owner_url,
+                cliente_display,
+                propietario.id,
+            )
+
             messages.success(request, "¡Turno solicitado con éxito!")
             return redirect('mis_turnos')
     else:
@@ -1156,13 +1143,24 @@ def confirmar_turno(request, turno_id):
         turno.visto_por_cliente = False
         turno.save()
         negocio = turno.servicio.nombre
-        send_email_with_fallback(
-            turno.cliente.email,
-            f'Tu turno ha sido confirmado por {negocio}',
-            html_booking_accepted_client(turno, negocio, mis_turnos_link(request)),
-            'booking_accepted',
-            idempotency_key=f'accept-{turno.id}',
-        )
+        tid = turno.id
+        mis_url = mis_turnos_link(request)
+
+        def dispatch_confirm_email():
+            t = Turno.objects.select_related('servicio').get(pk=tid)
+            cliente_mail = (t.cliente.email or '').strip()
+            if not cliente_mail:
+                return
+            send_email_with_fallback(
+                cliente_mail,
+                f'Tu turno ha sido confirmado por {negocio}',
+                html_booking_accepted_client(t, negocio, mis_url),
+                'booking_accepted',
+                idempotency_key=f'accept-{tid}',
+            )
+
+        schedule_background(dispatch_confirm_email)
+
         messages.success(request, f"Turno confirmado. Se notificó a {turno.cliente.first_name or 'el cliente'} por correo si el envío estuvo disponible.")
     return redirect('dashboard_propietario')
 
@@ -1179,27 +1177,37 @@ def cancelar_turno(request, turno_id):
         turno.save()
 
         servicio_abs = request.build_absolute_uri(reverse('servicio_detail', args=[turno.servicio.slug]))
+        fue_pendiente_flag = fue_pendiente
+        tid = turno.id
+        nombre_servicio = turno.servicio.nombre
 
-        if fue_pendiente:
-            send_email_with_fallback(
-                turno.cliente.email,
-                'Tu turno fue rechazado, puedes reagendar',
-                html_booking_rejected_client(turno, turno.servicio.nombre, servicio_abs),
-                'booking_rejected',
-                idempotency_key=f'reject-{turno.id}',
-            )
-        else:
-            cancel_html = (
-                f'<p>Tu turno en <strong>{turno.servicio.nombre}</strong> fue <strong>cancelado</strong>.</p>'
-                f'<p><a href="{servicio_abs}">Podés elegir otro horario desde el perfil del servicio</a></p>'
-            )
-            send_email_with_fallback(
-                turno.cliente.email,
-                f'Información sobre tu turno en {turno.servicio.nombre}',
-                cancel_html,
-                'booking_cancelled_owner',
-                idempotency_key=f'cancel-owner-{turno.id}',
-            )
+        def dispatch_cancel_emails():
+            t = Turno.objects.select_related('servicio').get(pk=tid)
+            cliente_mail = (t.cliente.email or '').strip()
+            if not cliente_mail:
+                return
+            if fue_pendiente_flag:
+                send_email_with_fallback(
+                    cliente_mail,
+                    'Tu turno fue rechazado, puedes reagendar',
+                    html_booking_rejected_client(t, nombre_servicio, servicio_abs),
+                    'booking_rejected',
+                    idempotency_key=f'reject-{tid}',
+                )
+            else:
+                cancel_html = (
+                    f'<p>Tu turno en <strong>{nombre_servicio}</strong> fue <strong>cancelado</strong>.</p>'
+                    f'<p><a href="{servicio_abs}">Podés elegir otro horario desde el perfil del servicio</a></p>'
+                )
+                send_email_with_fallback(
+                    cliente_mail,
+                    f'Información sobre tu turno en {nombre_servicio}',
+                    cancel_html,
+                    'booking_cancelled_owner',
+                    idempotency_key=f'cancel-owner-{tid}',
+                )
+
+        schedule_background(dispatch_cancel_emails)
         messages.info(request, "Actualizamos el turno y al cliente si el correo pudo enviarse.")
     return redirect('dashboard_propietario')
 
