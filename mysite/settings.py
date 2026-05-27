@@ -179,6 +179,9 @@ PIDGEON_URL = env('PIDGEON_URL', default='https://pidgeon-1.onrender.com')
 PIDGEON_TIMEOUT = env.float('PIDGEON_TIMEOUT', default=12.0)
 # Total de llamadas POST a /send (más intentos ⇒ más probabilidad de colgar la petición HTTP del usuario).
 PIDGEON_SEND_ATTEMPTS = env.int('PIDGEON_SEND_ATTEMPTS', default=2)
+# v2 ⇒ usa /v2/send con templateId+templateData (HTML vivo en Pidgeon, persiste en SQLite + webhook Resend).
+# v1 ⇒ /send con html armado en Python (legacy). Si v2 falla por 4xx/5xx, cae a v1 automáticamente.
+PIDGEON_API_VERSION = env('PIDGEON_API_VERSION', default='v2')
 SITE_BASE_URL = env('SITE_BASE_URL', default='https://turnosok.com')
 # Despertar Pidgeon (GET /health) antes del primer POST /send por intento reduce cold-starts en Render free.
 PIDGEON_WAKE_BEFORE_SEND = env.bool('PIDGEON_WAKE_BEFORE_SEND', default=True)

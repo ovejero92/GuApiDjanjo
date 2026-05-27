@@ -8,6 +8,10 @@ from .email_service import (
     send_verification_email,
     html_booking_accepted_client,
     html_booking_rejected_client,
+    html_booking_cancelled_owner,
+    template_data_booking_accepted_client,
+    template_data_booking_rejected_client,
+    template_data_booking_cancelled_owner,
     dashboard_turnos_link,
     mis_turnos_link,
     schedule_turno_booking_emails,
@@ -1155,6 +1159,8 @@ def confirmar_turno(request, turno_id):
                 html_booking_accepted_client(t, negocio, mis_url),
                 'booking_accepted',
                 idempotency_key=f'accept-{tid}',
+                template_id='turno-aceptado-cliente',
+                template_data=template_data_booking_accepted_client(t, negocio, mis_url),
             )
 
         schedule_background(dispatch_confirm_email)
@@ -1191,18 +1197,22 @@ def cancelar_turno(request, turno_id):
                     html_booking_rejected_client(t, nombre_servicio, servicio_abs),
                     'booking_rejected',
                     idempotency_key=f'reject-{tid}',
+                    template_id='turno-rechazado-cliente',
+                    template_data=template_data_booking_rejected_client(
+                        t, nombre_servicio, servicio_abs,
+                    ),
                 )
             else:
-                cancel_html = (
-                    f'<p>Tu turno en <strong>{nombre_servicio}</strong> fue <strong>cancelado</strong>.</p>'
-                    f'<p><a href="{servicio_abs}">Podés elegir otro horario desde el perfil del servicio</a></p>'
-                )
                 send_email_with_fallback(
                     cliente_mail,
                     f'Información sobre tu turno en {nombre_servicio}',
-                    cancel_html,
+                    html_booking_cancelled_owner(nombre_servicio, servicio_abs),
                     'booking_cancelled_owner',
                     idempotency_key=f'cancel-owner-{tid}',
+                    template_id='turno-cancelado-cliente',
+                    template_data=template_data_booking_cancelled_owner(
+                        t.cliente.first_name, nombre_servicio, servicio_abs,
+                    ),
                 )
 
         schedule_background(dispatch_cancel_emails)

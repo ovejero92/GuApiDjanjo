@@ -7,6 +7,10 @@ from myapp.email_service import (
     send_email_with_fallback,
     owner_receives_freelancer_emails,
     site_base_url,
+    html_reminder_client,
+    html_reminder_pro,
+    template_data_reminder_client,
+    template_data_reminder_pro,
 )
 from myapp.models import Turno
 
@@ -49,27 +53,28 @@ class Command(BaseCommand):
                 or turno.cliente.first_name
                 or turno.cliente.email
             )
+            dash_url = f'{site_base_url()}/dashboard/'
 
             send_email_with_fallback(
                 turno.cliente.email,
                 f'Recordatorio: tu turno con {prof_nombre} es en 15 minutos',
-                f'<p>Tu turno es a las {turno.hora.strftime("%H:%M")} el {turno.fecha.strftime("%d/%m/%Y")}. '
-                f'Servicio: {turno.servicio.nombre}.</p>',
+                html_reminder_client(turno, prof_nombre),
                 'reminder_client',
                 idempotency_key=f'reminder-client-{turno.id}',
+                template_id='recordatorio-cliente',
+                template_data=template_data_reminder_client(turno, prof_nombre),
             )
 
             propietario = turno.servicio.propietario
             if owner_receives_freelancer_emails(propietario):
-                dash_url = f'{site_base_url()}/dashboard/'
                 send_email_with_fallback(
                     propietario.email,
                     f'Recordatorio: turno en 15 minutos con {cliente_nom}',
-                    f'<p>El turno con <strong>{cliente_nom}</strong> ({turno.servicio.nombre}) comienza a las '
-                    f'{turno.hora.strftime("%H:%M")}.</p>'
-                    f'<p><a href="{dash_url}">Abrir tu panel</a></p>',
+                    html_reminder_pro(turno, cliente_nom, dash_url),
                     'reminder_pro',
                     idempotency_key=f'reminder-pro-{turno.id}',
+                    template_id='recordatorio-pro',
+                    template_data=template_data_reminder_pro(turno, cliente_nom, dash_url),
                 )
 
             Turno.objects.filter(pk=turno.pk).update(recordatorio_enviado=True)
